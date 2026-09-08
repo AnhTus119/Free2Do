@@ -1,4 +1,4 @@
-const API_BASE_URL = "http://localhost:8000";
+const API_BASE_URL = "https://free2do.onrender.com";
 
 const loginForm = document.querySelector(".login__form");
 let loginErrorEl = document.getElementById("login-error");

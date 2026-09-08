@@ -1,4 +1,4 @@
-const API_BASE_URL = "http://localhost:8000";
+const API_BASE_URL = "https://free2do.onrender.com";
 
 const registerForm = document.querySelector(".signup__form");
 let registerErrorEl = document.getElementById("register-error");

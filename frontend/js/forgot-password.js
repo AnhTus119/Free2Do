@@ -1,4 +1,4 @@
-const AUTH_API_BASE_URL = "http://localhost:8000";
+const AUTH_API_BASE_URL = "https://free2do.onrender.com";
 
 async function readJson(response) {
   try { return await response.json(); } catch { return {}; }

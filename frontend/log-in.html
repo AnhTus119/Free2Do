@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Đăng nhập - FREE2DO</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/log-in.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+
+<body>
+<div class="login">
+  <div class="login__circle"></div>
+
+  <div class="login__content">
+
+    <div class="login__brand">
+      <p>@ 2026 FREE2DO - Nền tảng khám phá hoạt động dựa trên thời gian rảnh</p>
+    </div>
+
+    <div class="login__inner">
+
+      <a href="index.html" class="login__back">&larr; Quay lại trang chủ</a>
+
+      <div class="login__tabs">
+        <a href="log-in.html" class="login__tab login__tab--active">Đăng nhập</a>
+        <a href="sign-up.html" class="login__tab">Đăng ký</a>
+      </div>
+
+      <form class="login__form" action="#" method="post">
+
+        <div class="login__field">
+          <label class="login__label" for="login-account">Email</label>
+          <input class="login__input" type="text" id="login-account" name="account" placeholder="Nhập email của bạn" required>
+        </div>
+
+        <div class="login__field">
+          <label class="login__label" for="login-password">Mật khẩu</label>
+          <div class="login__input-wrap">
+            <input class="login__input" type="password" id="login-password" name="password" placeholder="Nhập mật khẩu" required>
+            <button type="button" class="login__toggle" data-target="login-password" aria-label="Hiện mật khẩu">
+              <i class="fa-solid fa-eye-slash"></i>
+            </button>
+          </div>
+          <a href="forgot-password.html" class="login__hint">Quên mật khẩu?</a>
+        </div>
+
+        <button type="submit" class="login__submit">Đăng nhập</button>
+
+        <div class="login__divider"><span>HOẶC</span></div>
+
+        <div class="login__socials">
+          <!-- 
+          <button type="button" class="login__social">
+            <svg width="24" height="24" viewBox="0 0 24 24"><path fill="#1877F2" d="M24 12.07C24 5.4 18.63 0 12 0S0 5.4 0 12.07C0 18.1 4.39 23.1 10.13 24v-8.44H7.08v-3.49h3.05V9.41c0-3.02 1.79-4.69 4.53-4.69 1.31 0 2.68.24 2.68.24v2.97h-1.51c-1.49 0-1.96.93-1.96 1.89v2.25h3.33l-.53 3.49h-2.8V24C19.61 23.1 24 18.1 24 12.07Z"/></svg>
+            Facebook
+          </button> 
+          -->
+          <button type="button" class="login__social">
+            <svg width="24" height="24" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.52 12.27c0-.85-.08-1.66-.22-2.45H12v4.64h6.47a5.53 5.53 0 0 1-2.4 3.63v3h3.87c2.27-2.09 3.58-5.17 3.58-8.82Z"/><path fill="#34A853" d="M12 24c3.24 0 5.96-1.07 7.94-2.91l-3.87-3c-1.08.73-2.46 1.15-4.07 1.15-3.13 0-5.78-2.11-6.73-4.95H1.27v3.11A12 12 0 0 0 12 24Z"/><path fill="#FBBC05" d="M5.27 14.29a7.2 7.2 0 0 1 0-4.58V6.6H1.27a12 12 0 0 0 0 10.8l4-3.11Z"/><path fill="#EA4335" d="M12 4.77c1.76 0 3.34.6 4.58 1.79l3.44-3.44C17.95 1.19 15.24 0 12 0A12 12 0 0 0 1.27 6.6l4 3.11C6.22 6.88 8.87 4.77 12 4.77Z"/></svg>
+            Đăng nhập bằng Google
+          </button>
+        </div>
+
+        <p class="login__terms">Bằng cách đăng nhập, bạn đồng ý với <a href="#">Điều khoản sử dụng</a> và <a href="#">Chính sách bảo mật</a></p>
+
+        <p class="login__switch">Chưa có tài khoản? <a href="sign-up.html">Đăng ký ngay</a></p>
+
+      </form>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  document.querySelectorAll('.login__toggle').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var input = document.getElementById(btn.dataset.target);
+      var icon = btn.querySelector('i');
+      var isPassword = input.type === 'password';
+
+      input.type = isPassword ? 'text' : 'password';
+      icon.classList.toggle('fa-eye', isPassword);
+      icon.classList.toggle('fa-eye-slash', !isPassword);
+      btn.setAttribute('aria-label', isPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu');
+    });
+  });
+</script>
+<script src="js/login.js"></script>
+
+</body>
+</html>

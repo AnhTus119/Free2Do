@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quên mật khẩu - FREE2DO</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/forgot-password.css">
+
+  <style>
+    /* Thông báo đã gửi email */
+    .check-email__notice {
+        background: var(--color-green);
+        border-radius: 10px;
+        padding: 12px 16px;
+        margin-bottom: 30px;
+    }
+    
+    .check-email__notice-title {
+        margin: 0 0 4px 0;
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--color-text-dark, #2b2b2b);
+    }
+    
+    .check-email__notice-text {
+        margin: 0;
+        font-size: 13px;
+        line-height: 1.5;
+        color: var(--color-text-dark, #2b2b2b);
+    }
+  </style>
+</head>
+
+<body>
+<div class="check-email">
+  <div class="check-email__card">
+
+    <h1 class="check-email__title">Quên mật khẩu</h1>
+
+    <div class="check-email__notice">
+      <p class="check-email__notice-title">Đã gửi email!</p>
+      <p class="check-email__notice-text">Chúng tôi đã gửi mã xác nhận đến email của bạn. Vui lòng kiểm tra hộp thư.</p>
+    </div>
+
+    <form class="check-email__form" action="#" method="post" novalidate>
+
+      <div class="check-email__field">
+        <label class="check-email__label" for="check-email-code">Mã xác nhận</label>
+        <div class="check-email__input-wrap">
+          <input class="check-email__input" type="text" id="check-email-code" name="code" placeholder="Nhập mã xác nhận" required>
+        </div>
+        <span class="check-email__error" id="check-email-code-error">Mã xác nhận không đúng. Vui lòng thử lại.</span>
+      </div>
+
+      <button type="submit" class="check-email__submit">Xác nhận</button>
+
+    </form>
+
+  </div>
+</div>
+
+<script src="js/forgot-password.js"></script>
+</body>
+</html>

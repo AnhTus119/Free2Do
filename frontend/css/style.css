@@ -1,0 +1,28 @@
+
+:root {
+    --color-green: #B2BD8B;
+    --color-pink: #FF9DA3;
+    --color-rose: #DB6680;
+    --color-cream: #FFEBC6;
+    --color-brown: #6E5248;
+    --color-black: #000000;
+    --color-white: #FFFFFF;
+
+    --color-input-bg: #FFF6E2;
+    --color-text-muted: #897878;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html, body {
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Arial', sans-serif; 
+    color: var(--color-black); 
+}
+

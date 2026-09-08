@@ -1,0 +1,326 @@
+
+/* Nền */
+body, html {
+  min-height: 100vh;
+  background: var(--color-brown);
+  position: relative;
+  overflow: hidden;
+}
+
+.signup {
+    position: relative;
+    width: 100%;
+    min-height: 100vh;
+    background-image: url('../img/back.png');
+    background-size: 150%;
+}
+
+.signup__circle {
+  position: fixed;
+  width: 1440px;
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  background: var(--color-cream);
+  border: 15px solid var(--color-green);
+  right: -650px;
+  bottom: -350px;
+  z-index: 1;
+}
+/* Lớp chứa nội dung */
+.signup__content {
+    width: 100%;
+    min-height: 100vh;
+    position: relative;
+    z-index: 2;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+}
+
+/* Cột trái */
+.signup__brand {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: flex-start;
+  padding: 30px;
+  color: var(--color-cream);
+}
+
+.signup__title {
+  position: relative;
+  z-index: 1;
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  margin: 0 0 0 20px; 
+}
+
+.signup__illustration {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: auto;
+  flex: 1; 
+}
+
+.signup__logo {
+  width: 350px;
+  height: 350px;
+}
+
+.signup__brand-bottom {
+  position: relative;
+  z-index: 1;
+}
+
+.signup__tagline {
+  font-size: 45px;
+  font-weight: 700;
+  line-height: 1.3;
+  margin: 20px 0 70px 55px;
+}
+.signup__tagline em {
+  font-style: italic;
+  color: var(--color-rose);
+}
+
+.signup__copyright {
+  font-size: 12px;
+  font-weight: 400;
+}
+
+/* Cột phải */
+.signup__inner {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  padding-top: 15px;
+  padding-left: 100px;
+  padding-right: 70px;
+}
+
+.signup__back {
+  display: inline-block;
+  color: var(--color-black);
+  text-decoration: none;
+  font-style: italic;
+  font-size: 20px;
+}
+
+/* Tabs */
+.signup__tabs {
+  width: 300px;
+  height: 50px;
+  display: flex;
+  background: var(--color-pink);
+  border-radius: 20px;
+  padding: 4px;
+  margin: 15px auto;
+}
+
+.signup__tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 20px;
+  text-decoration: none;
+  color: var(--color-black);
+  font-size: 18px;
+}
+
+.signup__tab--active {
+  background: var(--color-rose);
+  color: var(--color-white);
+  font-weight: 400;
+}
+
+/* Form field */
+.signup__field {
+  margin-bottom: 15px;
+}
+
+.signup__label {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 20px;
+  color: var(--color-black);
+}
+
+.signup__input-wrap {
+  position: relative;
+}
+
+.signup__input {
+  width: 100%;
+  height: 46px;
+  padding: 0 50px 0 16px;
+  border: 2px solid var(--color-brown);
+  border-radius: 10px;
+  background: var(--color-cream);
+  font-size: 18px;
+}
+
+.signup__input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.signup__input:focus {
+  outline: none;
+  border-color: var(--color-rose);
+}
+
+.signup__toggle {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-black);
+  font-size: 16px;
+}
+
+/* Password strength */
+.signup__strength {
+  display: flex;
+  flex-direction: column; 
+  gap: 8px;
+  margin-top: 5px;
+}
+
+.signup__strength-bars {
+  display: flex;
+  gap: 6px;
+  flex: 1;
+}
+
+.signup__strength-bar {
+  height: 5px;
+  flex: 1;
+  border-radius: 3px;
+  background: var(--color-pink); /* mặc định chưa nhập */
+  transition: background 0.2s ease; 
+}
+
+.signup__strength-bar--weak {
+  background: var(--color-brown); 
+}
+
+.signup__strength-bar--medium {
+  background: var(--color-rose); 
+}
+
+.signup__strength-bar--strong {
+  background: var(--color-green);
+}
+
+.signup__strength-label {
+  font-size: 15px;
+  font-weight: 700;
+  min-width: 60px;
+  text-align: right;
+}
+
+.signup__strength-label--weak { color: var(--color-brown); }
+.signup__strength-label--medium { color: var(--color-rose); }
+.signup__strength-label--strong { color: var(--color-green); }
+
+/* Consent checkbox */
+.signup__consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 15px;
+  font-size: 15px;
+  color: var(--color-black);
+  cursor: pointer;
+}
+
+.signup__consent-input {
+  width: 17px;
+  height: 17px;
+  margin-top: 1px;
+  accent-color: var(--color-rose);
+  cursor: pointer;
+}
+
+/* Submit */
+.signup__submit {
+  display: block;
+  width: 300px;
+  height: 50px;
+  border: none;
+  border-radius: 15px;
+  background: var(--color-rose);
+  color: var(--color-white);
+  font-size: 24px;
+  font-weight: 700;
+  cursor: pointer;
+  margin: 0 auto 15px auto;
+}
+
+.signup__submit:hover {
+  filter: brightness(1.05); 
+}
+
+/* Divider */
+.signup__divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 15px;
+  font-size: 15px;
+  color: var(--color-brown);
+  font-weight: 700;
+}
+
+.signup__divider::before,
+.signup__divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--color-brown);
+}
+
+/* Social buttons */
+.signup__socials {
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  margin: 0 auto 15px auto;
+}
+
+.signup__social {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 375px;
+  height: 50px;
+  border: 1px solid var(--color-brown);
+  border-radius: 8px;
+  background: var(--color-cream);
+  font-size: 16px;
+  cursor: pointer;
+}
+
+/* Text */
+.signup__switch {
+  text-align: center;
+  font-size: 15px;
+  color: var(--color-black);
+}
+
+.signup__consent a,
+.signup__switch a {
+  color: var(--color-rose);
+  text-decoration: underline;
+}
+
+.signup__switch a {
+  text-decoration: none;
+}

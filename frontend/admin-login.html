@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Đăng nhập Quản trị viên - FREE2DO</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/admin-login.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+
+<body>
+<div class="admin-login">
+  <div class="admin-login__card">
+
+    <h1 class="admin-login__title">Đăng nhập Quản trị viên</h1>
+    <p class="admin-login__subtitle">Khu vực dành riêng cho đội ngũ vận hành hệ thống Free2Do.</p>
+
+    <form class="admin-login__form" action="#" method="post" novalidate>
+
+      <div class="admin-login__field">
+        <label class="admin-login__label" for="admin-account">Tài khoản quản trị</label>
+        <input class="admin-login__input" type="text" id="admin-account" name="account" placeholder="Username hoặc email nội bộ" required>
+        <span class="admin-login__error" id="admin-account-error">Không tìm thấy tài khoản quản trị này.</span>
+      </div>
+
+      <div class="admin-login__field">
+        <label class="admin-login__label" for="admin-password">Mật khẩu</label>
+        <div class="admin-login__input-wrap">
+          <input class="admin-login__input" type="password" id="admin-password" name="password" placeholder="Nhập mật khẩu" required>
+          <button type="button" class="admin-login__toggle" data-target="admin-password" aria-label="Hiện mật khẩu">
+            <i class="fa-solid fa-eye-slash"></i>
+          </button>
+        </div>
+        <span class="admin-login__error" id="admin-password-error">Sai mật khẩu. Vui lòng thử lại.</span>
+      </div>
+
+      <button type="submit" class="admin-login__submit">Đăng nhập Quản trị</button>
+
+      <div class="admin-login__warning">
+        Mọi truy cập vào khu vực này đều được ghi log. Không chia sẻ tài khoản quản trị với người khác.
+      </div>
+
+      <p class="admin-login__switch">Không phải Quản trị viên? <a href="log-in.html">Về trang đăng nhập người dùng</a></p>
+
+    </form>
+
+  </div>
+</div>
+
+<script>
+  document.querySelectorAll('.admin-login__toggle').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var input = document.getElementById(btn.dataset.target);
+      var icon = btn.querySelector('i');
+      var isPassword = input.type === 'password';
+
+      input.type = isPassword ? 'text' : 'password';
+      icon.classList.toggle('fa-eye', isPassword);
+      icon.classList.toggle('fa-eye-slash', !isPassword);
+      btn.setAttribute('aria-label', isPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu');
+    });
+  });
+
+  /*
+    Demo hiển thị lỗi (thay bằng logic thật khi nối API):
+    document.getElementById('admin-account').closest('.admin-login__field')
+      .classList.add('admin-login__field--error');
+  */
+</script>
+
+</body>
+</html>

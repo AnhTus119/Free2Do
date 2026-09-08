@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Đăng ký - FREE2DO</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/sign-up.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+
+<div class="signup">
+  <div class="signup__circle"></div>
+
+  <div class="signup__content">
+
+    <div class="signup__brand">
+      <p class="signup__title">FREE2DO</p>
+
+      <div class="signup__illustration">
+        <img class="signup__logo" src="img/logo.svg" alt="Free2Do logo">
+      </div>
+
+      <div class="signup__brand-bottom">
+        <h2 class="signup__tagline">Bạn rảnh bao lâu?<br><em>Free2Do</em> giúp bạn<br>biết nên làm gì.</h2>
+        <p class="signup__copyright">@ 2026 FREE2DO - Nền tảng khám phá hoạt động dựa trên thời gian rảnh</p>
+      </div>
+    </div>
+
+    <div class="signup__inner">
+
+      <a href="index.html" class="signup__back">&larr; Quay lại trang chủ</a>
+
+      <div class="signup__tabs">
+        <a href="log-in.html" class="signup__tab">Đăng nhập</a>
+        <a href="sign-up.html" class="signup__tab signup__tab--active">Đăng ký</a>
+      </div>
+
+      <form class="signup__form" action="#" method="post">
+
+        <div class="signup__field">
+          <label class="signup__label" for="register-name">Họ và tên</label>
+          <input class="signup__input" type="text" id="register-name" name="fullname" placeholder="Nhập họ và tên" required>
+        </div>
+
+        <div class="signup__field">
+          <label class="signup__label" for="register-account">Email</label>
+          <input class="signup__input" type="text" id="register-account" name="account" placeholder="Nhập email của bạn" required>
+        </div>
+
+        <div class="signup__field">
+          <label class="signup__label" for="register-password">Mật khẩu</label>
+          <div class="signup__input-wrap">
+            <input class="signup__input" type="password" id="register-password" name="password" placeholder="Nhập mật khẩu" required>
+            <button type="button" class="signup__toggle" data-target="register-password" aria-label="Hiện mật khẩu">
+              <i class="fa-solid fa-eye-slash"></i>
+            </button>
+          </div>
+
+          <div class="signup__strength" id="password-strength">
+            <div class="signup__strength-bars">
+              <span class="signup__strength-bar"></span>
+              <span class="signup__strength-bar"></span>
+              <span class="signup__strength-bar"></span>
+            </div>
+            <span class="signup__strength-label"></span>
+          </div>
+        </div>
+
+        <div class="signup__field">
+          <label class="signup__label" for="register-password-confirm">Xác nhận mật khẩu</label>
+          <div class="signup__input-wrap">
+            <input class="signup__input" type="password" id="register-password-confirm" name="password_confirm" placeholder="Nhập lại mật khẩu" required>
+            <button type="button" class="signup__toggle" data-target="register-password-confirm" aria-label="Hiện mật khẩu">
+              <i class="fa-solid fa-eye-slash"></i>
+            </button>
+          </div>
+        </div>
+
+        <label class="signup__consent">
+          <input class="signup__consent-input" type="checkbox" required>
+          <span>Tôi đồng ý với <a href="#">Điều khoản sử dụng</a> và <a href="#">Chính sách bảo mật</a></span>
+        </label>
+
+        <button type="submit" class="signup__submit">Đăng ký</button>
+
+        <div class="signup__divider"><span>HOẶC</span></div>
+
+        <div class="signup__socials">
+          <button type="button" class="signup__social">
+            <svg width="24" height="24" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.52 12.27c0-.85-.08-1.66-.22-2.45H12v4.64h6.47a5.53 5.53 0 0 1-2.4 3.63v3h3.87c2.27-2.09 3.58-5.17 3.58-8.82Z"/><path fill="#34A853" d="M12 24c3.24 0 5.96-1.07 7.94-2.91l-3.87-3c-1.08.73-2.46 1.15-4.07 1.15-3.13 0-5.78-2.11-6.73-4.95H1.27v3.11A12 12 0 0 0 12 24Z"/><path fill="#FBBC05" d="M5.27 14.29a7.2 7.2 0 0 1 0-4.58V6.6H1.27a12 12 0 0 0 0 10.8l4-3.11Z"/><path fill="#EA4335" d="M12 4.77c1.76 0 3.34.6 4.58 1.79l3.44-3.44C17.95 1.19 15.24 0 12 0A12 12 0 0 0 1.27 6.6l4 3.11C6.22 6.88 8.87 4.77 12 4.77Z"/></svg>
+            Google
+          </button>
+        </div>
+
+        <p class="signup__switch">Bạn đã có tài khoản? <a href="log-in.html">Đăng nhập ngay</a></p>
+
+      </form>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  document.querySelectorAll('.signup__toggle').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var input = document.getElementById(btn.dataset.target);
+      var icon = btn.querySelector('i');
+      var isPassword = input.type === 'password';
+
+      input.type = isPassword ? 'text' : 'password';
+      icon.classList.toggle('fa-eye', isPassword);
+      icon.classList.toggle('fa-eye-slash', !isPassword);
+      btn.setAttribute('aria-label', isPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu');
+    });
+  });
+
+  const passwordInput = document.getElementById('register-password');
+const strengthBox = document.getElementById('password-strength');
+
+if (passwordInput && strengthBox) {
+  const bars = strengthBox.querySelectorAll('.signup__strength-bar');
+  const label = strengthBox.querySelector('.signup__strength-label');
+
+  function checkStrength(value) {
+    let score = 0;
+    if (value.length >= 8) score++;
+    if (/[A-Z]/.test(value) && /[a-z]/.test(value)) score++;
+    if (/[0-9]/.test(value)) score++;
+    if (/[^A-Za-z0-9]/.test(value)) score++;
+
+    // Quy về 3 mức: 0-1 điểm = yếu, 2 điểm = trung bình, 3-4 điểm = mạnh
+    if (value.length === 0) return 0;
+    if (score <= 1) return 1;
+    if (score === 2) return 2;
+    return 3;
+  }
+
+  passwordInput.addEventListener('input', function () {
+    const level = checkStrength(passwordInput.value);
+    const levels = ['', 'weak', 'medium', 'strong'];
+    const texts = ['', 'Yếu', 'Trung bình', 'Mạnh'];
+
+    bars.forEach((bar, index) => {
+      bar.className = 'signup__strength-bar';
+      if (index < level) {
+        bar.classList.add(`signup__strength-bar--${levels[level]}`);
+      }
+    });
+
+    label.className = 'signup__strength-label';
+    if (level > 0) {
+      label.classList.add(`signup__strength-label--${levels[level]}`);
+    }
+    label.textContent = texts[level];
+  });
+}
+
+</script>
+<script src="js/register.js"></script>
+
+</body>
+</html>

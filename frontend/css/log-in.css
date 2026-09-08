@@ -1,0 +1,236 @@
+
+/* Nền */ 
+body, html {
+  min-height: 100vh;
+  background: var(--color-brown);
+  position: relative;
+  overflow: hidden;
+}
+
+.login {
+    position: relative;
+    width: 100%;
+    min-height: 100vh;
+}
+
+.login__circle {
+  position: fixed;
+  width: 1440px;
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  background: var(--color-cream);
+  border: 15px solid var(--color-green);
+  right: -650px;
+  bottom: -350px;
+  z-index: 1;
+}
+
+/* Lớp chứa nội dung */
+.login__content {
+  width: 100%;
+  min-height: 100vh;
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: 1fr 1fr;   /* 2 cột bằng nhau */
+}
+
+/* Cột trái */
+.login__brand {
+  display: flex;
+  flex-direction: column;     
+  justify-content: flex-end;   
+  align-items: flex-start; 
+  padding: 30px;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--color-cream);
+}
+
+/* Cột phải*/
+.login__inner {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  padding-top: 15px;
+  padding-left: 100px;
+  padding-right: 70px;
+}
+
+.login__back {
+  display: inline-block;
+  color: var(--color-black);
+  text-decoration: none;
+  font-style: italic;
+  font-size: 20px;
+}
+
+/* Tabs */
+.login__tabs {
+    width: 300px;
+    height: 50px;
+    display: flex;
+    background: var(--color-pink);
+    border-radius: 20px;
+    padding: 4px;
+    margin: 40px auto;
+    
+}
+
+.login__tab {
+  flex: 1; /* Chiếm toàn bộ chiều rộng của phần tử cha */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 20px;
+  text-decoration: none;
+  color: var(--color-black);
+  font-size: 18px;
+}
+
+.login__tab--active {
+  background: var(--color-rose);
+  color: var(--color-white);
+  font-weight: 400;
+}
+
+/* Form field */
+.login__field {
+  margin-bottom: 30px;
+}
+
+.login__label {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 20px;
+  color: var(--color-black);
+}
+
+.login__input-wrap {
+  position: relative;
+}
+
+.login__input {
+  width: 100%;
+  height: 50px;
+  padding: 0 50px 0 16px; 
+  border: 2px solid var(--color-brown);
+  border-radius: 10px;
+  background: var(--color-cream); 
+  font-size: 18px;
+}
+
+.login__input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.login__input:focus {
+  outline: none;
+  border-color: var(--color-rose);
+}
+
+.login__toggle {
+  position: absolute;
+  right: 10px; 
+  top: 50%;
+  transform: translateY(-50%); 
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-black);
+  font-size: 16px;
+}
+
+.login__hint {
+  display: block;
+  text-align: right;
+  margin-top: 10px;
+  font-size: 16px;
+  color: var(--color-rose);
+  text-decoration: underline;
+}
+
+/* Submit */
+.login__submit {
+    display: block;
+    width: 300px;
+    height: 50px;
+    border: none;
+    border-radius: 15px;
+    background: var(--color-rose);
+    color: var(--color-white);
+    font-size: 24px;
+    font-weight: 700;
+    cursor: pointer; /* Thêm con trỏ chuột khi hover */
+    margin: 0 auto 30px auto;
+}
+
+.login__submit:hover {
+  filter: brightness(1.05); 
+}
+
+/* Divider */
+.login__divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 30px;
+  font-size: 15px;
+  color: var(--color-brown);
+  font-weight: 700;
+}
+
+.login__divider::before,
+.login__divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--color-brown);
+}
+
+/* Social buttons */
+.login__socials {
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  margin: 0 auto 30px auto;
+}
+
+.login__social {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 375px;
+  height: 50px;
+  border: 1px solid var(--color-brown);
+  border-radius: 8px;
+  background: var(--color-cream);
+  font-size: 16px;
+  cursor: pointer;
+
+}
+
+/* Text */
+.login__terms {
+  text-align: center;
+  font-size: 15px;
+  color: var(--color-black);
+  margin-bottom: 15px;
+}
+
+.login__switch {
+  text-align: center;
+  font-size: 15px;
+  color: var(--color-black);
+}
+
+.login__terms a,
+.login__switch a {
+  color: var(--color-rose);
+  text-decoration: underline;
+}
+
+.login__switch a {
+    text-decoration: none;
+}

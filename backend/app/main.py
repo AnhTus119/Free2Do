@@ -7,7 +7,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://127.0.0.1:5500", "http://localhost:5500",  # test cục bộ (Live Server)
-        "https://free2-do.vercel.app/",
+        "https://free2-do.vercel.app",
     ],
     allow_credentials=True,
     allow_methods=["*"],

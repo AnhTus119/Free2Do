@@ -298,3 +298,60 @@ class MeResponse(BaseModel):
     role: Optional[str] = None   # role_name nếu là user (vd "customer","business"), "operator" nếu là Operator
     name: str
     redirect: str                # "admin.html" | "index.html"
+
+# ---------------------------------------------------------------------------
+# User categories (sở thích) -- khách hàng chọn để phục vụ interest matching
+# ---------------------------------------------------------------------------
+class UserCategoriesUpdate(BaseModel):
+    category_ids: list[str]
+
+# ---------------------------------------------------------------------------
+# Activity -- mở rộng cho Business (CRUD) và Operator (duyệt)
+# ---------------------------------------------------------------------------
+class ActivityUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    price: Optional[float] = None
+    address: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    time_open: Optional[datetime] = None
+    time_close: Optional[datetime] = None
+    category_ids: Optional[list[str]] = None
+
+class ActivityDetail(Activity):
+    """Chi tiết hoạt động: kèm danh mục, media, rating trung bình -- dùng cho trang chi tiết"""
+    category_ids: list[str] = []
+    media: list[ActivityMedia] = []
+    avg_rating: Optional[float] = None
+    review_count: int = 0
+
+class ActivityAdminOut(Activity):
+    """Dùng cho danh sách Operator duyệt -- kèm tên doanh nghiệp và thông tin xác minh"""
+    business_name: str
+    verified_by: Optional[str] = None
+    verified_at: Optional[datetime] = None
+
+class ActivityMediaCreate(BaseModel):
+    media_url: str
+    media_type: str
+
+# ---------------------------------------------------------------------------
+# Review -- cập nhật
+# ---------------------------------------------------------------------------
+class ReviewUpdate(BaseModel):
+    rating: Optional[int] = None
+    content: Optional[str] = None
+
+class ReviewMediaCreate(BaseModel):
+    media_url: str
+    media_type: str
+
+# ---------------------------------------------------------------------------
+# Operator -- xử lý report / complaint
+# ---------------------------------------------------------------------------
+class ReportResolveRequest(BaseModel):
+    action: Literal["dismiss", "hide_activity"]
+
+class ComplaintResolveRequest(BaseModel):
+    action: Literal["dismiss", "delete_review"]

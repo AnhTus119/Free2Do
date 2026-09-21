@@ -70,7 +70,7 @@ if (loginForm) {
       window.location.href = me.redirect || "index.html";
     } catch (error) {
       console.error(error);
-      showLoginError("Không kết nối được backend tại http://localhost:8000.");
+      showLoginError("Không kết nối được backend.");
     }
   });
 }

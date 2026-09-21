@@ -53,13 +53,15 @@ def list_reports(
     return query.order_by(models.Report.created_at.desc()).all()
 
 
-@operator_router.patch("/{report_id}/resolve", response_model=schemas.Report)
+@operator_router.patch("/{report_id}/resolve", response_model=schemas.MessageResponse)
 def resolve_report(
     report_id: str,
     payload: schemas.ReportResolveRequest,
     db: Session = Depends(get_db),
     operator: models.Operator = Depends(get_current_operator),
 ):
+    """Operator xử lý báo cáo (ẩn hoạt động hoặc bỏ qua) rồi xóa hẳn bản ghi báo cáo khỏi
+    database -- báo cáo không lưu lại lịch sử sau khi đã xử lý (theo đúng đặc tả usecase)."""
     report = db.query(models.Report).filter(models.Report.report_id == report_id).first()
     if not report:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Không tìm thấy báo cáo")
@@ -74,9 +76,6 @@ def resolve_report(
             activity.verified_at = datetime.utcnow()
             send_activity_hidden_email(activity.business.user.account.email, activity.name)
 
-    report.status = "resolved"
-    report.resolved_by = operator.operator_id
-    report.resolved_at = datetime.utcnow()
+    db.delete(report)
     db.commit()
-    db.refresh(report)
-    return report
+    return {"message": "Đã xử lý và xóa báo cáo"}

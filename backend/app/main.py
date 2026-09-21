@@ -4,6 +4,7 @@ from app.routers import (
     search,
     auth,
     operator,
+    operator_users,
     categories,
     users,
     business_requests,
@@ -47,6 +48,7 @@ app.include_router(business_requests.operator_router)
 app.include_router(activities.operator_router)
 app.include_router(reports.operator_router)
 app.include_router(complaints.operator_router)
+app.include_router(operator_users.router)
 
 
 @app.get("/")

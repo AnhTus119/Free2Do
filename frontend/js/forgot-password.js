@@ -24,7 +24,7 @@ if (forgotForm) {
       window.location.href = "check-email.html";
     } catch (error) {
       console.error(error);
-      alert("Không kết nối được backend tại http://localhost:8000.");
+      alert("Không kết nối được backend.");
     }
   });
 }
@@ -55,7 +55,7 @@ if (checkEmailForm) {
       window.location.href = "reset-password.html";
     } catch (error) {
       console.error(error);
-      alert("Không kết nối được backend tại http://localhost:8000.");
+      alert("Không kết nối được backend.");
     }
   });
 }
@@ -91,7 +91,7 @@ if (resetForm) {
       window.location.href = "log-in.html";
     } catch (error) {
       console.error(error);
-      alert("Không kết nối được backend tại http://localhost:8000.");
+      alert("Không kết nối được backend.");
     }
   });
 }

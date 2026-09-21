@@ -199,6 +199,65 @@ def list_activities_for_review(
     ]
 
 
+@operator_router.get("/{activity_id}", response_model=schemas.ActivityDetail)
+def get_activity_for_review(
+    activity_id: str,
+    db: Session = Depends(get_db),
+    _operator: models.Operator = Depends(get_current_operator),
+):
+    """Operator xem chi tiết hoạt động ở bất kỳ trạng thái nào (kể cả hidden/cancelled)."""
+    activity = db.query(models.Activity).filter(models.Activity.activity_id == activity_id).first()
+    if not activity:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Không tìm thấy hoạt động")
+    return _to_detail(db, activity)
+
+
+@operator_router.patch("/{activity_id}", response_model=schemas.ActivityDetail)
+def update_activity_as_operator(
+    activity_id: str,
+    payload: schemas.ActivityUpdate,
+    db: Session = Depends(get_db),
+    _operator: models.Operator = Depends(get_current_operator),
+):
+    """Operator sửa trực tiếp thông tin hoạt động (không cần đổi trạng thái)."""
+    activity = db.query(models.Activity).filter(models.Activity.activity_id == activity_id).first()
+    if not activity:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Không tìm thấy hoạt động")
+
+    data = payload.model_dump(exclude_unset=True, exclude={"category_ids"})
+    for field, value in data.items():
+        setattr(activity, field, value)
+    if payload.category_ids is not None:
+        _set_categories(db, activity.activity_id, payload.category_ids)
+
+    activity.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(activity)
+    return _to_detail(db, activity)
+
+
+@operator_router.patch("/{activity_id}/status", response_model=schemas.Activity)
+def set_activity_status(
+    activity_id: str,
+    payload: schemas.ActivityStatusUpdate,
+    db: Session = Depends(get_db),
+    operator: models.Operator = Depends(get_current_operator),
+):
+    """Đổi trạng thái hoạt động sang bất kỳ giá trị hợp lệ nào -- linh hoạt hơn approve/hide
+    (vd trả 1 activity đã hidden về active mà không cần đi qua lại luồng duyệt)."""
+    activity = db.query(models.Activity).filter(models.Activity.activity_id == activity_id).first()
+    if not activity:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Không tìm thấy hoạt động")
+
+    activity.status = payload.status
+    if payload.status == "active":
+        activity.verified_by = operator.operator_id
+        activity.verified_at = datetime.utcnow()
+    db.commit()
+    db.refresh(activity)
+    return activity
+
+
 @operator_router.patch("/{activity_id}/approve", response_model=schemas.Activity)
 def approve_activity(
     activity_id: str,

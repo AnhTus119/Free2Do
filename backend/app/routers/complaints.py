@@ -52,13 +52,15 @@ def list_complaints(
     return query.order_by(models.Complaint.created_at.desc()).all()
 
 
-@operator_router.patch("/{complaint_id}/resolve", response_model=schemas.Complaint)
+@operator_router.patch("/{complaint_id}/resolve", response_model=schemas.MessageResponse)
 def resolve_complaint(
     complaint_id: str,
     payload: schemas.ComplaintResolveRequest,
     db: Session = Depends(get_db),
-    operator: models.Operator = Depends(get_current_operator),
+    _operator: models.Operator = Depends(get_current_operator),
 ):
+    """Operator xử lý khiếu nại (xóa đánh giá bị khiếu nại hoặc bỏ qua) rồi xóa hẳn bản ghi
+    khiếu nại khỏi database -- không lưu lại lịch sử sau khi đã xử lý (theo đúng đặc tả usecase)."""
     complaint = db.query(models.Complaint).filter(models.Complaint.complaint_id == complaint_id).first()
     if not complaint:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Không tìm thấy khiếu nại")
@@ -66,11 +68,15 @@ def resolve_complaint(
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Khiếu nại đã được xử lý")
 
     if payload.action == "delete_review":
-        db.delete(complaint.review)
+        review_id = complaint.review_id
+        # Xóa complaint (kể cả complaint khác cùng trỏ tới review này) trước khi xóa review,
+        # vì complaints.review_id là FK not null -- xóa review trước sẽ vi phạm ràng buộc.
+        db.query(models.Complaint).filter(models.Complaint.review_id == review_id).delete()
+        db.query(models.ReviewMedia).filter(models.ReviewMedia.review_id == review_id).delete()
+        db.query(models.Review).filter(models.Review.review_id == review_id).delete()
+        db.commit()
+        return {"message": "Đã xóa đánh giá và xử lý khiếu nại"}
 
-    complaint.status = "resolved"
-    complaint.resolved_by = operator.operator_id
-    complaint.resolved_at = datetime.utcnow()
+    db.delete(complaint)
     db.commit()
-    db.refresh(complaint)
-    return complaint
+    return {"message": "Đã xử lý và xóa khiếu nại"}

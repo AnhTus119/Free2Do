@@ -81,6 +81,10 @@ def delete_review(
     if not review or review.user_id != user.user_id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Không tìm thấy đánh giá")
 
+    # Dọn các bản ghi phụ thuộc trước -- complaints.review_id và review_media.review_id
+    # đều là FK not null, xóa review trước sẽ vi phạm ràng buộc trên Postgres.
+    db.query(models.Complaint).filter(models.Complaint.review_id == review_id).delete()
+    db.query(models.ReviewMedia).filter(models.ReviewMedia.review_id == review_id).delete()
     db.delete(review)
     db.commit()
     return {"message": "Đã xóa đánh giá"}

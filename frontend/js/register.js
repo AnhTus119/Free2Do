@@ -72,7 +72,7 @@ if (registerForm) {
       window.location.href = "index.html";
     } catch (error) {
       console.error(error);
-      showRegisterError("Không kết nối được backend tại http://localhost:8000.");
+      showRegisterError("Không kết nối được backend.");
     }
   });
 }

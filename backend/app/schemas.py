@@ -355,3 +355,40 @@ class ReportResolveRequest(BaseModel):
 
 class ComplaintResolveRequest(BaseModel):
     action: Literal["dismiss", "delete_review"]
+
+# ---------------------------------------------------------------------------
+# Operator -- quản lý Customer/Business, xem/sửa Business Profile, dashboard
+# ---------------------------------------------------------------------------
+class UserAdminOut(BaseModel):
+    user_id: str
+    account_id: str
+    email: str
+    role_name: str
+    name: str
+    phone: Optional[str] = None
+    status: str  # accounts.status: active | blocked | suspended
+
+class UserAdminUpdate(BaseModel):
+    name: Optional[str] = None
+    phone: Optional[str] = None
+
+class AccountStatusUpdate(BaseModel):
+    status: Literal["active", "blocked", "suspended"]
+
+class BusinessProfileAdminUpdate(BaseModel):
+    business_name: Optional[str] = None
+    phone: Optional[str] = None
+    description: Optional[str] = None
+    business_address: Optional[str] = None
+
+class ActivityStatusUpdate(BaseModel):
+    status: Literal["pending", "active", "cancelled", "hidden"]
+
+class DashboardOut(BaseModel):
+    user_count: int
+    business_count: int
+    activity_count: int
+    review_count: int
+    pending_request_count: int
+    pending_report_count: int
+    pending_complaint_count: int

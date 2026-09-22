@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>FREE2DO Admin — Tổng quan</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style1.css">
+</head>
+<body>
+<div class="app">
+
+  <div class="sidebar">
+    <div class="side-logo"><img src="Vecto/Group.svg" alt="Customer"><span>FREE2DO</span></div>
+    <div class="nav-group">
+      <a href="dashboard.html" class="nav-item active"><span class="ic"></span>Tổng quan</a>
+      <a href="customers.html" class="nav-item"><span class="ic"></span>Khách hàng</a>
+      <a href="businesses.html" class="nav-item"><span class="ic"></span>Doanh nghiệp</a>
+      <a href="activities.html" class="nav-item"><span class="ic"></span>Hoạt động</a>
+    </div>
+    <div class="side-bottom">
+      <div class="side-admin">
+        <div class="side-avatar">A</div>
+        <div><div class="side-admin-name">Admin Nhân</div><div class="side-admin-role">Quản trị viên</div></div>
+      </div>
+      <a href="#" class="nav-item"><span class="ic">⚙️</span>Cài đặt</a>
+      <a href="#" class="nav-item"><span class="ic">↩</span>Đăng xuất</a>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="header">
+      <div><div class="breadcrumb"></div><h1>Hệ thống quản trị</h1></div>
+      <div class="header-right">
+        <div class="bell">🔔<span class="badge-dot"></span></div>
+        <div class="who"><div class="avatar">A</div><div class="name">Admin Nhân</div><div class="chev">▾</div></div>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="welcome">
+        <div><h2>Tổng quan hệ thống</h2><p>Giám sát hoạt động của Free2Do.</p></div>
+        <div class="updated">Cập nhật lần cuối: hôm nay, 14:30</div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-top"><div class="stat-icon" style="background:#EFF1E7;">👤</div><div class="stat-change up">▲ 4,5%</div></div><div class="stat-num">128</div><div class="stat-label">Tổng Khách hàng</div></div>
+        <div class="stat-card"><div class="stat-top"><div class="stat-icon" style="background:#FDEDEF;">🏬</div><div class="stat-change up">▲ 9,1%</div></div><div class="stat-num">28</div><div class="stat-label">Tổng Doanh nghiệp</div></div>
+        <div class="stat-card"><div class="stat-top"><div class="stat-icon" style="background:#FFF1E0;">🗓️</div><div class="stat-change up">▲ 14,3%</div></div><div class="stat-num">30</div><div class="stat-label">Tổng Hoạt động</div></div>
+        <div class="stat-card"><div class="stat-top"><div class="stat-icon" style="background:var(--success-bg);">✅</div></div><div class="stat-num">27</div><div class="stat-label">Hoạt động đang diễn ra</div></div>
+        <div class="stat-card"><div class="stat-top"><div class="stat-icon" style="background:var(--warn-bg);">⚠️</div><div class="stat-change flag">Cần xử lý</div></div><div class="stat-num">3</div><div class="stat-label">Đang chờ kiểm tra</div></div>
+        <div class="stat-card"><div class="stat-top"><div class="stat-icon" style="background:var(--danger-bg);">🔒</div><div class="stat-change danger">Chú ý</div></div><div class="stat-num">4</div><div class="stat-label">Tài khoản bị khóa</div></div>
+      </div>
+
+      <div class="section">
+        <div class="section-head"><h3>Cảnh báo hệ thống</h3></div>
+        <div class="quick-row">
+          <a href="activities.html" class="qa-btn">⚠️ <span id="pendingActivityAlert">12</span> hoạt động đang chờ duyệt</a>
+          <a href="businesses.html" class="qa-btn">📋 <span id="pendingBusinessAlert">12</span> doanh nghiệp đang chờ duyệt</a>
+          <a href="businesses.html" class="qa-btn">📵 <span id="missingPhoneAlert">2</span> doanh nghiệp thiếu số điện thoại liên hệ</a>
+          <a href="customers.html" class="qa-btn">🔒 <span id="lockedCustomerAlert">4</span> tài khoản đang bị khóa</a>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-head">
+          <h3>Hoạt động cần xử lý <span id="pendingCount" style="color:var(--warn);font-weight:800;">(0)</span></h3>
+          <a href = "activities.html" class = "section-link">Xem tất cả Hoạt động →</a>
+        </div>
+        <div class="card">
+          <table class="pending-table">
+            <colgroup>
+              <col style="width:30%;">
+              <col style="width:20%;">
+              <col style="width:26%;">
+              <col style="width:12%;">
+              <col style="width:12%;">
+            </colgroup>
+            <thead><tr><th>Hoạt động</th><th>Doanh nghiệp</th><th>Địa chỉ</th><th>Trạng thái</th><th>Chi tiết</th></tr></thead>
+            <tbody id="pendingTableBody"></tbody>
+          </table>
+          <div class="table-pagination" id="pendingPagination">
+            <span id="paginationInfo"></span>
+            <div class="page-btns" id="paginationBtns"></div>
+          </div>
+          <div class="card-foot toggle-row" id="toggleViewAll"><a>Xem tất cả</a></div>
+        </div>
+      </div>
+
+      <!-- ===== MODAL: CHI TIẾT HOẠT ĐỘNG ===== -->
+      <div class="modal-overlay" id="activityModal">
+        <div class="modal-box">
+          <div class="modal-head">
+            <div>
+              <p class="modal-title" id="modalTitle"></p>
+              <p class="modal-sub" id="modalSub"></p>
+            </div>
+            <button class="modal-close" id="modalClose">✕</button>
+          </div>
+          <div class="modal-image" id="modalImage"></div>
+          <div class="modal-body">
+            <p class="modal-desc" id="modalDesc"></p>
+            <div class="modal-info" id="modalInfo"></div>
+          </div>
+          <div class="modal-actions">
+            <button class="modal-btn-reject" id="modalReject">Từ chối</button>
+            <button class="modal-btn-approve" id="modalApprove">Duyệt</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-head"><h3>Yêu cầu doanh nghiệp <span id="bizPendingCount" style="color:var(--warn);font-weight:800;">(0)</span></h3>
+        <a href="businesses.html" class="section-link">Xem tất cả Doanh nghiệp →</a>
+      </div>
+        <div class="card">
+          <table class="pending-table">
+            <colgroup>
+              <col style="width:26%;">
+              <col style="width:18%;">
+              <col style="width:29%;">
+              <col style="width:13%;">
+              <col style="width:14%;">
+            </colgroup>
+            <thead><tr><th>Doanh nghiệp</th><th>Loại hình</th><th>Địa chỉ</th><th>Trạng thái</th><th>Chi tiết</th></tr></thead>
+            <tbody id="bizTableBody"></tbody>
+          </table>
+          <div class="table-pagination" id="bizPagination">
+            <span id="bizPaginationInfo"></span>
+            <div class="page-btns" id="bizPaginationBtns"></div>
+          </div>
+          <div class="card-foot toggle-row" id="toggleBizViewAll"><a>Xem tất cả</a></div>
+        </div>
+      </div>
+
+      <!-- ===== MODAL: CHI TIẾT YÊU CẦU DOANH NGHIỆP ===== -->
+      <div class="modal-overlay" id="businessModal">
+        <div class="modal-box">
+          <div class="modal-head">
+            <div>
+              <p class="modal-title" id="bizModalTitle"></p>
+              <p class="modal-sub" id="bizModalSub"></p>
+            </div>
+            <button class="modal-close" id="bizModalClose">✕</button>
+          </div>
+          <div class="modal-body">
+            <div class="modal-info" id="bizModalInfo"></div>
+            <div class="modal-section-label">Mô tả</div>
+            <p class="modal-desc" id="bizModalDesc"></p>
+            <div class="modal-section-label">Hình ảnh minh họa</div>
+            <div class="modal-image" id="bizModalImage"></div>
+            <div class="modal-section-label">Minh chứng giấy phép hoạt động</div>
+            <div class="modal-image modal-license" id="bizModalLicense"></div>
+          </div>
+          <div class="modal-actions">
+            <button class="modal-btn-reject" id="bizModalReject">Từ chối</button>
+            <button class="modal-btn-approve" id="bizModalApprove">Duyệt</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===== DỮ LIỆU MẪU: HOẠT ĐỘNG CẦN XỬ LÝ ===== */
+const pendingActivities = [
+  { id:1, title:"Rạp Beta Giải Phóng", category:"Xem phim", price:"60.000 ₫",
+    business:"Rạp Beta Giải Phóng", address:"360 Đ. Giải Phóng, Hà Nội",
+    description:"Suất chiếu phim thường tại rạp Beta Giải Phóng, phù hợp cho nhóm bạn hoặc cặp đôi muốn thư giãn buổi tối.",
+    budget:"50.000 – 70.000 ₫ / người", location:"21.0021° N, 105.8412° E",
+    hours:"09:00 – 23:00 hàng ngày", verified_by:"", image:null },
+  { id:2, title:"Thổ thì thầm Pottery workshop", category:"Workshop", price:"200.000–300.000 ₫",
+    business:"Thổ thì thầm", address:"435a Đ. Giải Phóng, Hà Nội",
+    description:"Buổi workshop làm gốm thủ công, hướng dẫn từ cơ bản đến hoàn thiện sản phẩm mang về.",
+    budget:"200.000 – 300.000 ₫ / người", location:"20.9987° N, 105.8390° E",
+    hours:"08:30 – 20:00, thứ 3 – Chủ nhật", verified_by:"", image:null },
+  { id:3, title:"Cà Phê Nhà Kho Đại La", category:"Cà phê", price:"Thiếu số điện thoại",
+    business:"Cà Phê Nhà Kho Đại La", address:"Ngách 51 Ng.128C, Bạch Mai",
+    description:"Không gian cà phê phong cách nhà kho, phù hợp làm việc hoặc gặp gỡ bạn bè. Hồ sơ doanh nghiệp còn thiếu số điện thoại liên hệ.",
+    budget:"40.000 – 90.000 ₫ / người", location:"20.9975° N, 105.8465° E",
+    hours:"07:00 – 22:30 hàng ngày", verified_by:"", image:null },
+  { id:4, title:"Canopy StudySpace", category:"Không gian học tập", price:"50.000 ₫/giờ",
+    business:"Canopy StudySpace", address:"12 Tạ Quang Bửu, Hà Nội",
+    description:"Không gian yên tĩnh dành cho học tập và làm việc nhóm, có phòng họp riêng.",
+    budget:"50.000 ₫/giờ hoặc 250.000 ₫/ngày", location:"21.0037° N, 105.8434° E",
+    hours:"07:30 – 22:00 hàng ngày", verified_by:"", image:null },
+  { id:5, title:"Lắp Ghép Coffee & Charm", category:"Cà phê nghệ thuật", price:"45.000–80.000 ₫",
+    business:"Lắp Ghép Coffee & Charm", address:"88 Triều Khúc, Thanh Xuân",
+    description:"Quán cà phê kết hợp không gian trưng bày nghệ thuật lắp ghép, thích hợp check-in và trò chuyện.",
+    budget:"45.000 – 80.000 ₫ / người", location:"20.9903° N, 105.8012° E",
+    hours:"08:00 – 22:00 hàng ngày", verified_by:"", image:null },
+  { id:6, title:"Trại Trà", category:"Quán trà", price:"35.000–65.000 ₫",
+    business:"Trại Trà", address:"22 Ngõ Huế, Hai Bà Trưng",
+    description:"Không gian thưởng trà truyền thống kết hợp hiện đại, phù hợp nhóm nhỏ trò chuyện.",
+    budget:"35.000 – 65.000 ₫ / người", location:"21.0132° N, 105.8501° E",
+    hours:"09:00 – 22:00 hàng ngày", verified_by:"", image:null },
+  { id:7, title:"Lớp Vẽ Màu Nước Cơ Bản", category:"Workshop", price:"150.000 ₫",
+    business:"Studio Màu Ký Ức", address:"9 Nguyễn Khang, Cầu Giấy",
+    description:"Lớp học vẽ màu nước dành cho người mới bắt đầu, bao gồm đầy đủ dụng cụ.",
+    budget:"150.000 ₫ / người (đã gồm dụng cụ)", location:"21.0146° N, 105.7938° E",
+    hours:"14:00 – 17:00, thứ 7 – Chủ nhật", verified_by:"", image:null },
+  { id:8, title:"Sân Pickleball Mỹ Đình", category:"Thể thao", price:"120.000 ₫/giờ",
+    business:"Mỹ Đình Sports Center", address:"48 Lê Đức Thọ, Nam Từ Liêm",
+    description:"Sân pickleball tiêu chuẩn, cho thuê theo giờ, có sẵn vợt và bóng.",
+    budget:"120.000 ₫/giờ/sân", location:"21.0295° N, 105.7657° E",
+    hours:"06:00 – 22:00 hàng ngày", verified_by:"", image:null },
+  { id:9, title:"Xưởng Nến Thơm Handmade", category:"Workshop", price:"180.000 ₫",
+    business:"Nến & Chuyện", address:"67 Ngụy Như Kon Tum, Thanh Xuân",
+    description:"Tự tay làm nến thơm mang về, phù hợp làm quà tặng hoặc trải nghiệm cuối tuần.",
+    budget:"180.000 ₫ / người", location:"21.0009° N, 105.8102° E",
+    hours:"09:00 – 20:00 hàng ngày", verified_by:"", image:null },
+  { id:10, title:"Rạp Chiếu Phim Ngoài Trời Hồ Tây", category:"Xem phim", price:"90.000 ₫",
+    business:"West Lake Outdoor Cinema", address:"Ven Hồ Tây, Tây Hồ",
+    description:"Suất chiếu phim ngoài trời ven hồ, có ghế lười và đồ ăn nhẹ kèm theo.",
+    budget:"90.000 ₫ / người", location:"21.0577° N, 105.8195° E",
+    hours:"18:30 – 21:30, thứ 6 – Chủ nhật", verified_by:"", image:null },
+  { id:11, title:"Lớp Yoga Buổi Sáng", category:"Sức khỏe", price:"70.000 ₫/buổi",
+    business:"Zen Yoga Studio", address:"15 Trần Duy Hưng, Cầu Giấy",
+    description:"Lớp yoga buổi sáng cho người mới bắt đầu, không yêu cầu kinh nghiệm.",
+    budget:"70.000 ₫/buổi hoặc 500.000 ₫/tháng", location:"21.0034° N, 105.7952° E",
+    hours:"06:00 – 07:30 hàng ngày", verified_by:"", image:null },
+  { id:12, title:"Board Game Café Tây Sơn", category:"Giải trí", price:"55.000 ₫",
+    business:"Tây Sơn Board Game", address:"120 Tây Sơn, Đống Đa",
+    description:"Không gian chơi board game với hơn 100 đầu game, phù hợp nhóm bạn.",
+    budget:"55.000 ₫ / người (không giới hạn thời gian)", location:"21.0088° N, 105.8235° E",
+    hours:"10:00 – 23:00 hàng ngày", verified_by:"", image:null }
+];
+
+const PAGE_SIZE = 10;
+const DEFAULT_ROWS = 4;
+let showingAll = false;
+let currentPage = 1;
+
+function renderPendingTable(){
+  const tbody = document.getElementById('pendingTableBody');
+  const total = pendingActivities.length;
+  document.getElementById('pendingCount').textContent = `(${total})`;
+  document.getElementById('pendingActivityAlert').textContent = total;
+
+  let rows;
+  if(!showingAll){
+    rows = pendingActivities.slice(0, DEFAULT_ROWS);
+  } else {
+    const start = (currentPage - 1) * PAGE_SIZE;
+    rows = pendingActivities.slice(start, start + PAGE_SIZE);
+  }
+
+  tbody.innerHTML = rows.map(a => `
+    <tr>
+      <td><div class="cell-title">${a.title}</div><div class="cell-sub">${a.category} · ${a.price}</div></td>
+      <td>${a.business}</td>
+      <td>${a.address}</td>
+      <td><span class="badge pending">Chờ duyệt</span></td>
+      <td><div class="row-actions"><button class="row-btn viewmore" onclick="openActivityModal(${a.id})">Xem thêm</button></div></td>
+    </tr>
+  `).join('');
+
+  const toggleLink = document.querySelector('#toggleViewAll a');
+  const pagination = document.getElementById('pendingPagination');
+
+  if(!showingAll){
+    toggleLink.textContent = 'Xem tất cả';
+    pagination.classList.remove('show');
+  } else if(total > PAGE_SIZE){
+    toggleLink.textContent = 'Thu gọn ↑';
+    pagination.classList.add('show');
+    renderPagination(total);
+  } else {
+    toggleLink.textContent = 'Thu gọn ↑';
+    pagination.classList.remove('show');
+  }
+}
+
+function renderPagination(total){
+  const pageCount = Math.ceil(total / PAGE_SIZE);
+  const start = (currentPage - 1) * PAGE_SIZE + 1;
+  const end = Math.min(currentPage * PAGE_SIZE, total);
+  document.getElementById('paginationInfo').textContent = `Hiển thị ${start}–${end} trong ${total} hoạt động`;
+
+  const btns = document.getElementById('paginationBtns');
+  let html = `<button class="page-btn" ${currentPage===1?'disabled':''} onclick="goToPage(${currentPage-1})">‹</button>`;
+  for(let p=1; p<=pageCount; p++){
+    html += `<button class="page-btn ${p===currentPage?'active':''}" onclick="goToPage(${p})">${p}</button>`;
+  }
+  html += `<button class="page-btn" ${currentPage===pageCount?'disabled':''} onclick="goToPage(${currentPage+1})">›</button>`;
+  btns.innerHTML = html;
+}
+
+function goToPage(p){
+  currentPage = p;
+  renderPendingTable();
+}
+
+document.getElementById('toggleViewAll').addEventListener('click', () => {
+  showingAll = !showingAll;
+  currentPage = 1;
+  renderPendingTable();
+});
+
+/* ===== MODAL CHI TIẾT HOẠT ĐỘNG ===== */
+const modal = document.getElementById('activityModal');
+
+function openActivityModal(id){
+  const a = pendingActivities.find(x => x.id === id);
+  if(!a) return;
+
+  document.getElementById('modalTitle').textContent = a.title;
+  document.getElementById('modalSub').textContent = `${a.category} · ${a.price}`;
+  document.getElementById('modalDesc').textContent = a.description;
+
+  const imgEl = document.getElementById('modalImage');
+  if(a.image){
+    imgEl.className = 'modal-image';
+    imgEl.innerHTML = `<img src="${a.image}" alt="${a.title}">`;
+  } else {
+    imgEl.className = 'modal-image empty';
+    imgEl.innerHTML = 'Chưa có hình ảnh mô tả';
+  }
+
+  const info = [
+    ['Doanh nghiệp', a.business],
+    ['Ngân sách', a.budget],
+    ['Địa chỉ', a.address],
+    ['Vị trí', a.location],
+    ['Giờ hoạt động', a.hours],
+    ['Admin xác minh', a.verified_by || '— Chưa xác minh —']
+  ];
+  document.getElementById('modalInfo').innerHTML = info.map(([label, value]) => `
+    <div class="info-row"><span class="info-label">${label}</span><span class="info-value">${value}</span></div>
+  `).join('');
+
+  document.getElementById('modalApprove').onclick = () => handleDecision(id, 'approve');
+  document.getElementById('modalReject').onclick = () => handleDecision(id, 'reject');
+
+  modal.classList.add('open');
+}
+
+function closeActivityModal(){
+  modal.classList.remove('open');
+}
+
+function handleDecision(id, decision){
+  // Xử lý duyệt / từ chối hoạt động, sau đó quay về dashboard và đóng popup
+  const idx = pendingActivities.findIndex(x => x.id === id);
+  if(idx !== -1) pendingActivities.splice(idx, 1);
+  closeActivityModal();
+  renderPendingTable();
+}
+
+document.getElementById('modalClose').addEventListener('click', closeActivityModal);
+modal.addEventListener('click', (e) => { if(e.target === modal) closeActivityModal(); });
+document.addEventListener('keydown', (e) => { if(e.key === 'Escape') closeActivityModal(); });
+
+renderPendingTable();
+
+/* ===== DỮ LIỆU MẪU: YÊU CẦU DOANH NGHIỆP ===== */
+const bizRequests = [
+  { id:1, name:"Trại Trà", type:"Quán trà", address:"22 Ngõ Huế, Hai Bà Trưng",
+    phone:"0912 345 678", hours:"09:00 – 22:00 hàng ngày", priceRange:"35.000 – 65.000 ₫ / người",
+    verified_by:"", description:"Không gian thưởng trà truyền thống kết hợp hiện đại, đăng ký tham gia nền tảng để mở hoạt động trải nghiệm trà đạo cuối tuần.",
+    image:null, license:null },
+  { id:2, name:"Canopy StudySpace", type:"Không gian học tập", address:"12 Tạ Quang Bửu, Hà Nội",
+    phone:"0987 654 321", hours:"07:30 – 22:00 hàng ngày", priceRange:"50.000 ₫/giờ hoặc 250.000 ₫/ngày",
+    verified_by:"", description:"Không gian yên tĩnh dành cho học tập và làm việc nhóm, có phòng họp riêng, mong muốn đăng ký tổ chức lớp học nhóm.",
+    image:null, license:null },
+  { id:3, name:"Lắp Ghép Coffee & Charm", type:"Quán cà phê nghệ thuật", address:"88 Triều Khúc, Thanh Xuân",
+    phone:"", hours:"08:00 – 22:00 hàng ngày", priceRange:"45.000 – 80.000 ₫ / người",
+    verified_by:"", description:"Quán cà phê kết hợp không gian trưng bày nghệ thuật lắp ghép, hồ sơ hiện còn thiếu số điện thoại liên hệ.",
+    image:null, license:null },
+  { id:4, name:"Mỹ Đình Sports Center", type:"Gym & Thể thao", address:"48 Lê Đức Thọ, Nam Từ Liêm",
+    phone:"0909 111 222", hours:"06:00 – 22:00 hàng ngày", priceRange:"120.000 ₫/giờ/sân",
+    verified_by:"", description:"Trung tâm thể thao đa năng, sân pickleball và phòng gym, đăng ký cung cấp hoạt động thuê sân theo giờ.",
+    image:null, license:null },
+  { id:5, name:"Zen Yoga Studio", type:"Phòng tập Yoga", address:"15 Trần Duy Hưng, Cầu Giấy",
+    phone:"0933 222 111", hours:"06:00 – 20:00 hàng ngày", priceRange:"70.000 ₫/buổi hoặc 500.000 ₫/tháng",
+    verified_by:"", description:"Phòng tập yoga cho người mới bắt đầu, đăng ký mở lớp buổi sáng hàng ngày trên nền tảng.",
+    image:null, license:null },
+  { id:6, name:"Studio Màu Ký Ức", type:"Workshop hội họa", address:"9 Nguyễn Khang, Cầu Giấy",
+    phone:"0977 888 999", hours:"14:00 – 17:00, thứ 7 – Chủ nhật", priceRange:"150.000 ₫ / người (đã gồm dụng cụ)",
+    verified_by:"", description:"Studio dạy vẽ màu nước cho người mới bắt đầu, đăng ký tổ chức lớp học cuối tuần.",
+    image:null, license:null },
+  { id:7, name:"Nến & Chuyện", type:"Workshop thủ công", address:"67 Ngụy Như Kon Tum, Thanh Xuân",
+    phone:"0966 777 888", hours:"09:00 – 20:00 hàng ngày", priceRange:"180.000 ₫ / người",
+    verified_by:"", description:"Xưởng làm nến thơm handmade, đăng ký mở workshop trải nghiệm tự tay làm nến mang về.",
+    image:null, license:null },
+  { id:8, name:"West Lake Outdoor Cinema", type:"Rạp chiếu phim", address:"Ven Hồ Tây, Tây Hồ",
+    phone:"0944 555 666", hours:"18:30 – 21:30, thứ 6 – Chủ nhật", priceRange:"90.000 ₫ / người",
+    verified_by:"", description:"Rạp chiếu phim ngoài trời ven hồ, đăng ký cung cấp suất chiếu cuối tuần kèm ghế lười và đồ ăn nhẹ.",
+    image:null, license:null },
+  { id:9, name:"Tây Sơn Board Game", type:"Giải trí", address:"120 Tây Sơn, Đống Đa",
+    phone:"0922 333 444", hours:"10:00 – 23:00 hàng ngày", priceRange:"55.000 ₫ / người (không giới hạn thời gian)",
+    verified_by:"", description:"Không gian chơi board game với hơn 100 đầu game, đăng ký tham gia nền tảng để tiếp cận nhóm khách trẻ.",
+    image:null, license:null },
+  { id:10, name:"Rạp Beta Giải Phóng", type:"Rạp chiếu phim", address:"360 Đ. Giải Phóng, Hà Nội",
+    phone:"024 3868 1234", hours:"09:00 – 23:00 hàng ngày", priceRange:"50.000 – 70.000 ₫ / người",
+    verified_by:"", description:"Cụm rạp chiếu phim thương mại, đăng ký cung cấp lịch chiếu thường xuyên trên nền tảng.",
+    image:null, license:null },
+  { id:11, name:"Thổ thì thầm", type:"Workshop gốm", address:"435a Đ. Giải Phóng, Hà Nội",
+    phone:"0955 123 456", hours:"08:30 – 20:00, thứ 3 – Chủ nhật", priceRange:"200.000 – 300.000 ₫ / người",
+    verified_by:"", description:"Xưởng gốm thủ công, đăng ký mở workshop hướng dẫn làm gốm từ cơ bản đến hoàn thiện.",
+    image:null, license:null },
+  { id:12, name:"Cà Phê Nhà Kho Đại La", type:"Quán cà phê", address:"Ngách 51 Ng.128C, Bạch Mai",
+    phone:"", hours:"07:00 – 22:30 hàng ngày", priceRange:"40.000 – 90.000 ₫ / người",
+    verified_by:"", description:"Không gian cà phê phong cách nhà kho, hồ sơ hiện còn thiếu số điện thoại liên hệ.",
+    image:null, license:null }
+];
+
+let showingAllBiz = false;
+let currentBizPage = 1;
+
+function renderBizTable(){
+  const tbody = document.getElementById('bizTableBody');
+  const total = bizRequests.length;
+  document.getElementById('bizPendingCount').textContent = `(${total})`;
+  document.getElementById('pendingBusinessAlert').textContent = total;
+  document.getElementById('missingPhoneAlert').textContent = bizRequests.filter(b => !b.phone).length;
+
+  let rows;
+  if(!showingAllBiz){
+    rows = bizRequests.slice(0, DEFAULT_ROWS);
+  } else {
+    const start = (currentBizPage - 1) * PAGE_SIZE;
+    rows = bizRequests.slice(start, start + PAGE_SIZE);
+  }
+
+  tbody.innerHTML = rows.map(b => `
+    <tr>
+      <td><div class="cell-title">${b.name}</div></td>
+      <td>${b.type}</td>
+      <td>${b.address}</td>
+      <td><span class="badge pending">Chờ duyệt</span></td>
+      <td><div class="row-actions"><button class="row-btn viewmore" onclick="openBizModal(${b.id})">Xem thêm</button></div></td>
+    </tr>
+  `).join('');
+
+  const toggleLink = document.querySelector('#toggleBizViewAll a');
+  const pagination = document.getElementById('bizPagination');
+
+  if(!showingAllBiz){
+    toggleLink.textContent = 'Xem tất cả';
+    pagination.classList.remove('show');
+  } else if(total > PAGE_SIZE){
+    toggleLink.textContent = 'Thu gọn ↑';
+    pagination.classList.add('show');
+    renderBizPagination(total);
+  } else {
+    toggleLink.textContent = 'Thu gọn ↑';
+    pagination.classList.remove('show');
+  }
+}
+
+function renderBizPagination(total){
+  const pageCount = Math.ceil(total / PAGE_SIZE);
+  const start = (currentBizPage - 1) * PAGE_SIZE + 1;
+  const end = Math.min(currentBizPage * PAGE_SIZE, total);
+  document.getElementById('bizPaginationInfo').textContent = `Hiển thị ${start}–${end} trong ${total} yêu cầu`;
+
+  const btns = document.getElementById('bizPaginationBtns');
+  let html = `<button class="page-btn" ${currentBizPage===1?'disabled':''} onclick="goToBizPage(${currentBizPage-1})">‹</button>`;
+  for(let p=1; p<=pageCount; p++){
+    html += `<button class="page-btn ${p===currentBizPage?'active':''}" onclick="goToBizPage(${p})">${p}</button>`;
+  }
+  html += `<button class="page-btn" ${currentBizPage===pageCount?'disabled':''} onclick="goToBizPage(${currentBizPage+1})">›</button>`;
+  btns.innerHTML = html;
+}
+
+function goToBizPage(p){
+  currentBizPage = p;
+  renderBizTable();
+}
+
+document.getElementById('toggleBizViewAll').addEventListener('click', () => {
+  showingAllBiz = !showingAllBiz;
+  currentBizPage = 1;
+  renderBizTable();
+});
+
+/* ===== MODAL CHI TIẾT YÊU CẦU DOANH NGHIỆP ===== */
+const bizModal = document.getElementById('businessModal');
+
+function openBizModal(id){
+  const b = bizRequests.find(x => x.id === id);
+  if(!b) return;
+
+  document.getElementById('bizModalTitle').textContent = b.name;
+  document.getElementById('bizModalSub').textContent = b.type;
+  document.getElementById('bizModalDesc').textContent = b.description;
+
+  const info = [
+    ['Số điện thoại', b.phone || '— Chưa cung cấp —'],
+    ['Giờ mở cửa', b.hours],
+    ['Giá tham khảo', b.priceRange],
+    ['Admin xác minh', b.verified_by || '— Chưa xác minh —']
+  ];
+  document.getElementById('bizModalInfo').innerHTML = info.map(([label, value]) => `
+    <div class="info-row"><span class="info-label">${label}</span><span class="info-value">${value}</span></div>
+  `).join('');
+
+  const imgEl = document.getElementById('bizModalImage');
+  if(b.image){
+    imgEl.className = 'modal-image';
+    imgEl.innerHTML = `<img src="${b.image}" alt="${b.name}">`;
+  } else {
+    imgEl.className = 'modal-image empty';
+    imgEl.innerHTML = 'Chưa có hình ảnh minh họa';
+  }
+
+  const licEl = document.getElementById('bizModalLicense');
+  if(b.license){
+    licEl.className = 'modal-image modal-license';
+    licEl.innerHTML = `<img src="${b.license}" alt="Giấy phép hoạt động của ${b.name}">`;
+  } else {
+    licEl.className = 'modal-image modal-license empty';
+    licEl.innerHTML = 'Chưa có minh chứng giấy phép hoạt động';
+  }
+
+  document.getElementById('bizModalApprove').onclick = () => handleBizDecision(id, 'approve');
+  document.getElementById('bizModalReject').onclick = () => handleBizDecision(id, 'reject');
+
+  bizModal.classList.add('open');
+}
+
+function closeBizModal(){
+  bizModal.classList.remove('open');
+}
+
+function handleBizDecision(id, decision){
+  // Xử lý duyệt / từ chối yêu cầu doanh nghiệp, sau đó quay về dashboard và đóng popup
+  const idx = bizRequests.findIndex(x => x.id === id);
+  if(idx !== -1) bizRequests.splice(idx, 1);
+  closeBizModal();
+  renderBizTable();
+}
+
+document.getElementById('bizModalClose').addEventListener('click', closeBizModal);
+bizModal.addEventListener('click', (e) => { if(e.target === bizModal) closeBizModal(); });
+document.addEventListener('keydown', (e) => { if(e.key === 'Escape') closeBizModal(); });
+
+renderBizTable();
+</script>
+</body>
+</html>

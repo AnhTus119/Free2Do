@@ -2,6 +2,8 @@
 body {
   min-height: 100vh;
   background: var(--color-cream);
+  background-image: url('../img/back.png');
+  background-size: 100%;
   display: flex;
   align-items: center;
   justify-content: center;

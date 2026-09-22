@@ -11,6 +11,8 @@ body, html {
     position: relative;
     width: 100%;
     min-height: 100vh;
+    background-image: url('../img/back.png');
+    background-size: 150%;
 }
 
 .login__circle {
@@ -42,9 +44,52 @@ body, html {
   justify-content: flex-end;   
   align-items: flex-start; 
   padding: 30px;
+  color: var(--color-cream);
+}
+
+.login__title {
+  position: relative;
+  z-index: 1;
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  margin: 0 0 0 20px; 
+}
+
+.login__illustration {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: auto;
+  flex: 1; 
+}
+
+.login__logo {
+  width: 350px;
+  height: 350px;
+}
+
+.login__brand-bottom {
+  position: relative;
+  z-index: 1;
+}
+
+.login__tagline {
+  font-size: 45px;
+  font-weight: 700;
+  line-height: 1.3;
+  margin: 20px 0 70px 55px;
+}
+.login__tagline em {
+  font-style: italic;
+  color: var(--color-rose);
+}
+
+.login__copyright {
   font-size: 12px;
   font-weight: 400;
-  color: var(--color-cream);
 }
 
 /* Cột phải*/

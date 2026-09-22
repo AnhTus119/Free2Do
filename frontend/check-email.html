@@ -6,6 +6,7 @@
   <title>Quên mật khẩu - FREE2DO</title>
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/forgot-password.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
   <style>
     /* Thông báo đã gửi email */
@@ -25,7 +26,7 @@
     
     .check-email__notice-text {
         margin: 0;
-        font-size: 13px;
+        font-size: 16px;
         line-height: 1.5;
         color: var(--color-text-dark, #2b2b2b);
     }
@@ -35,6 +36,10 @@
 <body>
 <div class="check-email">
   <div class="check-email__card">
+    <div class = "check-email__illustration">
+      <img class="check-email__logo" src="img/logo.svg" alt="Free2Do logo">
+      <h1>FREE2DO</h1>
+    </div> 
 
     <h1 class="check-email__title">Quên mật khẩu</h1>
 
@@ -55,11 +60,54 @@
 
       <button type="submit" class="check-email__submit">Xác nhận</button>
 
+      <a href="forgot-password.html" class="check-email__back">
+        <i class="fa-solid fa-arrow-left"></i> Quay lại
+      </a>
     </form>
 
   </div>
 </div>
 
-<script src="js/forgot-password.js"></script>
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const email = params.get('email'); // lấy email từ trang trước truyền sang
+
+  const form = document.querySelector('.check-email__form');
+  const codeInput = document.getElementById('check-email-code');
+  const codeField = codeInput.closest('.check-email__field');
+  const codeError = document.getElementById('check-email-code-error');
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+
+    const code = codeInput.value.trim();
+
+    if (!code) {
+      codeError.textContent = 'Vui lòng nhập mã xác nhận.';
+      codeField.classList.add('check-email__field--error');
+      return;
+    }
+
+    // TODO: thay đoạn dưới bằng gọi API thật để verify mã
+    // fetch('/api/verify-code', {
+    //   method: 'POST',
+    //   headers: { 'Content-Type': 'application/json' },
+    //   body: JSON.stringify({ email, code })
+    // })
+    //   .then(res => res.json())
+    //   .then(data => {
+    //     if (!data.success) {
+    //       codeError.textContent = 'Mã xác nhận không đúng. Vui lòng thử lại.';
+    //       codeField.classList.add('check-email__field--error');
+    //       return;
+    //     }
+    //     window.location.href = 'reset-password.html?token=' + encodeURIComponent(data.resetToken);
+    //   });
+
+    // Bản tạm thời (chưa nối API): chuyển trang luôn
+    codeField.classList.remove('check-email__field--error');
+    window.location.href = 'reset-password.html?email=' + encodeURIComponent(email);
+  });
+</script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-const API_BASE_URL = "https://free2do.onrender.com";
+const API_BASE_URL = "http://localhost:8000";
 
 const registerForm = document.querySelector(".signup__form");
 let registerErrorEl = document.getElementById("register-error");
@@ -7,7 +7,7 @@ function ensureErrorBox() {
   if (registerErrorEl || !registerForm) return;
   registerErrorEl = document.createElement("p");
   registerErrorEl.id = "register-error";
-  registerErrorEl.style.cssText = "display:none;color:#b42318;text-align:center;margin:0 0 12px;font-weight:600;";
+  registerErrorEl.style.cssText = "display:none;color:#b42318;text-align:center;margin:0 0 10px;font-weight:600;";
   const submitButton = registerForm.querySelector(".signup__submit");
   registerForm.insertBefore(registerErrorEl, submitButton);
 }
@@ -72,7 +72,7 @@ if (registerForm) {
       window.location.href = "index.html";
     } catch (error) {
       console.error(error);
-      showRegisterError("Không kết nối được backend.");
+      showRegisterError("Không kết nối được backend tại http://localhost:8000.");
     }
   });
 }

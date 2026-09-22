@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>FREE2DO Admin — Doanh nghiệp</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style1.css">
+</head>
+<body>
+<div class="app">
+
+    <div class="sidebar">
+    <div class="side-logo"><img src="Vecto/Group.svg" alt="Customer"><span>FREE2DO</span></div>
+    <div class="nav-group">
+      <a href="dashboard.html" class="nav-item"><span class="ic"></span>Tổng quan</a>
+      <a href="customers.html" class="nav-item"><span class="ic"></span>Khách hàng</a>
+      <a href="businesses.html" class="nav-item active"><span class="ic"></span>Doanh nghiệp</a>
+      <a href="activities.html" class="nav-item"><span class="ic"></span>Hoạt động</a>
+    </div>
+    <div class="side-bottom">
+      <div class="side-admin">
+        <div class="side-avatar">A</div>
+        <div><div class="side-admin-name">Admin Nhân</div><div class="side-admin-role">Quản trị viên</div></div>
+      </div>
+      <a href="#" class="nav-item"><span class="ic">⚙️</span>Cài đặt</a>
+      <a href="#" class="nav-item"><span class="ic">↩</span>Đăng xuất</a>
+    </div>
+  </div>
+
+
+  <div class="main">
+    <div class="header">
+      <div><div class="breadcrumb">Quản trị / Doanh nghiệp</div><h1>Quản lý Doanh nghiệp</h1></div>
+      <div class="header-right">
+        <div class="bell">🔔<span class="badge-dot"></span></div>
+        <div class="who"><div class="avatar">A</div><div class="name">Admin Nhân</div><div class="chev">▾</div></div>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="welcome">
+        <div><h2>Danh sách Doanh nghiệp</h2><p>Quản lý các đơn vị tổ chức hoạt động trên nền tảng FREE2DO.</p></div>
+      </div>
+
+      <div class="stats-grid business-stats" style="grid-template-columns:repeat(4,1fr);">
+        <div class="stat-card stat-filter selected" data-status="all"><div class="stat-icon" style="background:#FDEDEF;">🏬</div><div class="stat-num" id="totalBusinesses">15</div><div class="stat-label">Tổng Doanh nghiệp</div></div>
+        <div class="stat-card stat-filter" data-status="active"><div class="stat-icon" style="background:var(--success-bg);">✅</div><div class="stat-num" id="activeBusinesses">10</div><div class="stat-label">Đang hoạt động</div></div>
+        <div class="stat-card stat-filter" data-status="pending"><div class="stat-icon" style="background:var(--warn-bg);">⚠️</div><div class="stat-num" id="pendingBusinesses">5</div><div class="stat-label">Đang chờ duyệt</div></div>
+        <div class="stat-card stat-filter" data-status="locked"><div class="stat-icon" style="background:var(--danger-bg);">🔒</div><div class="stat-num" id="lockedBusinesses">0</div><div class="stat-label">Đã khóa</div></div>
+      </div>
+
+      <div class="filter-bar">
+        <div class="search-box">🔍<input type="text" placeholder="Tìm theo tên Doanh nghiệp..."></div>
+        <select class="filter-select" id="statusFilter">
+          <option value="all">Tất cả trạng thái</option>
+          <option value="active">Hoạt động</option>
+          <option value="pending">Chờ duyệt</option>
+          <option value="locked">Đã khóa</option>
+        </select>
+        <select class="filter-select" id="activityFilter">
+          <option value="newest">Mới nhất</option>
+          <option value="mostActivities">Nhiều Hoạt động nhất</option>
+        </select>
+      </div>
+
+      <div class="card">
+        <table class="business-table">
+          <thead><tr><th>Mã DN</th><th>Doanh nghiệp</th><th>Loại hình</th><th>Số Hoạt động</th><th>Trạng thái</th><th>Hành động</th></tr></thead>
+          <tbody id="businessRows">
+            <tr><td>B001</td><td><div class="cell-title">She.slays</div><div class="cell-sub">Xưởng Cafe, Bạch Mai, Hà Nội</div></td><td>Workshop</td><td>1</td><td><span class="badge active">Hoạt động</span></td><td><div class="row-actions"><a class="row-btn" href="business-profile.html">Xem</a><button class="row-btn danger">Khóa</button></div></td></tr>
+            <tr><td>B002</td><td><div class="cell-title">Fitness</div><div class="cell-sub">81B Bùi Thị Xuân, Hà Nội</div></td><td>Gym</td><td>1</td><td><span class="badge active">Hoạt động</span></td><td><div class="row-actions"><a class="row-btn" href="business-profile.html">Xem</a><button class="row-btn danger">Khóa</button></div></td></tr>
+            <tr><td>B004</td><td><div class="cell-title">Vikings Cyber</div><div class="cell-sub">3 chi nhánh · Hà Nội</div></td><td>Quán net</td><td>3</td><td><span class="badge active">Hoạt động</span></td><td><div class="row-actions"><a class="row-btn" href="business-profile.html">Xem</a><button class="row-btn danger">Khóa</button></div></td></tr>
+            <tr><td>B010</td><td><div class="cell-title">Bi-a Batuna Billiards</div><div class="cell-sub">72 Trần Đại Nghĩa, Hà Nội</div></td><td>Giải trí</td><td>1</td><td><span class="badge active">Hoạt động</span></td><td><div class="row-actions"><a class="row-btn" href="business-profile.html">Xem</a><button class="row-btn danger">Khóa</button></div></td></tr>
+            <tr><td>B012</td><td><div class="cell-title">KATINAT Lê Thanh Nghị</div><div class="cell-sub">67 P. Lê Thanh Nghị, Hà Nội</div></td><td>Quán cà phê</td><td>1</td><td><span class="badge active">Hoạt động</span></td><td><div class="row-actions"><a class="row-btn" href="business-profile.html">Xem</a><button class="row-btn danger">Khóa</button></div></td></tr>
+            <tr><td>B015</td><td><div class="cell-title">Rạp Beta Giải Phóng</div><div class="cell-sub">360 Đ. Giải Phóng, Hà Nội</div></td><td>Xem phim</td><td>1</td><td><span class="badge pending">Chờ duyệt</span></td><td><div class="row-actions"><a class="row-btn" href="business-profile.html">Xem</a><button class="row-btn approve">Duyệt</button></div></td></tr>
+            <tr><td>B017</td><td><div class="cell-title">HaPam Nails House</div><div class="cell-sub">18 Ng.41 P.Đông Tác, Hà Nội</div></td><td>Làm đẹp</td><td>1</td><td><span class="badge active">Hoạt động</span></td><td><div class="row-actions"><a class="row-btn" href="business-profile.html">Xem</a><button class="row-btn danger">Khóa</button></div></td></tr>
+            <tr><td>B021</td><td><div class="cell-title">Thổ thì thầm Pottery workshop</div><div class="cell-sub">435a Đ. Giải Phóng, Hà Nội</div></td><td>Workshop / Cà phê nghệ thuật</td><td>1</td><td><span class="badge pending">Chờ duyệt</span></td><td><div class="row-actions"><a class="row-btn" href="business-profile.html">Xem</a><button class="row-btn approve">Duyệt</button></div></td></tr>
+            <tr><td>B025</td><td><div class="cell-title">Cà Phê Nhà Kho Đại La</div><div class="cell-sub">Ngách 51 Ng.128C, Bạch Mai</div></td><td>Quán cà phê học tập</td><td>1</td><td><span class="badge pending">Chờ duyệt</span></td><td><div class="row-actions"><a class="row-btn" href="business-profile.html">Xem</a><button class="row-btn approve">Duyệt</button></div></td></tr>
+            <tr><td>B026</td><td><div class="cell-title">Mộc Miên Cafe</div><div class="cell-sub">12 P. Huế, Hà Nội</div></td><td>Quán cà phê</td><td>2</td><td><span class="badge active">Hoạt động</span></td><td><div class="row-actions"><a class="row-btn" href="business-profile.html">Xem</a><button class="row-btn danger">Khóa</button></div></td></tr>
+            <tr><td>B027</td><td><div class="cell-title">Jump Arena</div><div class="cell-sub">Tầng 3, Aeon Mall Hà Đông</div></td><td>Giải trí</td><td>2</td><td><span class="badge active">Hoạt động</span></td><td><div class="row-actions"><a class="row-btn" href="business-profile.html">Xem</a><button class="row-btn danger">Khóa</button></div></td></tr>
+            <tr><td>B028</td><td><div class="cell-title">Nắng Studio</div><div class="cell-sub">25 Ng. Thái Hà, Hà Nội</div></td><td>Làm đẹp</td><td>1</td><td><span class="badge pending">Chờ duyệt</span></td><td><div class="row-actions"><a class="row-btn" href="business-profile.html">Xem</a><button class="row-btn approve">Duyệt</button></div></td></tr>
+            <tr><td>B029</td><td><div class="cell-title">The Reading Room</div><div class="cell-sub">88 P. Trần Hưng Đạo, Hà Nội</div></td><td>Không gian đọc</td><td>1</td><td><span class="badge active">Hoạt động</span></td><td><div class="row-actions"><a class="row-btn" href="business-profile.html">Xem</a><button class="row-btn danger">Khóa</button></div></td></tr>
+            <tr><td>B030</td><td><div class="cell-title">Sân cầu lông Đông Đô</div><div class="cell-sub">40 P. Lê Trọng Tấn, Hà Nội</div></td><td>Thể thao</td><td>4</td><td><span class="badge pending">Chờ duyệt</span></td><td><div class="row-actions"><a class="row-btn" href="business-profile.html">Xem</a><button class="row-btn approve">Duyệt</button></div></td></tr>
+            <tr><td>B031</td><td><div class="cell-title">Luna Workshop</div><div class="cell-sub">16 P. Tạ Quang Bửu, Hà Nội</div></td><td>Workshop</td><td>1</td><td><span class="badge active">Hoạt động</span></td><td><div class="row-actions"><a class="row-btn" href="business-profile.html">Xem</a><button class="row-btn danger">Khóa</button></div></td></tr>
+          </tbody>
+        </table>
+        <div class="pagination">
+          <span id="businessCount">Hiển thị 1–10 trong tổng số 15 Doanh nghiệp</span>
+          <div class="page-btns" id="businessPagination"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+<script>
+  const statusFilter = document.getElementById('statusFilter');
+  const activityFilter = document.getElementById('activityFilter');
+  const businessRows = document.querySelectorAll('#businessRows tr');
+  const businessCount = document.getElementById('businessCount');
+  const businessPagination = document.getElementById('businessPagination');
+  const statFilters = document.querySelectorAll('.stat-filter');
+  const originalOrder = new Map(Array.from(businessRows).map((row, index) => [row, index]));
+  const pageSize = 10;
+  let currentPage = 1;
+
+  function getBusinessStatus(row) {
+    const badge = row.querySelector('.badge');
+    return badge.classList.contains('pending') ? 'pending' : badge.classList.contains('locked') ? 'locked' : 'active';
+  }
+
+  function updateBusinessStats() {
+    const counts = { active: 0, pending: 0, locked: 0 };
+    businessRows.forEach((row) => {
+      counts[getBusinessStatus(row)] += 1;
+    });
+    document.getElementById('totalBusinesses').textContent = businessRows.length;
+    document.getElementById('activeBusinesses').textContent = counts.active;
+    document.getElementById('pendingBusinesses').textContent = counts.pending;
+    document.getElementById('lockedBusinesses').textContent = counts.locked;
+  }
+
+  function filterBusinesses() {
+    const selectedStatus = statusFilter.value;
+    const rows = Array.from(businessRows);
+    statFilters.forEach((card) => card.classList.toggle('selected', card.dataset.status === selectedStatus));
+
+    rows.sort((firstRow, secondRow) => {
+      if (activityFilter.value === 'mostActivities') {
+        return Number(secondRow.cells[3].textContent.trim()) - Number(firstRow.cells[3].textContent.trim());
+      }
+
+      return originalOrder.get(firstRow) - originalOrder.get(secondRow);
+    });
+
+    const matchingRows = rows.filter((row) => selectedStatus === 'all' || getBusinessStatus(row) === selectedStatus);
+    const totalPages = Math.max(1, Math.ceil(matchingRows.length / pageSize));
+    currentPage = Math.min(currentPage, totalPages);
+    const pageStart = (currentPage - 1) * pageSize;
+    const pageRows = matchingRows.slice(pageStart, pageStart + pageSize);
+
+    rows.forEach((row) => {
+      row.hidden = !pageRows.includes(row);
+      document.getElementById('businessRows').appendChild(row);
+    });
+
+    businessCount.textContent = matchingRows.length === 0
+      ? 'Không có doanh nghiệp phù hợp'
+      : `Hiển thị ${pageStart + 1}–${Math.min(pageStart + pageSize, matchingRows.length)} trong tổng số ${matchingRows.length} Doanh nghiệp`;
+    renderPagination(totalPages);
+  }
+
+  function renderPagination(totalPages) {
+    businessPagination.innerHTML = '';
+    if (totalPages <= 1) return;
+
+    const previousButton = document.createElement('div');
+    previousButton.className = `page-btn${currentPage === 1 ? ' disabled' : ''}`;
+    previousButton.textContent = '‹';
+    previousButton.setAttribute('aria-label', 'Trang trước');
+    if (currentPage > 1) {
+      previousButton.addEventListener('click', () => {
+        currentPage -= 1;
+        filterBusinesses();
+      });
+    }
+    businessPagination.appendChild(previousButton);
+
+    for (let page = 1; page <= totalPages; page += 1) {
+      const pageButton = document.createElement('div');
+      pageButton.className = `page-btn${page === currentPage ? ' active' : ''}`;
+      pageButton.textContent = page;
+      pageButton.addEventListener('click', () => {
+        currentPage = page;
+        filterBusinesses();
+      });
+      businessPagination.appendChild(pageButton);
+    }
+
+    const nextButton = document.createElement('div');
+    nextButton.className = `page-btn${currentPage === totalPages ? ' disabled' : ''}`;
+    nextButton.textContent = '›';
+    nextButton.setAttribute('aria-label', 'Trang sau');
+    if (currentPage < totalPages) {
+      nextButton.addEventListener('click', () => {
+        currentPage += 1;
+        filterBusinesses();
+      });
+    }
+    businessPagination.appendChild(nextButton);
+  }
+
+  statusFilter.addEventListener('change', () => {
+    currentPage = 1;
+    filterBusinesses();
+  });
+  activityFilter.addEventListener('change', () => {
+    currentPage = 1;
+    filterBusinesses();
+  });
+  statFilters.forEach((statFilter) => {
+    statFilter.addEventListener('click', () => {
+      statusFilter.value = statFilter.dataset.status;
+      currentPage = 1;
+      statFilters.forEach((card) => card.classList.remove('selected'));
+      statFilter.classList.add('selected');
+      filterBusinesses();
+    });
+  });
+  document.getElementById('businessRows').addEventListener('click', (event) => {
+    const actionButton = event.target.closest('button');
+    if (!actionButton) return;
+
+    const row = actionButton.closest('tr');
+    const actions = actionButton.closest('.row-actions');
+    const badge = row.querySelector('.badge');
+
+    if (actionButton.classList.contains('approve') && actionButton.textContent === 'Duyệt') {
+      badge.classList.remove('pending');
+      badge.classList.add('active');
+      badge.textContent = 'Hoạt động';
+      actionButton.remove();
+      const lockButton = document.createElement('button');
+      lockButton.className = 'row-btn danger';
+      lockButton.textContent = 'Khóa';
+      actions.appendChild(lockButton);
+    } else if (actionButton.classList.contains('approve') && actionButton.textContent === 'Mở khóa') {
+      badge.classList.remove('locked');
+      badge.classList.add('active');
+      badge.textContent = 'Hoạt động';
+      actionButton.classList.remove('approve');
+      actionButton.classList.add('danger');
+      actionButton.textContent = 'Khóa';
+    } else if (actionButton.classList.contains('danger')) {
+      badge.classList.remove('active', 'pending');
+      badge.classList.add('locked');
+      badge.textContent = 'Đã khóa';
+      actionButton.classList.remove('danger');
+      actionButton.classList.add('approve');
+      actionButton.textContent = 'Mở khóa';
+    }
+
+    updateBusinessStats();
+    filterBusinesses();
+  });
+  updateBusinessStats();
+  filterBusinesses();
+</script>
+</body>
+</html>

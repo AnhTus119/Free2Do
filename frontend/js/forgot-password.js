@@ -1,4 +1,4 @@
-const AUTH_API_BASE_URL = "https://free2do.onrender.com";
+const AUTH_API_BASE_URL = "http://localhost:8000";
 
 async function readJson(response) {
   try { return await response.json(); } catch { return {}; }
@@ -24,7 +24,7 @@ if (forgotForm) {
       window.location.href = "check-email.html";
     } catch (error) {
       console.error(error);
-      alert("Không kết nối được backend.");
+      alert("Không kết nối được backend tại http://localhost:8000.");
     }
   });
 }
@@ -55,7 +55,7 @@ if (checkEmailForm) {
       window.location.href = "reset-password.html";
     } catch (error) {
       console.error(error);
-      alert("Không kết nối được backend.");
+      alert("Không kết nối được backend tại http://localhost:8000.");
     }
   });
 }
@@ -91,7 +91,7 @@ if (resetForm) {
       window.location.href = "log-in.html";
     } catch (error) {
       console.error(error);
-      alert("Không kết nối được backend.");
+      alert("Không kết nối được backend tại http://localhost:8000.");
     }
   });
 }

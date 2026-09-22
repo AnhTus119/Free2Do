@@ -1,4 +1,4 @@
-const API_BASE_URL = "https://free2do.onrender.com";
+const API_BASE_URL = "http://localhost:8000";
 
 const loginForm = document.querySelector(".login__form");
 let loginErrorEl = document.getElementById("login-error");
@@ -70,7 +70,7 @@ if (loginForm) {
       window.location.href = me.redirect || "index.html";
     } catch (error) {
       console.error(error);
-      showLoginError("Không kết nối được backend.");
+      showLoginError("Không kết nối được backend tại http://localhost:8000.");
     }
   });
 }

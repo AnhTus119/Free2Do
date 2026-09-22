@@ -117,7 +117,7 @@ body, html {
   background: var(--color-pink);
   border-radius: 20px;
   padding: 4px;
-  margin: 15px auto;
+  margin: 10px auto;
 }
 
 .signup__tab {
@@ -144,7 +144,7 @@ body, html {
 
 .signup__label {
   display: block;
-  margin-bottom: 5px;
+  margin-bottom: 3px;
   font-size: 20px;
   color: var(--color-black);
 }
@@ -188,14 +188,15 @@ body, html {
 .signup__strength {
   display: flex;
   flex-direction: column; 
-  gap: 8px;
-  margin-top: 5px;
+  gap: 5px;
+  margin-top: 3px;
 }
 
 .signup__strength-bars {
   display: flex;
   gap: 6px;
   flex: 1;
+  margin-bottom: 2px;
 }
 
 .signup__strength-bar {
@@ -234,7 +235,7 @@ body, html {
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  margin-bottom: 15px;
+  margin-bottom: 10px;
   font-size: 15px;
   color: var(--color-black);
   cursor: pointer;
@@ -260,7 +261,7 @@ body, html {
   font-size: 24px;
   font-weight: 700;
   cursor: pointer;
-  margin: 0 auto 15px auto;
+  margin: 0 auto 10px auto;
 }
 
 .signup__submit:hover {
@@ -272,7 +273,7 @@ body, html {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 15px;
+  margin-bottom: 10px;
   font-size: 15px;
   color: var(--color-brown);
   font-weight: 700;
@@ -291,7 +292,7 @@ body, html {
   display: flex;
   justify-content: center;
   gap: 40px;
-  margin: 0 auto 15px auto;
+  margin: 0 auto 10px auto;
 }
 
 .signup__social {

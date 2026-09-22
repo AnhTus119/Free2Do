@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>FREE2DO Admin — Hoạt động</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style1.css">
+</head>
+<body>
+<div class="app">
+
+    <div class="sidebar">
+    <div class="side-logo"><img src="Vecto/Group.svg" alt="Customer"><span>FREE2DO</span></div>
+    <div class="nav-group">
+      <a href="dashboard.html" class="nav-item"><span class="ic"></span>Tổng quan</a>
+      <a href="customers.html" class="nav-item"><span class="ic"></span>Khách hàng</a>
+      <a href="businesses.html" class="nav-item"><span class="ic"></span>Doanh nghiệp</a>
+      <a href="activities.html" class="nav-item active"><span class="ic"></span>Hoạt động</a>
+    </div>
+    <div class="side-bottom">
+      <div class="side-admin">
+        <div class="side-avatar">A</div>
+        <div><div class="side-admin-name">Admin Nhân</div><div class="side-admin-role">Quản trị viên</div></div>
+      </div>
+      <a href="#" class="nav-item"><span class="ic">⚙️</span>Cài đặt</a>
+      <a href="#" class="nav-item"><span class="ic">↩</span>Đăng xuất</a>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="header">
+      <div><div class="breadcrumb">Quản trị / Hoạt động</div><h1>Danh sách hoạt động</h1></div>
+      <div class="header-right">
+        <div class="bell">🔔<span class="badge-dot"></span></div>
+        <div class="who"><div class="avatar">A</div><div class="name">Admin Nhân</div><div class="chev">▾</div></div>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="welcome">
+        <div><h2>Danh sách Hoạt động</h2><p>Kiểm duyệt và quản lý toàn bộ hoạt động trên nền tảng FREE2DO.</p></div>
+        <button class="qa-btn primary">＋ Thêm Hoạt động</button>
+      </div>
+
+      <div class="status-tabs">
+        <div class="status-tab active" data-status="all">Tất cả (<span data-count="all">17</span>)</div>
+        <div class="status-tab" data-status="active">Hoạt động (<span data-count="active">12</span>)</div>
+        <div class="status-tab" data-status="pending">Chờ duyệt (<span data-count="pending">5</span>)</div>
+        <div class="status-tab" data-status="hidden">Đã ẩn (<span data-count="hidden">0</span>)</div>
+        <div class="status-tab" data-status="rejected">Từ chối (<span data-count="rejected">0</span>)</div>
+        <div class="status-tab" data-status="expired">Hết hạn (<span data-count="expired">0</span>)</div>
+      </div>
+
+      <div class="filter-bar">
+        <div class="search-box">🔍<input type="text" placeholder="Tìm theo tên Hoạt động hoặc Doanh nghiệp..."></div>
+        <select class="filter-select" id="typeFilter">
+          <option value="all">Tất cả loại hình</option>
+          <option value="food">Ăn uống</option>
+          <option value="entertainment">Giải trí</option>
+          <option value="workshop">Workshop</option>
+          <option value="beauty">Làm đẹp</option>
+        </select>
+        <select class="filter-select" id="priceFilter">
+          <option value="newest">Mới nhất</option>
+          <option value="priceAsc">Giá thấp – cao</option>
+          <option value="priceDesc">Giá cao – thấp</option>
+        </select>
+      </div>
+
+      <div class="card">
+        <table class="activity-table">
+          <thead><tr><th>Mã</th><th>Hoạt động</th><th>Doanh nghiệp</th><th>Giá</th><th>Giờ hoạt động</th><th>Trạng thái</th><th>Hành động</th></tr></thead>
+          <tbody id="activityRows">
+            <tr data-type="beauty"><td>A001</td><td class="cell-title">Whimsical Crown</td><td>She.slays</td><td>200.000 ₫</td><td>14:00–20:00</td><td><span class="badge active">Hoạt động</span></td><td><a class="row-btn" href="activity-profile.html">Xem</a></td></tr>
+            <tr data-type="entertainment"><td>A002</td><td class="cell-title">Tập Gym & Fitness</td><td>Fitness</td><td>150.000 ₫</td><td>06:00–21:30</td><td><span class="badge active">Hoạt động</span></td><td><a class="row-btn" href="activity-profile.html">Xem</a></td></tr>
+            <tr data-type="entertainment"><td>A004</td><td class="cell-title">Esports Arena (Giải Phóng)</td><td>Vikings Cyber</td><td>100.000 ₫</td><td>Cả ngày</td><td><span class="badge active">Hoạt động</span></td><td><a class="row-btn" href="activity-profile.html">Xem</a></td></tr>
+            <tr data-type="entertainment"><td>A011</td><td class="cell-title">Muzic Box</td><td>Muzic Box</td><td>50.000–100.000 ₫</td><td>10:00–00:00</td><td><span class="badge active">Hoạt động</span></td><td><a class="row-btn" href="activity-profile.html">Xem</a></td></tr>
+            <tr data-type="entertainment"><td>A013</td><td class="cell-title">Bi-a Batuna Billiards</td><td>Bi-a Batuna Billiards</td><td>100.000 ₫</td><td>Cả ngày</td><td><span class="badge active">Hoạt động</span></td><td><a class="row-btn" href="activity-profile.html">Xem</a></td></tr>
+            <tr data-type="entertainment"><td>A018</td><td class="cell-title">Rạp Beta Giải Phóng</td><td>Rạp Beta Giải Phóng</td><td>60.000 ₫</td><td>Cả ngày</td><td><span class="badge pending">Chờ duyệt</span></td><td><div class="row-actions"><a class="row-btn" href="activity-profile.html">Xem</a><button class="row-btn approve">Duyệt</button></div></td></tr>
+            <tr data-type="beauty"><td>A020</td><td class="cell-title">HaPam Nails House</td><td>HaPam Nails House</td><td>120.000 ₫</td><td>09:00–22:00</td><td><span class="badge active">Hoạt động</span></td><td><a class="row-btn" href="activity-profile.html">Xem</a></td></tr>
+            <tr data-type="workshop"><td>A024</td><td class="cell-title">Thổ thì thầm Pottery workshop</td><td>Thổ thì thầm</td><td>200.000–300.000 ₫</td><td>14:00–20:00</td><td><span class="badge pending">Chờ duyệt</span></td><td><div class="row-actions"><a class="row-btn" href="activity-profile.html">Xem</a><button class="row-btn approve">Duyệt</button></div></td></tr>
+            <tr data-type="food"><td>A025</td><td class="cell-title">Cà Phê Nhà Kho Đại La</td><td>Cà Phê Nhà Kho Đại La</td><td>1.000–100.000 ₫</td><td>07:00–23:00</td><td><span class="badge pending">Chờ duyệt</span></td><td><div class="row-actions"><a class="row-btn" href="activity-profile.html">Xem</a><button class="row-btn approve">Duyệt</button></div></td></tr>
+            <tr data-type="food"><td>A026</td><td class="cell-title">Bếp Nhà Mình</td><td>Bếp Nhà Mình</td><td>80.000 ₫</td><td>10:00–22:00</td><td><span class="badge active">Hoạt động</span></td><td><a class="row-btn" href="activity-profile.html">Xem</a></td></tr>
+            <tr data-type="entertainment"><td>A027</td><td class="cell-title">Bowling Royal City</td><td>Royal City</td><td>180.000 ₫</td><td>09:00–23:00</td><td><span class="badge active">Hoạt động</span></td><td><a class="row-btn" href="activity-profile.html">Xem</a></td></tr>
+            <tr data-type="workshop"><td>A028</td><td class="cell-title">Lớp vẽ màu nước</td><td>Art House</td><td>250.000 ₫</td><td>09:00–17:00</td><td><span class="badge pending">Chờ duyệt</span></td><td><div class="row-actions"><a class="row-btn" href="activity-profile.html">Xem</a><button class="row-btn approve">Duyệt</button></div></td></tr>
+            <tr data-type="beauty"><td>A029</td><td class="cell-title">Chăm sóc da cơ bản</td><td>La Belle Spa</td><td>300.000 ₫</td><td>09:00–21:00</td><td><span class="badge active">Hoạt động</span></td><td><a class="row-btn" href="activity-profile.html">Xem</a></td></tr>
+            <tr data-type="food"><td>A030</td><td class="cell-title">Brunch cuối tuần</td><td>The Garden Cafe</td><td>220.000 ₫</td><td>08:00–14:00</td><td><span class="badge active">Hoạt động</span></td><td><a class="row-btn" href="activity-profile.html">Xem</a></td></tr>
+            <tr data-type="entertainment"><td>A031</td><td class="cell-title">Phòng chiếu riêng</td><td>Moon Cinema</td><td>350.000 ₫</td><td>10:00–23:00</td><td><span class="badge pending">Chờ duyệt</span></td><td><div class="row-actions"><a class="row-btn" href="activity-profile.html">Xem</a><button class="row-btn approve">Duyệt</button></div></td></tr>
+            <tr data-type="workshop"><td>A032</td><td class="cell-title">Làm nến thơm</td><td>Craft Corner</td><td>190.000 ₫</td><td>13:00–19:00</td><td><span class="badge active">Hoạt động</span></td><td><a class="row-btn" href="activity-profile.html">Xem</a></td></tr>
+            <tr data-type="beauty"><td>A033</td><td class="cell-title">Gội đầu thư giãn</td><td>May Beauty</td><td>100.000 ₫</td><td>08:00–20:00</td><td><span class="badge active">Hoạt động</span></td><td><a class="row-btn" href="activity-profile.html">Xem</a></td></tr>
+          </tbody>
+        </table>
+        <div class="pagination">
+          <span id="activityCount">Hiển thị 1–10 trong tổng số 17 Hoạt động</span>
+          <div class="page-btns" id="activityPagination"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+<script>
+  const typeFilter = document.getElementById('typeFilter');
+  const priceFilter = document.getElementById('priceFilter');
+  const activityRows = Array.from(document.querySelectorAll('#activityRows tr'));
+  const activityCount = document.getElementById('activityCount');
+  const activityPagination = document.getElementById('activityPagination');
+  const statusTabs = document.querySelectorAll('.status-tab');
+  const originalOrder = new Map(activityRows.map((row, index) => [row, index]));
+  const pageSize = 10;
+  let currentPage = 1;
+  let selectedStatus = 'all';
+
+  function getStartingPrice(row) {
+    const price = row.cells[3].textContent.trim().split('–')[0];
+    return Number(price.replace(/\D/g, ''));
+  }
+
+  function getRowStatus(row) {
+    return row.querySelector('.badge').classList.contains('pending') ? 'pending' : 'active';
+  }
+
+  function updateStatusCounts() {
+    const counts = { all: activityRows.length, active: 0, pending: 0, hidden: 0, rejected: 0, expired: 0 };
+    activityRows.forEach((row) => {
+      counts[getRowStatus(row)] += 1;
+    });
+
+    Object.entries(counts).forEach(([status, count]) => {
+      const countElement = document.querySelector(`[data-count="${status}"]`);
+      if (countElement) countElement.textContent = count;
+    });
+  }
+
+  function filterActivities() {
+    const selectedType = typeFilter.value;
+    const rows = [...activityRows].sort((firstRow, secondRow) => {
+      if (priceFilter.value === 'priceAsc' || priceFilter.value === 'priceDesc') {
+        const priceDifference = getStartingPrice(firstRow) - getStartingPrice(secondRow);
+        return priceFilter.value === 'priceAsc' ? priceDifference : -priceDifference;
+      }
+
+      return originalOrder.get(firstRow) - originalOrder.get(secondRow);
+    });
+    const matchingRows = rows.filter((row) => {
+      const rowStatus = getRowStatus(row);
+      const matchesType = selectedType === 'all' || row.dataset.type === selectedType;
+      const matchesStatus = selectedStatus === 'all' || rowStatus === selectedStatus;
+      return matchesType && matchesStatus;
+    });
+    const totalPages = Math.max(1, Math.ceil(matchingRows.length / pageSize));
+    currentPage = Math.min(currentPage, totalPages);
+    const pageStart = (currentPage - 1) * pageSize;
+    const pageRows = matchingRows.slice(pageStart, pageStart + pageSize);
+
+    rows.forEach((row) => {
+      const isVisible = pageRows.includes(row);
+      row.hidden = !isVisible;
+      document.getElementById('activityRows').appendChild(row);
+    });
+
+    activityCount.textContent = matchingRows.length === 0
+      ? 'Không có hoạt động phù hợp'
+      : `Hiển thị ${pageStart + 1}–${Math.min(pageStart + pageSize, matchingRows.length)} trong tổng số ${matchingRows.length} Hoạt động`;
+    renderPagination(totalPages);
+  }
+
+  function renderPagination(totalPages) {
+    activityPagination.innerHTML = '';
+    if (totalPages <= 1) return;
+
+    const previousButton = document.createElement('div');
+    previousButton.className = `page-btn${currentPage === 1 ? ' disabled' : ''}`;
+    previousButton.textContent = '‹';
+    previousButton.setAttribute('aria-label', 'Trang trước');
+    if (currentPage > 1) {
+      previousButton.addEventListener('click', () => {
+        currentPage -= 1;
+        filterActivities();
+      });
+    }
+    activityPagination.appendChild(previousButton);
+
+    for (let page = 1; page <= totalPages; page += 1) {
+      const pageButton = document.createElement('div');
+      pageButton.className = `page-btn${page === currentPage ? ' active' : ''}`;
+      pageButton.textContent = page;
+      pageButton.addEventListener('click', () => {
+        currentPage = page;
+        filterActivities();
+      });
+      activityPagination.appendChild(pageButton);
+    }
+
+    const nextButton = document.createElement('div');
+    nextButton.className = `page-btn${currentPage === totalPages ? ' disabled' : ''}`;
+    nextButton.textContent = '›';
+    nextButton.setAttribute('aria-label', 'Trang sau');
+    if (currentPage < totalPages) {
+      nextButton.addEventListener('click', () => {
+        currentPage += 1;
+        filterActivities();
+      });
+    }
+    activityPagination.appendChild(nextButton);
+  }
+
+  typeFilter.addEventListener('change', () => {
+    currentPage = 1;
+    filterActivities();
+  });
+  priceFilter.addEventListener('change', () => {
+    currentPage = 1;
+    filterActivities();
+  });
+  statusTabs.forEach((tab) => {
+    tab.addEventListener('click', () => {
+      selectedStatus = tab.dataset.status;
+      currentPage = 1;
+      statusTabs.forEach((statusTab) => statusTab.classList.remove('active'));
+      tab.classList.add('active');
+      filterActivities();
+    });
+  });
+
+  document.querySelectorAll('.approve').forEach((approveButton) => {
+    approveButton.addEventListener('click', () => {
+      const row = approveButton.closest('tr');
+      const badge = row.querySelector('.badge');
+      badge.classList.remove('pending');
+      badge.classList.add('active');
+      badge.textContent = 'Hoạt động';
+      approveButton.remove();
+      updateStatusCounts();
+      filterActivities();
+    });
+  });
+
+  updateStatusCounts();
+  filterActivities();
+</script>
+</body>
+</html>

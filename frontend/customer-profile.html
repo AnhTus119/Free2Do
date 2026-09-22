@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>FREE2DO Admin — Hồ sơ Khách hàng</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style1.css">
+</head>
+<body>
+<div class="app">
+
+    <div class="sidebar">
+    <div class="side-logo"><img src="Vecto/Group.svg" alt="Customer"><span>FREE2DO</span></div>
+    <div class="nav-group">
+      <a href="dashboard.html" class="nav-item active"><span class="ic"></span>Tổng quan</a>
+      <a href="customers.html" class="nav-item"><span class="ic"></span>Khách hàng</a>
+      <a href="businesses.html" class="nav-item"><span class="ic"></span>Doanh nghiệp</a>
+      <a href="activities.html" class="nav-item"><span class="ic"></span>Hoạt động</a>
+    </div>
+    <div class="side-bottom">
+      <div class="side-admin">
+        <div class="side-avatar">A</div>
+        <div><div class="side-admin-name">Admin Nhân</div><div class="side-admin-role">Quản trị viên</div></div>
+      </div>
+      <a href="#" class="nav-item"><span class="ic">⚙️</span>Cài đặt</a>
+      <a href="#" class="nav-item"><span class="ic">↩</span>Đăng xuất</a>
+    </div>
+  </div>
+
+
+  <div class="main">
+    <div class="header">
+      <div><div class="breadcrumb">Quản trị / Khách hàng / Hồ sơ Khách hàng</div><h1>Hồ sơ Khách hàng</h1></div>
+      <div class="header-right">
+        <div class="bell">🔔<span class="badge-dot"></span></div>
+        <div class="who"><div class="avatar">A</div><div class="name">Admin Nhân</div><div class="chev">▾</div></div>
+      </div>
+    </div>
+
+    <div class="content">
+      <a href="customers.html" class="back-link">← Quay lại danh sách Khách hàng</a>
+
+      <div class="profile-head">
+        <div class="profile-logo">H</div>
+        <div style="flex:1;">
+          <div class="profile-name">Hoàng Minh</div>
+          <div class="profile-meta">hoangminh@gmail.com · Đăng ký ngày 08/09/2026</div>
+        </div>
+        <span class="badge active">Hoạt động</span>
+        <button class="qa-btn" style="margin-left:12px;">✏️ Chỉnh sửa</button>
+      </div>
+
+      <div class="quick-row" style="margin-bottom:24px;">
+        <button class="qa-btn">🔒 Khóa tài khoản</button>
+        <button class="qa-btn">✉️ Gửi thông báo</button>
+      </div>
+
+      <div class="profile-grid">
+        <div class="card">
+          <div class="section-head" style="padding:18px 20px 0;"><h3>Thông tin chi tiết</h3></div>
+          <div class="info-row"><span class="info-label">Họ và tên</span><span class="info-value">Hoàng Minh</span></div>
+          <div class="info-row"><span class="info-label">Email</span><span class="info-value">hoangminh@gmail.com</span></div>
+          <div class="info-row"><span class="info-label">Số điện thoại</span><span class="info-value">0987 654 321</span></div>
+          <div class="info-row"><span class="info-label">Khu vực</span><span class="info-value">Hai Bà Trưng, Hà Nội</span></div>
+          <div class="info-row"><span class="info-label">Ngày đăng ký</span><span class="info-value">08/09/2026</span></div>
+          <div class="info-row"><span class="info-label">Đăng nhập gần nhất</span><span class="info-value">Hôm nay, 09:12</span></div>
+          <div class="info-row"><span class="info-label">Trạng thái tài khoản</span><span class="info-value"><span class="badge active">Hoạt động</span></span></div>
+        </div>
+
+        <div class="card">
+          <div class="section-head" style="padding:18px 20px 0;"><h3>Thống kê nhanh</h3></div>
+          <div class="info-row"><span class="info-label">Hoạt động đã tham gia</span><span class="info-value">6</span></div>
+          <div class="info-row"><span class="info-label">Đánh giá đã viết</span><span class="info-value">4</span></div>
+          <div class="info-row"><span class="info-label">Hoạt động gần nhất</span><span class="info-value">2 ngày trước</span></div>
+          <div class="info-row"><span class="info-label">Sở thích đã chọn</span><span class="info-value" style="text-align:right;max-width:180px;">Workshop, Ăn uống, Giải trí</span></div>
+        </div>
+      </div>
+
+      <div class="section" style="margin-top:24px;">
+        <div class="section-head"><h3>Hoạt động đã tham gia</h3></div>
+        <div class="card">
+          <table>
+            <thead><tr><th>Hoạt động</th><th>Doanh nghiệp</th><th>Ngày tham gia</th><th>Trạng thái</th><th>Đánh giá</th></tr></thead>
+            <tbody>
+              <tr><td class="cell-title">Whimsical Crown</td><td>She.slays</td><td>07/09/2026</td><td><span class="badge active">Đã tham gia</span></td><td>★★★★★</td></tr>
+              <tr><td class="cell-title">Tập Gym & Fitness</td><td>Fitness</td><td>05/09/2026</td><td><span class="badge active">Đã tham gia</span></td><td>★★★★☆</td></tr>
+              <tr><td class="cell-title">Bi-a Batuna Billiards</td><td>Bi-a Batuna Billiards</td><td>02/09/2026</td><td><span class="badge active">Đã tham gia</span></td><td>★★★★★</td></tr>
+              <tr><td class="cell-title">Muzic Box</td><td>Muzic Box</td><td>28/08/2026</td><td><span class="badge hidden">Đã hủy</span></td><td>—</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-head"><h3>Lịch sử thao tác Admin</h3></div>
+        <div class="card">
+          <div class="alert-row"><div class="alert-ic" style="background:var(--success-bg);">✅</div><div class="alert-text">Admin Nhân đã xác minh email tài khoản này</div><div class="alert-chev">12/08/2026</div></div>
+          <div class="alert-row"><div class="alert-ic" style="background:var(--warn-bg);">💬</div><div class="alert-text">Admin Nhân đã gửi thông báo nhắc hoàn thiện hồ sơ</div><div class="alert-chev">20/08/2026</div></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+</body>
+</html>

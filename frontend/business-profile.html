@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>FREE2DO Admin — Hồ sơ Doanh nghiệp</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style1.css">
+</head>
+<body>
+<div class="app">
+
+    <div class="sidebar">
+    <div class="side-logo"><img src="Vecto/Group.svg" alt="Customer"><span>FREE2DO</span></div>
+    <div class="nav-group">
+      <a href="dashboard.html" class="nav-item active"><span class="ic"></span>Tổng quan</a>
+      <a href="customers.html" class="nav-item"><span class="ic"></span>Khách hàng</a>
+      <a href="businesses.html" class="nav-item"><span class="ic"></span>Doanh nghiệp</a>
+      <a href="activities.html" class="nav-item"><span class="ic"></span>Hoạt động</a>
+    </div>
+    <div class="side-bottom">
+      <div class="side-admin">
+        <div class="side-avatar">A</div>
+        <div><div class="side-admin-name">Admin Nhân</div><div class="side-admin-role">Quản trị viên</div></div>
+      </div>
+      <a href="#" class="nav-item"><span class="ic">⚙️</span>Cài đặt</a>
+      <a href="#" class="nav-item"><span class="ic">↩</span>Đăng xuất</a>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="header">
+      <div><div class="breadcrumb">Quản trị / Doanh nghiệp / Hồ sơ Doanh nghiệp</div><h1>Hồ sơ Doanh nghiệp</h1></div>
+      <div class="header-right">
+        <div class="bell">🔔<span class="badge-dot"></span></div>
+        <div class="who"><div class="avatar">A</div><div class="name">Admin Nhân</div><div class="chev">▾</div></div>
+      </div>
+    </div>
+
+    <div class="content">
+      <a href="businesses.html" class="back-link">← Quay lại danh sách Doanh nghiệp</a>
+
+      <div class="profile-head">
+        <div class="profile-logo">V</div>
+        <div style="flex:1;">
+          <div class="profile-name">Vikings Cyber</div>
+          <div class="profile-meta">Mã Doanh nghiệp: B004 · Quán net · Hà Nội</div>
+        </div>
+        <span class="badge active">Hoạt động</span>
+        <button class="qa-btn" style="margin-left:12px;">✏️ Chỉnh sửa</button>
+      </div>
+
+      <div class="quick-row" style="margin-bottom:24px;">
+        <button class="qa-btn">🔒 Khóa Doanh nghiệp</button>
+      </div>
+
+      <div class="profile-grid">
+        <div class="card">
+          <div class="section-head" style="padding:18px 20px 0;"><h3>Thông tin chi tiết</h3></div>
+          <div class="info-row"><span class="info-label">Tên Doanh nghiệp</span><span class="info-value">Vikings Cyber</span></div>
+          <div class="info-row"><span class="info-label">Loại hình</span><span class="info-value">Quán net — Esports Arena</span></div>
+          <div class="info-row"><span class="info-label">Số điện thoại</span><span class="info-value">0793 002 247</span></div>
+          <div class="info-row"><span class="info-label">Giờ mở cửa</span><span class="info-value">Cả ngày</span></div>
+          <div class="info-row"><span class="info-label">Giá tham khảo</span><span class="info-value">100.000 ₫</span></div>
+          <div class="info-row"><span class="info-label">Admin xác minh (verified_by)</span><span class="info-value" style="color:var(--warn);">Chưa xác minh</span></div>
+          <div class="info-row"><span class="info-label">Mô tả</span><span class="info-value" style="text-align:right;max-width:340px;">Chuỗi quán net Esports Arena phục vụ game thủ, mở cửa cả ngày, hiện có 3 chi nhánh tại Hà Nội.</span></div>
+        </div>
+
+        <div class="card">
+          <div class="section-head" style="padding:18px 20px 0;"><h3>Thống kê nhanh</h3></div>
+          <div class="info-row"><span class="info-label">Tổng Hoạt động</span><span class="info-value">3</span></div>
+          <div class="info-row"><span class="info-label">Đang hoạt động</span><span class="info-value">3</span></div>
+          <div class="info-row"><span class="info-label">Chờ duyệt</span><span class="info-value">0</span></div>
+          <div class="info-row"><span class="info-label">Đánh giá trung bình</span><span class="info-value">Chưa có dữ liệu</span></div>
+        </div>
+      </div>
+
+      <div class="section" style="margin-top:24px;">
+        <div class="section-head"><h3>Hoạt động của Doanh nghiệp này (3 chi nhánh)</h3><a href="activities.html" class="section-link">Xem tất cả →</a></div>
+        <div class="card">
+          <table>
+            <thead><tr><th>Mã</th><th>Địa chỉ chi nhánh</th><th>Giờ mở cửa</th><th>Trạng thái</th><th>Hành động</th></tr></thead>
+            <tbody>
+              <tr><td>A004</td><td>697 Đ. Giải Phóng, Tương Mai, Hà Nội</td><td>Cả ngày</td><td><span class="badge active">Hoạt động</span></td><td><a class="row-btn" href="activity-profile.html">Xem</a></td></tr>
+              <tr><td>A005</td><td>20 Ng.165 Đ. Cầu Giấy, Hà Nội</td><td>Cả ngày</td><td><span class="badge active">Hoạt động</span></td><td><a class="row-btn" href="activity-profile.html">Xem</a></td></tr>
+              <tr><td>A006</td><td>713 Đ. Hoàng Hoa Thám, Hà Nội</td><td>Cả ngày</td><td><span class="badge active">Hoạt động</span></td><td><a class="row-btn" href="activity-profile.html">Xem</a></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+</body>
+</html>

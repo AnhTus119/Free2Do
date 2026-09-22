@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>FREE2DO Admin — Khách hàng</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style1.css">
+</head>
+<body>
+<div class="app">
+
+    <div class="sidebar">
+    <div class="side-logo"><img src="Vecto/Group.svg" alt="Customer"><span>FREE2DO</span></div>
+    <div class="nav-group">
+      <a href="dashboard.html" class="nav-item "><span class="ic"></span>Tổng quan</a>
+      <a href="customers.html" class="nav-item active"><span class="ic"></span>Khách hàng</a>
+      <a href="businesses.html" class="nav-item"><span class="ic"></span>Doanh nghiệp</a>
+      <a href="activities.html" class="nav-item"><span class="ic"></span>Hoạt động</a>
+    </div>
+    <div class="side-bottom">
+      <div class="side-admin">
+        <div class="side-avatar">A</div>
+        <div><div class="side-admin-name">Admin Nhân</div><div class="side-admin-role">Quản trị viên</div></div>
+      </div>
+      <a href="#" class="nav-item"><span class="ic">⚙️</span>Cài đặt</a>
+      <a href="#" class="nav-item"><span class="ic">↩</span>Đăng xuất</a>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="header">
+      <div><div class="breadcrumb">Quản trị / Khách hàng</div><h1>Quản lý Khách hàng</h1></div>
+      <div class="header-right">
+        <div class="bell">🔔<span class="badge-dot"></span></div>
+        <div class="who"><div class="avatar">A</div><div class="name">Admin Nhân</div><div class="chev">▾</div></div>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="welcome">
+        <div><h2>Danh sách Khách hàng</h2><p>Quản lý toàn bộ người dùng đang sử dụng nền tảng FREE2DO.</p></div>
+      </div>
+
+      <div class="stats-grid customer-stats" style="grid-template-columns:repeat(3,1fr);">
+        <div class="stat-card stat-filter selected" data-status="all"><div class="stat-icon" style="background:#EFF1E7;">👤</div><div class="stat-num" id="totalCustomers">7</div><div class="stat-label">Tổng Khách hàng</div></div>
+        <div class="stat-card stat-filter" data-status="active"><div class="stat-icon" style="background:var(--success-bg);">✅</div><div class="stat-num" id="activeCustomers">5</div><div class="stat-label">Đang hoạt động</div></div>
+        <div class="stat-card stat-filter" data-status="locked"><div class="stat-icon" style="background:var(--danger-bg);">🔒</div><div class="stat-num" id="lockedCustomers">2</div><div class="stat-label">Đã khóa</div></div>
+      </div>
+
+      <div class="filter-bar">
+        <div class="search-box">🔍<input type="text" placeholder="Tìm theo tên hoặc email..."></div>
+        <select class="filter-select" id="statusFilter">
+          <option value="all">Tất cả trạng thái</option>
+          <option value="active">Đang hoạt động</option>
+          <option value="locked">Đã khóa</option>
+        </select>
+        <select class="filter-select" id="dateFilter">
+          <option value="newest">Mới nhất</option>
+          <option value="oldest">Cũ nhất</option>
+        </select>
+      </div>
+
+      <div class="card">
+        <table class="customer-table">
+          <thead><tr><th>Khách hàng</th><th>Email</th><th>Ngày đăng ký</th><th>Trạng thái</th><th>Hành động</th></tr></thead>
+          <tbody id="customerRows">
+            <tr><td><div class="cell-title">Hoàng Minh</div></td><td>hoangminh@gmail.com</td><td>08/09/2026</td><td><span class="badge active">Hoạt động</span></td><td><div class="row-actions"><a class="row-btn" href="customer-profile.html">Xem</a><button class="row-btn danger">Khóa</button></div></td></tr>
+            <tr><td><div class="cell-title">Lê Thu</div></td><td>lethu99@gmail.com</td><td>08/09/2026</td><td><span class="badge active">Hoạt động</span></td><td><div class="row-actions"><a class="row-btn" href="customer-profile.html">Xem</a><button class="row-btn danger">Khóa</button></div></td></tr>
+            <tr><td><div class="cell-title">Phạm Đức</div></td><td>ducpham@gmail.com</td><td>07/09/2026</td><td><span class="badge active">Hoạt động</span></td><td><div class="row-actions"><a class="row-btn" href="customer-profile.html">Xem</a><button class="row-btn danger">Khóa</button></div></td></tr>
+            <tr><td><div class="cell-title">Trần Bảo Ngọc</div></td><td>ngoctb@gmail.com</td><td>05/09/2026</td><td><span class="badge locked">Đã khóa</span></td><td><div class="row-actions"><a class="row-btn" href="customer-profile.html">Xem</a><button class="row-btn approve">Mở khóa</button></div></td></tr>
+            <tr><td><div class="cell-title">Nguyễn Gia Bảo</div></td><td>baonguyen@gmail.com</td><td>03/09/2026</td><td><span class="badge active">Hoạt động</span></td><td><div class="row-actions"><a class="row-btn" href="customer-profile.html">Xem</a><button class="row-btn danger">Khóa</button></div></td></tr>
+            <tr><td><div class="cell-title">Đỗ Khánh Linh</div></td><td>linhdk@gmail.com</td><td>01/09/2026</td><td><span class="badge active">Hoạt động</span></td><td><div class="row-actions"><a class="row-btn" href="customer-profile.html">Xem</a><button class="row-btn danger">Khóa</button></div></td></tr>
+            <tr><td><div class="cell-title">Vũ Anh Tuấn</div></td><td>tuanva@gmail.com</td><td>29/08/2026</td><td><span class="badge locked">Đã khóa</span></td><td><div class="row-actions"><a class="row-btn" href="customer-profile.html">Xem</a><button class="row-btn approve">Mở khóa</button></div></td></tr>
+            <tr><td><div class="cell-title">Mai Ngọc Anh</div></td><td>maianh@gmail.com</td><td>27/08/2026</td><td><span class="badge active">Hoạt động</span></td><td><div class="row-actions"><a class="row-btn" href="customer-profile.html">Xem</a><button class="row-btn danger">Khóa</button></div></td></tr>
+            <tr><td><div class="cell-title">Đặng Minh Quân</div></td><td>minhquan@gmail.com</td><td>25/08/2026</td><td><span class="badge active">Hoạt động</span></td><td><div class="row-actions"><a class="row-btn" href="customer-profile.html">Xem</a><button class="row-btn danger">Khóa</button></div></td></tr>
+            <tr><td><div class="cell-title">Bùi Thanh Hà</div></td><td>thanhha@gmail.com</td><td>23/08/2026</td><td><span class="badge active">Hoạt động</span></td><td><div class="row-actions"><a class="row-btn" href="customer-profile.html">Xem</a><button class="row-btn danger">Khóa</button></div></td></tr>
+            <tr><td><div class="cell-title">Phan Nhật Nam</div></td><td>nhatnam@gmail.com</td><td>21/08/2026</td><td><span class="badge active">Hoạt động</span></td><td><div class="row-actions"><a class="row-btn" href="customer-profile.html">Xem</a><button class="row-btn danger">Khóa</button></div></td></tr>
+            <tr><td><div class="cell-title">Nguyễn Thùy Dương</div></td><td>thuyduong@gmail.com</td><td>19/08/2026</td><td><span class="badge active">Hoạt động</span></td><td><div class="row-actions"><a class="row-btn" href="customer-profile.html">Xem</a><button class="row-btn danger">Khóa</button></div></td></tr>
+            <tr><td><div class="cell-title">Trịnh Hoàng Long</div></td><td>hoanglong@gmail.com</td><td>17/08/2026</td><td><span class="badge locked">Đã khóa</span></td><td><div class="row-actions"><a class="row-btn" href="customer-profile.html">Xem</a><button class="row-btn approve">Mở khóa</button></div></td></tr>
+            <tr><td><div class="cell-title">Lý Hoài An</div></td><td>hoaian@gmail.com</td><td>15/08/2026</td><td><span class="badge active">Hoạt động</span></td><td><div class="row-actions"><a class="row-btn" href="customer-profile.html">Xem</a><button class="row-btn danger">Khóa</button></div></td></tr>
+            <tr><td><div class="cell-title">Võ Gia Hân</div></td><td>giahan@gmail.com</td><td>13/08/2026</td><td><span class="badge active">Hoạt động</span></td><td><div class="row-actions"><a class="row-btn" href="customer-profile.html">Xem</a><button class="row-btn danger">Khóa</button></div></td></tr>
+            <tr><td><div class="cell-title">Cao Đức Anh</div></td><td>ducanh@gmail.com</td><td>11/08/2026</td><td><span class="badge active">Hoạt động</span></td><td><div class="row-actions"><a class="row-btn" href="customer-profile.html">Xem</a><button class="row-btn danger">Khóa</button></div></td></tr>
+            <tr><td><div class="cell-title">Phạm Khánh Vy</div></td><td>khanhvy@gmail.com</td><td>09/08/2026</td><td><span class="badge active">Hoạt động</span></td><td><div class="row-actions"><a class="row-btn" href="customer-profile.html">Xem</a><button class="row-btn danger">Khóa</button></div></td></tr>
+            <tr><td><div class="cell-title">Hồ Quốc Bảo</div></td><td>quocbao@gmail.com</td><td>07/08/2026</td><td><span class="badge locked">Đã khóa</span></td><td><div class="row-actions"><a class="row-btn" href="customer-profile.html">Xem</a><button class="row-btn approve">Mở khóa</button></div></td></tr>
+            <tr><td><div class="cell-title">Đinh Mai Chi</div></td><td>maichi@gmail.com</td><td>05/08/2026</td><td><span class="badge active">Hoạt động</span></td><td><div class="row-actions"><a class="row-btn" href="customer-profile.html">Xem</a><button class="row-btn danger">Khóa</button></div></td></tr>
+            <tr><td><div class="cell-title">Lê Quang Huy</div></td><td>quanghuy@gmail.com</td><td>03/08/2026</td><td><span class="badge active">Hoạt động</span></td><td><div class="row-actions"><a class="row-btn" href="customer-profile.html">Xem</a><button class="row-btn danger">Khóa</button></div></td></tr>
+            <tr><td><div class="cell-title">Ngô Hà My</div></td><td>hamy@gmail.com</td><td>01/08/2026</td><td><span class="badge active">Hoạt động</span></td><td><div class="row-actions"><a class="row-btn" href="customer-profile.html">Xem</a><button class="row-btn danger">Khóa</button></div></td></tr>
+          </tbody>
+        </table>
+        <div class="pagination">
+          <span id="customerCount">Hiển thị 1–10 trong tổng số 22 Khách hàng</span>
+          <div class="page-btns" id="customerPagination"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+<script>
+  const statusFilter = document.getElementById('statusFilter');
+  const dateFilter = document.getElementById('dateFilter');
+  const customerRows = document.querySelectorAll('#customerRows tr');
+  const customerCount = document.getElementById('customerCount');
+  const customerPagination = document.getElementById('customerPagination');
+  const statFilters = document.querySelectorAll('.stat-filter');
+  const pageSize = 10;
+  let currentPage = 1;
+
+  function parseDate(dateText) {
+    const [day, month, year] = dateText.split('/').map(Number);
+    return new Date(year, month - 1, day);
+  }
+
+  function getCustomerStatus(row) {
+    return row.querySelector('.badge').classList.contains('locked') ? 'locked' : 'active';
+  }
+
+  function updateCustomerStats() {
+    const counts = { active: 0, locked: 0 };
+    customerRows.forEach((row) => {
+      counts[getCustomerStatus(row)] += 1;
+    });
+    document.getElementById('totalCustomers').textContent = customerRows.length;
+    document.getElementById('activeCustomers').textContent = counts.active;
+    document.getElementById('lockedCustomers').textContent = counts.locked;
+  }
+
+  function filterCustomers() {
+    const selectedStatus = statusFilter.value;
+    const rows = Array.from(customerRows);
+    statFilters.forEach((card) => card.classList.toggle('selected', card.dataset.status === selectedStatus));
+
+    rows.sort((firstRow, secondRow) => {
+      const firstDate = parseDate(firstRow.cells[2].textContent.trim());
+      const secondDate = parseDate(secondRow.cells[2].textContent.trim());
+      return dateFilter.value === 'newest' ? secondDate - firstDate : firstDate - secondDate;
+    });
+
+    const matchingRows = rows.filter((row) => selectedStatus === 'all' || getCustomerStatus(row) === selectedStatus);
+    const totalPages = Math.max(1, Math.ceil(matchingRows.length / pageSize));
+    currentPage = Math.min(currentPage, totalPages);
+    const pageStart = (currentPage - 1) * pageSize;
+    const pageRows = matchingRows.slice(pageStart, pageStart + pageSize);
+
+    rows.forEach((row) => {
+      row.hidden = !pageRows.includes(row);
+      customerRows[0].parentElement.appendChild(row);
+    });
+
+    customerCount.textContent = matchingRows.length === 0
+      ? 'Không có khách hàng phù hợp'
+      : `Hiển thị ${pageStart + 1}–${Math.min(pageStart + pageSize, matchingRows.length)} trong tổng số ${matchingRows.length} Khách hàng`;
+    renderPagination(totalPages);
+  }
+
+  function renderPagination(totalPages) {
+    customerPagination.innerHTML = '';
+    if (totalPages <= 1) return;
+
+    const previousButton = document.createElement('div');
+    previousButton.className = `page-btn${currentPage === 1 ? ' disabled' : ''}`;
+    previousButton.textContent = '‹';
+    previousButton.setAttribute('aria-label', 'Trang trước');
+    if (currentPage > 1) {
+      previousButton.addEventListener('click', () => {
+        currentPage -= 1;
+        filterCustomers();
+      });
+    }
+    customerPagination.appendChild(previousButton);
+
+    for (let page = 1; page <= totalPages; page += 1) {
+      const pageButton = document.createElement('div');
+      pageButton.className = `page-btn${page === currentPage ? ' active' : ''}`;
+      pageButton.textContent = page;
+      pageButton.addEventListener('click', () => {
+        currentPage = page;
+        filterCustomers();
+      });
+      customerPagination.appendChild(pageButton);
+    }
+
+    const nextButton = document.createElement('div');
+    nextButton.className = `page-btn${currentPage === totalPages ? ' disabled' : ''}`;
+    nextButton.textContent = '›';
+    nextButton.setAttribute('aria-label', 'Trang sau');
+    if (currentPage < totalPages) {
+      nextButton.addEventListener('click', () => {
+        currentPage += 1;
+        filterCustomers();
+      });
+    }
+    customerPagination.appendChild(nextButton);
+  }
+
+  statusFilter.addEventListener('change', () => {
+    currentPage = 1;
+    filterCustomers();
+  });
+  dateFilter.addEventListener('change', () => {
+    currentPage = 1;
+    filterCustomers();
+  });
+  statFilters.forEach((statFilter) => {
+    statFilter.addEventListener('click', () => {
+      statusFilter.value = statFilter.dataset.status;
+      currentPage = 1;
+      filterCustomers();
+    });
+  });
+  document.getElementById('customerRows').addEventListener('click', (event) => {
+    const actionButton = event.target.closest('button');
+    if (!actionButton) return;
+
+    const row = actionButton.closest('tr');
+    const badge = row.querySelector('.badge');
+    if (actionButton.classList.contains('danger')) {
+      badge.classList.remove('active');
+      badge.classList.add('locked');
+      badge.textContent = 'Đã khóa';
+      actionButton.classList.remove('danger');
+      actionButton.classList.add('approve');
+      actionButton.textContent = 'Mở khóa';
+    } else if (actionButton.classList.contains('approve')) {
+      badge.classList.remove('locked');
+      badge.classList.add('active');
+      badge.textContent = 'Hoạt động';
+      actionButton.classList.remove('approve');
+      actionButton.classList.add('danger');
+      actionButton.textContent = 'Khóa';
+    }
+
+    updateCustomerStats();
+    filterCustomers();
+  });
+  updateCustomerStats();
+  filterCustomers();
+</script>
+</body>
+</html>

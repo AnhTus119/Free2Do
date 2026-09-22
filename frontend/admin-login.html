@@ -62,56 +62,9 @@
     });
   });
 
-  // Danh sách tài khoản quản trị viên
-  const ADMIN_ACCOUNTS = [
-    { email: 'a@gmail.com', password: 'Test@123' },
-    { email: 'b@gmail.com', password: 'Test@123' },
-    { email: 'c@gmail.com', password: 'Test@123' },
-  ];
-
-  function showFieldError(inputId, errorId, message) {
-    const field = document.getElementById(inputId).closest('.admin-login__field');
-    const errorEl = document.getElementById(errorId);
-
-    field.classList.add('admin-login__field--error');
-    errorEl.textContent = message;
-  }
-
-  function clearFieldError(inputId, errorId) {
-    const field = document.getElementById(inputId).closest('.admin-login__field');
-    document.getElementById(errorId).textContent = '';
-    field.classList.remove('admin-login__field--error');
-  }
-
-  document.querySelector('.admin-login__form').addEventListener('submit', function (e) {
-    e.preventDefault();
-
-    clearFieldError('admin-account', 'admin-account-error');
-    clearFieldError('admin-password', 'admin-password-error');
-
-    const email = document.getElementById('admin-account').value;
-    const password = document.getElementById('admin-password').value;
-
-    const account = ADMIN_ACCOUNTS.find(function (acc) {
-      return acc.email === email;
-    });
-
-    if (!account) {
-      showFieldError('admin-account', 'admin-account-error', 'Không tìm thấy tài khoản quản trị này.');
-      return;
-    }
-
-    if (account.password !== password) {
-      showFieldError('admin-password', 'admin-password-error', 'Sai mật khẩu. Vui lòng thử lại.');
-      return;
-    }
-
-    
-    // Đăng nhập thành công
-    alert('Đăng nhập quản trị thành công!');
-    window.location.href = 'operator-dashboard.html';
-  });
 </script>
+<script src="js/config.js"></script>
+<script src="js/admin.js"></script>
 
 </body>
 </html>

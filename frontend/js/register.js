@@ -1,4 +1,4 @@
-const API_BASE_URL = "http://localhost:8000";
+const API_BASE_URL = window.FREE2DO_CONFIG.API_BASE_URL;
 
 const registerForm = document.querySelector(".signup__form");
 let registerErrorEl = document.getElementById("register-error");
@@ -72,7 +72,7 @@ if (registerForm) {
       window.location.href = "index.html";
     } catch (error) {
       console.error(error);
-      showRegisterError("Không kết nối được backend tại http://localhost:8000.");
+      showRegisterError(`Không kết nối được backend tại ${API_BASE_URL}.`);
     }
   });
 }

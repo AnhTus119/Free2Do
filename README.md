@@ -141,6 +141,18 @@ cd frontend
 npx live-server
 ```
 
+### Cấu hình backend cho frontend
+
+Frontend lấy địa chỉ API tập trung từ `frontend/js/config.js`. Bản triển khai hiện dùng:
+
+```text
+https://free2do.onrender.com
+```
+
+Các trang phải nạp `js/config.js` trước file JavaScript gọi API. Không hard-code
+`http://localhost:8000` trong từng file frontend; địa chỉ đó chỉ dùng khi backend
+được chạy thật trên cùng máy và cấu hình chung đã được đổi sang môi trường local.
+
 ---
 
 ## 12. Thành viên nhóm

@@ -75,10 +75,17 @@
    * chưa đăng nhập. Không xác minh role='operator' ở đây (việc đó đã làm
    * lúc đăng nhập) — chỉ cần có token là coi như đã qua bước đăng nhập.
    */
-  function requireOperatorAuth() {
-    if (!getToken()) {
-      goToLogin();
-    }
+  let validation;
+  async function requireOperatorAuth() {
+    if (!getToken()) { goToLogin(); throw new Error('Chưa đăng nhập'); }
+    if (!validation) validation = authFetch('/auth/me').then(me => {
+      if (me.account_type !== 'operator') {
+        window.location.href = 'log-in.html';
+        throw new Error('Tài khoản không có quyền quản trị.');
+      }
+      return me;
+    }).catch(error => { validation = null; throw error; });
+    return validation;
   }
 
   function bindLogoutLinks() {

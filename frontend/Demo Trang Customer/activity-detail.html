@@ -97,108 +97,16 @@
         <div id="sideActivityMeta" style="font-size:12.5px;color:var(--muted);margin-bottom:18px;"></div>
         <button class="btn btn-secondary btn-block favorite-btn" id="favoriteButton" type="button"><svg class="icon"><use href="#icon-heart"></use></svg> <span id="favoriteLabel">Lưu vào yêu thích</span></button>
         <div style="text-align:center;margin-top:16px;">
-          <a href="#" style="font-size:12.5px;color:var(--muted);text-decoration:underline;"><svg class="icon icon-sm"><use href="#icon-flag"></use></svg> Báo cáo hoạt động này</a>
+          <a href="#" id="reportActivity" style="font-size:12.5px;color:var(--muted);text-decoration:underline;"><svg class="icon icon-sm"><use href="#icon-flag"></use></svg> Báo cáo hoạt động này</a>
         </div>
       </div>
     </div>
   </div>
 </div>
 
-<script src="../js/admin-data.js"></script>
-<script>
-const activityId = new URLSearchParams(window.location.search).get('id') || 'A001';
-const activityData = window.AdminData.activities.find(item => item.id === activityId);
-const FAVORITES_KEY = 'free2do-favorites';
-
-function getFavorites() {
-  try {
-    const stored = localStorage.getItem(FAVORITES_KEY);
-    if (stored === null) return ['A001', 'A013'];
-    return JSON.parse(stored);
-  } catch (error) {
-    return [];
-  }
-}
-
-function setFavoriteState(isFavorite) {
-  const button = document.getElementById('favoriteButton');
-  const label = document.getElementById('favoriteLabel');
-  if (!button || !label) return;
-  button.classList.toggle('is-favorite', isFavorite);
-  label.textContent = isFavorite ? 'Đã yêu thích' : 'Lưu vào yêu thích';
-}
-
-function toggleFavorite() {
-  const favorites = new Set(getFavorites());
-  if (favorites.has(activityId)) favorites.delete(activityId);
-  else favorites.add(activityId);
-  localStorage.setItem(FAVORITES_KEY, JSON.stringify([...favorites]));
-  setFavoriteState(favorites.has(activityId));
-}
-
-function escape(value) {
-  return window.AdminData.escapeHTML(String(value || ''));
-}
-
-function distanceFromUser(location) {
-  if (!location) return null;
-  const [latitude, longitude] = location.split(',').map(Number);
-  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
-  const latitudeDistance = (latitude - 21.0352) * 111;
-  const longitudeDistance = (longitude - 105.7944) * 111 * Math.cos(21.0352 * Math.PI / 180);
-  return Math.sqrt(latitudeDistance ** 2 + longitudeDistance ** 2);
-}
-
-function duration(hours) {
-  const times = String(hours).match(/(\d{1,2}):(\d{2})/g);
-  if (!times || times.length < 2) return 'Linh hoạt';
-  const toMinutes = value => { const [hour, minute] = value.split(':').map(Number); return hour * 60 + minute; };
-  let minutes = toMinutes(times[1]) - toMinutes(times[0]);
-  if (minutes < 0) minutes += 1440;
-  return `${Math.floor(minutes / 60)} giờ${minutes % 60 ? ` ${minutes % 60} phút` : ''}`;
-}
-
-function renderNotFound() {
-  document.querySelector('.wrap').innerHTML = '<div class="card" style="padding:24px;margin-top:20px;"><h2>Không tìm thấy hoạt động</h2><p>Hoạt động này không tồn tại trong dữ liệu chung.</p><a href="search.html" class="btn btn-secondary">Quay lại tìm kiếm</a></div>';
-}
-
-if (!activityData) {
-  renderNotFound();
-} else {
-  const businessName = window.AdminData.businessName(activityData);
-  const distance = distanceFromUser(activityData.location);
-  const participants = window.AdminData.participations.filter(item => item.activityId === activityData.id);
-  const ratedParticipants = participants.filter(item => item.rating > 0);
-  document.title = `FREE2DO — ${activityData.name}`;
-  document.getElementById('galleryIcon').textContent = activityData.icon || '✨';
-  document.getElementById('activityName').textContent = activityData.name;
-  document.getElementById('activityMeta').innerHTML = `${escape(businessName)} · <svg class="icon icon-sm"><use href="#icon-star"></use></svg> ${activityData.rating || 'Chưa có'} (${ratedParticipants.length} đánh giá) · ${escape(activityData.address)}`;
-  document.getElementById('activityPrice').textContent = activityData.price;
-  document.getElementById('activityDuration').textContent = duration(activityData.hours);
-  document.getElementById('activityHours').textContent = activityData.hours;
-  document.getElementById('activityDistance').textContent = distance === null ? '—' : `${distance.toFixed(1)} km`;
-  document.getElementById('activityTags').innerHTML = [activityData.category, 'Offline', 'Cá nhân/Nhóm'].map(tag => `<span class="tag">${escape(tag)}</span>`).join('');
-  document.getElementById('activityDescription').textContent = activityData.description;
-  document.getElementById('activityMapPin').textContent = `${activityData.icon || '✨'} ${activityData.name}`;
-  document.getElementById('reviewsTitle').textContent = `Đánh giá (${ratedParticipants.length})`;
-  document.getElementById('sideActivityPrice').textContent = activityData.price;
-  document.getElementById('sideActivityMeta').textContent = `${activityData.hours} · ${participants.length} lượt đăng ký`;
-  setFavoriteState(getFavorites().includes(activityId));
-  document.getElementById('favoriteButton').addEventListener('click', toggleFavorite);
-  document.getElementById('activityReviews').innerHTML = ratedParticipants.length ? ratedParticipants.map(item => {
-    const customer = window.AdminData.customers.find(entry => entry.id === item.customerId);
-    return `<div class="review-card"><div class="review-top"><div class="nav-avatar" style="width:28px;height:28px;font-size:11px;">${escape((customer?.name || '?')[0])}</div><div class="review-name">${escape(customer?.name || 'Khách hàng')}</div><div class="review-stars">${'★'.repeat(item.rating)}${'☆'.repeat(5 - item.rating)}</div><div class="review-date">${escape(item.date)}</div></div><div class="review-text">Đã tham gia hoạt động này.</div></div>`;
-  }).join('') : '<p style="padding:16px 0;color:var(--muted);">Chưa có đánh giá cho hoạt động này.</p>';
-}
-
-function toggleUserMenu(e){
-  e.stopPropagation();
-  document.getElementById('user-dropdown').classList.toggle('open');
-}
-document.addEventListener('click', function(){
-  const dd = document.getElementById('user-dropdown');
-  if(dd) dd.classList.remove('open');
-});
-</script>
+<script src="../js/config.js"></script>
+<script src="../js/customer-api.js"></script>
+<script src="../js/customer-detail.js"></script>
+<script>function toggleUserMenu(e) { e.stopPropagation(); document.getElementById("user-dropdown").classList.toggle("open"); }</script>
 </body>
 </html>

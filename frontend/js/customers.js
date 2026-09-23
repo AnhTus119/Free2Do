@@ -1,11 +1,10 @@
 (function () {
   'use strict';
 
-  const { escapeHTML, normalize, parseViDate, setStatus, statusLabels } = window.AdminData;
+  const { escapeHTML, normalize, setStatus, statusLabels } = window.AdminData;
   const tableBody = document.getElementById('customerRows');
   const searchInput = document.getElementById('customerSearch');
   const statusFilter = document.getElementById('statusFilter');
-  const dateFilter = document.getElementById('dateFilter');
   const countLabel = document.getElementById('customerCount');
   const pagination = document.getElementById('customerPagination');
   const statFilters = document.querySelectorAll('.stat-filter');
@@ -25,16 +24,11 @@
 
   function filteredCustomers() {
     const query = normalize(searchInput.value);
-    return getCustomers()
-      .filter(customer => {
-        const matchesStatus = statusFilter.value === 'all' || customer.status === statusFilter.value;
-        const matchesSearch = !query || normalize(`${customer.id} ${customer.name} ${customer.email}`).includes(query);
-        return matchesStatus && matchesSearch;
-      })
-      .sort((first, second) => {
-        const difference = parseViDate(first.registeredAt) - parseViDate(second.registeredAt);
-        return dateFilter.value === 'oldest' ? difference : -difference;
-      });
+    return getCustomers().filter(customer => {
+      const matchesStatus = statusFilter.value === 'all' || customer.status === statusFilter.value;
+      const matchesSearch = !query || normalize(`${customer.id} ${customer.name} ${customer.email}`).includes(query);
+      return matchesStatus && matchesSearch;
+    });
   }
 
   function renderRows(customers) {
@@ -49,7 +43,7 @@
         <tr data-id="${escapeHTML(customer.id)}">
           <td><div class="cell-title">${escapeHTML(customer.name)}</div><div class="cell-sub">${escapeHTML(customer.id)}</div></td>
           <td>${escapeHTML(customer.email)}</td>
-          <td>${escapeHTML(customer.registeredAt)}</td>
+          <td>${escapeHTML(customer.phone || 'Chưa cung cấp')}</td>
           <td><span class="badge ${escapeHTML(customer.status)}">${statusLabels[customer.status]}</span></td>
           <td><div class="row-actions">
             <a class="row-btn" href="customer-profile.html?id=${encodeURIComponent(customer.id)}">Xem</a>
@@ -94,7 +88,7 @@
     statFilters.forEach(card => card.classList.toggle('selected', card.dataset.status === statusFilter.value));
   }
 
-  [searchInput, statusFilter, dateFilter].forEach(control => {
+  [searchInput, statusFilter].forEach(control => {
     control.addEventListener(control.tagName === 'INPUT' ? 'input' : 'change', () => { currentPage = 1; render(); });
   });
 
@@ -104,14 +98,14 @@
     render();
   }));
 
-  tableBody.addEventListener('click', event => {
+  tableBody.addEventListener('click', async event => {
     const button = event.target.closest('[data-action="toggle-status"]');
     if (!button) return;
     const id = button.closest('tr').dataset.id;
     const customer = getCustomers().find(item => item.id === id);
-    setStatus('customer', id, customer.status === 'locked' ? 'active' : 'locked');
-    render();
+    button.disabled = true;
+    try { await setStatus('customer', id, customer.status === 'locked' ? 'active' : 'locked'); render(); }
+    catch (error) { alert(error.message); button.disabled = false; }
   });
-
-  render();
+  window.AdminData.load().then(render).catch(error => { tableBody.innerHTML = `<tr><td colspan="5">${escapeHTML(error.message)}</td></tr>`; });
 })();

@@ -3,7 +3,7 @@
 
   const { authFetch, requireOperatorAuth, escapeHTML, formatPrice, formatHours } = window.AdminAuth;
 
-  requireOperatorAuth();
+
 
   const PAGE_SIZE = 10;
   const DEFAULT_ROWS = 4;
@@ -22,6 +22,7 @@
 
   async function loadDashboard() {
     try {
+      await requireOperatorAuth();
       const [summary, customers, activeActivities, pendingActivitiesRes, pendingRequestsRes] = await Promise.all([
         authFetch('/operator/dashboard'),
         authFetch('/operator/users?role=customer'),
@@ -43,7 +44,7 @@
   }
 
   function renderStats(summary, customers, activeActivities) {
-    const lockedCustomers = customers.filter((c) => c.status === 'blocked').length;
+    const lockedCustomers = customers.filter((c) => ['blocked', 'suspended'].includes(c.status)).length;
     const missingPhoneRequests = pendingBusinessRequests.filter((r) => !r.phone).length;
     const pendingTotal = summary.pending_request_count + pendingActivities.length;
 

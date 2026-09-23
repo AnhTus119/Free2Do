@@ -1,149 +1,226 @@
 /*
- * Adapter dữ liệu dùng chung cho giao diện Operator.
- * Không chứa bản ghi mẫu: mọi customer, business, activity và review đều được
- * tải từ FastAPI bằng JWT của Operator.
+ * Nguồn dữ liệu dùng chung cho giao diện quản trị FREE2DO.
+ * Toàn bộ dữ liệu lấy từ backend qua API /operator/... (token của Operator) — không còn dữ liệu mẫu.
+ * Các trang admin chỉ gọi các hàm ở đây, không tự viết fetch().
+ *
+ * Yêu cầu: nạp js/config.js và js/admin-auth.js TRƯỚC file này.
  */
 (function () {
   'use strict';
 
-  const auth = window.AdminAuth;
-  const state = { customers: [], businesses: [], activities: [], participations: [], categories: [] };
+  const { authFetch, parseServerDate } = window.AdminAuth;
 
-  const statusLabels = {
-    active: 'Hoạt động', pending: 'Chờ duyệt', hidden: 'Đã ẩn', cancelled: 'Đã hủy',
-    rejected: 'Từ chối', expired: 'Hết hạn', locked: 'Đã khóa', blocked: 'Đã khóa',
-    suspended: 'Tạm ngưng', approved: 'Đã duyệt',
-  };
-  const categoryTypes = {
-    'ăn uống': 'food', 'giải trí': 'entertainment', 'thể thao': 'entertainment',
-    workshop: 'workshop', 'làm đẹp': 'beauty',
-  };
-  const viDate = value => value ? new Date(value).toLocaleDateString('vi-VN') : 'Chưa có dữ liệu';
-  const normalize = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-  const parseViDate = value => {
-    const parts = String(value || '').split('/').map(Number);
-    return parts.length === 3 ? new Date(parts[2], parts[1] - 1, parts[0]) : new Date(0);
-  };
-  const mapStatus = value => value === 'blocked' || value === 'suspended' ? 'locked' : value;
+  // ------------------------- Người dùng (Khách hàng / chủ Doanh nghiệp) -------------------------
 
-  function categoryName(ids) {
-    const names = (ids || []).map(id => state.categories.find(item => item.category_id === id)?.name).filter(Boolean);
-    return names.join(', ') || 'Chưa phân loại';
+  function getCustomers() {
+    return authFetch('/operator/users?role=customer');
   }
 
-  function activityType(name) {
-    const text = normalize(name);
-    return Object.entries(categoryTypes).find(([key]) => text.includes(normalize(key)))?.[1] || 'other';
+  function getAllUsers() {
+    return authFetch('/operator/users');
   }
 
-  function mapCustomer(user, categories = []) {
-    return {
-      id: user.user_id, name: user.name, email: user.email, phone: user.phone || '',
-      area: 'Chưa có dữ liệu', registeredAt: viDate(user.created_at), lastLogin: 'Chưa có dữ liệu',
-      status: mapStatus(user.status), interests: categories.map(item => item.name),
-    };
+  function getUser(userId) {
+    return authFetch(`/operator/users/${encodeURIComponent(userId)}`);
   }
 
-  function mapActivity(activity, detail, reviews) {
-    const source = detail || activity;
-    const category = categoryName(source.category_ids);
-    return {
-      id: activity.activity_id, name: activity.name, businessId: activity.business_id,
-      businessName: activity.business_name, type: activityType(category), category,
-      price: auth.formatPrice(activity.price), rawPrice: activity.price,
-      hours: auth.formatHours(activity.time_open, activity.time_close), address: activity.address,
-      location: `${activity.latitude}, ${activity.longitude}`, latitude: activity.latitude,
-      longitude: activity.longitude, status: activity.status,
-      description: activity.description || 'Chưa có mô tả.', verifiedBy: activity.verified_by || '',
-      expireAt: viDate(activity.expire_at), views: null, participants: reviews.length,
-      rating: source.avg_rating, createdAt: viDate(activity.created_at), media: source.media || [], icon: '✨',
-    };
+  // Khóa / mở khóa tài khoản: status = 'active' | 'blocked' | 'suspended'
+  function setUserStatus(userId, status) {
+    return authFetch(`/operator/users/${userId}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    });
   }
 
-  async function load() {
-    await auth.requireOperatorAuth();
-    const [categories, customers, businessUsers, activities, requests] = await Promise.all([
-      auth.authFetch('/categories'), auth.authFetch('/operator/users?role=customer'),
-      auth.authFetch('/operator/users?role=business'), auth.authFetch('/operator/activities'),
-      auth.authFetch('/operator/business-requests?status=pending'),
+  /*
+   * Backend chưa có API "đánh giá theo người dùng" nên đi qua từng hoạt động:
+   * GET /activities/{id}/reviews rồi lọc các đánh giá do người này viết.
+   * Trả về [{ review, activity }] mới nhất trước.
+   */
+  async function getReviewsByUser(userId) {
+    const activities = await getActivities();
+    const results = await Promise.allSettled(
+      activities.map((activity) => authFetch(`/activities/${activity.activity_id}/reviews`)),
+    );
+
+    const reviews = [];
+    results.forEach((result, index) => {
+      if (result.status !== 'fulfilled') return;
+      result.value
+        .filter((review) => review.user_id === userId)
+        .forEach((review) => reviews.push({ review, activity: activities[index] }));
+    });
+    return reviews.sort((a, b) => parseServerDate(b.review.created_at) - parseServerDate(a.review.created_at));
+  }
+
+  // ------------------------- Doanh nghiệp -------------------------
+
+  function getBusinessProfile(userId) {
+    return authFetch(`/operator/business-profiles/${encodeURIComponent(userId)}`);
+  }
+
+  function getBusinessRequest(requestId) {
+    return authFetch(`/operator/business-requests/${encodeURIComponent(requestId)}`);
+  }
+
+  // action = 'approve' | 'reject'
+  function decideBusinessRequest(requestId, action) {
+    return authFetch(`/operator/business-requests/${requestId}/${action}`, { method: 'PATCH' });
+  }
+
+  /*
+   * Danh sách doanh nghiệp gộp từ 2 nguồn:
+   *  - kind 'business': tài khoản role=business đã được duyệt (id = user_id)
+   *  - kind 'request' : yêu cầu trở thành doanh nghiệp đang chờ duyệt (id = request_id)
+   */
+  async function getBusinesses() {
+    const [users, requests, activities] = await Promise.all([
+      authFetch('/operator/users?role=business'),
+      authFetch('/operator/business-requests?status=pending'),
+      getActivities(),
     ]);
-    state.categories = categories;
-    const customerCategories = await Promise.all(customers.map(user =>
-      auth.authFetch(`/operator/users/${encodeURIComponent(user.user_id)}/categories`).catch(() => [])));
-    state.customers = customers.map((user, index) => mapCustomer(user, customerCategories[index]));
 
-    const profiles = await Promise.all(businessUsers.map(user =>
-      auth.authFetch(`/operator/business-profiles/${encodeURIComponent(user.user_id)}`).catch(() => null)));
-    const details = await Promise.all(activities.map(activity =>
-      auth.authFetch(`/operator/activities/${encodeURIComponent(activity.activity_id)}`).catch(() => null)));
-    const reviewLists = await Promise.all(activities.map(activity =>
-      auth.authFetch(`/activities/${encodeURIComponent(activity.activity_id)}/reviews`).catch(() => [])));
+    // Tên/địa chỉ doanh nghiệp nằm trong business_profiles -> backend chỉ có API lấy từng hồ sơ.
+    const profiles = await Promise.allSettled(users.map((user) => getBusinessProfile(user.user_id)));
 
-    state.activities = activities.map((activity, index) => mapActivity(activity, details[index], reviewLists[index]));
-    state.participations = reviewLists.flat().map(review => ({
-      activityId: review.activity_id, customerId: review.user_id, customerName: review.reviewer_name,
-      date: viDate(review.created_at), status: 'active', rating: review.rating,
-    }));
+    const activityCount = {};
+    activities.forEach((activity) => {
+      activityCount[activity.business_id] = (activityCount[activity.business_id] || 0) + 1;
+    });
 
-    state.businesses = businessUsers.map((user, index) => {
-      const profile = profiles[index];
-      const ownActivities = state.activities.filter(activity => activity.businessId === user.user_id);
-      const types = [...new Set(ownActivities.map(activity => activity.category).filter(Boolean))];
+    const approved = users.map((user, index) => {
+      const profile = profiles[index].status === 'fulfilled' ? profiles[index].value : null;
       return {
-        id: user.user_id, name: profile?.business_name || user.name,
-        address: profile?.business_address || 'Chưa có dữ liệu', type: types.join(', ') || 'Chưa phân loại',
-        phone: profile?.phone || user.phone || '', hours: 'Xem từng hoạt động', priceRange: 'Xem từng hoạt động',
-        status: mapStatus(user.status), verifiedBy: profile?.verified_by || '',
-        verifiedAt: profile?.verified_at || null, description: profile?.description || 'Chưa có mô tả.',
+        kind: 'business',
+        id: user.user_id,
+        name: (profile && profile.business_name) || user.name,
+        address: (profile && profile.business_address) || 'Chưa cập nhật',
+        phone: (profile && profile.phone) || user.phone || '',
+        status: user.status === 'active' ? 'active' : 'blocked',
+        activityCount: activityCount[user.user_id] || 0,
+        sortTime: profile && profile.verified_at ? parseServerDate(profile.verified_at).getTime() : 0,
       };
     });
 
-    requests.forEach(request => state.businesses.push({
-      id: request.request_id, userId: request.user_id, requestId: request.request_id,
-      name: request.business_name, address: request.business_address, type: 'Yêu cầu doanh nghiệp',
-      phone: request.phone || '', hours: 'Chưa có dữ liệu', priceRange: 'Chưa có dữ liệu',
-      status: 'pending', verifiedBy: '', description: request.description || 'Chưa có mô tả.',
+    const pending = requests.map((request) => ({
+      kind: 'request',
+      id: request.request_id,
+      name: request.business_name,
+      address: request.business_address,
+      phone: request.phone || '',
+      status: 'pending',
+      activityCount: 0,
+      sortTime: parseServerDate(request.created_at) ? parseServerDate(request.created_at).getTime() : 0,
     }));
+
+    return [...pending, ...approved];
   }
 
-  async function setStatus(kind, id, status) {
-    if (kind === 'activity') {
-      const next = status === 'rejected' ? 'hidden' : status;
-      await auth.authFetch(`/operator/activities/${encodeURIComponent(id)}/status`, {
-        method: 'PATCH', body: JSON.stringify({ status: next }),
-      });
-      const item = state.activities.find(entry => entry.id === id);
-      if (item) item.status = next;
-      return;
-    }
-    const collection = kind === 'customer' ? state.customers : state.businesses;
-    const item = collection.find(entry => entry.id === id);
-    if (!item) throw new Error('Không tìm thấy bản ghi cần cập nhật.');
-    if (kind === 'business' && item.requestId) {
-      const action = status === 'active' ? 'approve' : 'reject';
-      await auth.authFetch(`/operator/business-requests/${encodeURIComponent(item.requestId)}/${action}`, { method: 'PATCH' });
-      state.businesses = state.businesses.filter(entry => entry.id !== id);
-      return;
-    }
-    const backendStatus = status === 'locked' ? 'blocked' : status;
-    await auth.authFetch(`/operator/users/${encodeURIComponent(id)}/status`, {
-      method: 'PATCH', body: JSON.stringify({ status: backendStatus }),
+  async function getBusinessActivities(businessUserId) {
+    const activities = await getActivities();
+    return activities.filter((activity) => activity.business_id === businessUserId);
+  }
+
+  // Điểm trung bình toàn doanh nghiệp = trung bình có trọng số theo số đánh giá của từng hoạt động.
+  async function getBusinessAverageRating(activities) {
+    const details = await Promise.allSettled(activities.map((activity) => getActivityDetail(activity.activity_id)));
+    let total = 0;
+    let count = 0;
+    details.forEach((result) => {
+      if (result.status !== 'fulfilled' || !result.value.avg_rating) return;
+      total += result.value.avg_rating * result.value.review_count;
+      count += result.value.review_count;
     });
-    item.status = mapStatus(backendStatus);
+    return count ? total / count : null;
   }
 
-  const data = {
-    get customers() { return state.customers; },
-    get businesses() { return state.businesses; },
-    get activities() { return state.activities; },
-    get participations() { return state.participations; },
-    get categories() { return state.categories; },
-    statusLabels, setStatus, parseViDate, normalize, escapeHTML: auth.escapeHTML,
-    businessName(activity) {
-      return state.businesses.find(item => item.id === activity.businessId)?.name
-        || activity.businessName || 'Chưa xác định';
-    },
+  // ------------------------- Hoạt động -------------------------
+
+  function getActivities() {
+    return authFetch('/operator/activities');
+  }
+
+  function getCategories() {
+    return authFetch('/categories');
+  }
+
+  function getActivityDetail(activityId) {
+    return authFetch(`/operator/activities/${encodeURIComponent(activityId)}`);
+  }
+
+  // Danh mục của từng hoạt động (category_ids) chỉ có ở API chi tiết -> { activity_id: [category_id, ...] }
+  async function getCategoryIdsByActivity(activities) {
+    const details = await Promise.allSettled(activities.map((activity) => getActivityDetail(activity.activity_id)));
+    const map = {};
+    details.forEach((result, index) => {
+      map[activities[index].activity_id] = result.status === 'fulfilled' ? result.value.category_ids : [];
+    });
+    return map;
+  }
+
+  // Các dữ liệu phụ (danh mục, đánh giá...) lỗi thì vẫn trả về phần còn lại.
+  function safe(promise, fallback) {
+    return promise.catch((error) => {
+      console.error(error);
+      return fallback;
+    });
+  }
+
+  /*
+   * Dữ liệu đầy đủ cho trang hồ sơ hoạt động. Ném lỗi nếu không tìm thấy hoạt động.
+   * ActivityDetail không có tên doanh nghiệp / người xác minh -> lấy thêm từ API danh sách.
+   */
+  async function getActivityProfile(activityId) {
+    const detail = await getActivityDetail(activityId);
+    const [list, categories, reviews, users] = await Promise.all([
+      safe(getActivities(), []),
+      safe(getCategories(), []),
+      safe(authFetch(`/activities/${encodeURIComponent(activityId)}/reviews`), []),
+      safe(getAllUsers(), []),
+    ]);
+
+    const listItem = list.find((item) => item.activity_id === detail.activity_id) || {};
+    const activity = {
+      ...detail,
+      business_name: listItem.business_name || 'Chưa xác định',
+      verified_by: listItem.verified_by || null,
+      verified_at: listItem.verified_at || null,
+      categoryNames: categories.filter((c) => (detail.category_ids || []).includes(c.category_id)).map((c) => c.name),
+    };
+    return { activity, reviews, users };
+  }
+
+  // action = 'approve' | 'hide'
+  function decideActivity(activityId, action) {
+    return authFetch(`/operator/activities/${activityId}/${action}`, { method: 'PATCH' });
+  }
+
+  // Đổi sang trạng thái bất kỳ: 'pending' | 'active' | 'cancelled' | 'hidden'
+  function setActivityStatus(activityId, status) {
+    return authFetch(`/operator/activities/${activityId}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    });
+  }
+
+  window.AdminData = {
+    getCustomers,
+    getAllUsers,
+    getUser,
+    setUserStatus,
+    getReviewsByUser,
+    getBusinessProfile,
+    getBusinessRequest,
+    decideBusinessRequest,
+    getBusinesses,
+    getBusinessActivities,
+    getBusinessAverageRating,
+    getActivities,
+    getCategories,
+    getActivityDetail,
+    getCategoryIdsByActivity,
+    getActivityProfile,
+    decideActivity,
+    setActivityStatus,
   };
-  data.ready = load();
-  window.AdminData = data;
 })();

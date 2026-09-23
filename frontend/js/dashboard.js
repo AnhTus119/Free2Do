@@ -1,10 +1,16 @@
 (function () {
   'use strict';
 
-  const data = window.AdminData;
+  const { authFetch, requireOperatorAuth, escapeHTML, formatPrice, formatHours } = window.AdminAuth;
+
+  requireOperatorAuth();
 
   const PAGE_SIZE = 10;
   const DEFAULT_ROWS = 4;
+
+  // Dữ liệu tải từ backend, giữ trong bộ nhớ để phân trang/mở modal không cần gọi lại API.
+  let pendingActivities = [];
+  let pendingBusinessRequests = [];
 
   let showingAllActivities = false;
   let activityPage = 1;
@@ -12,663 +18,283 @@
   let showingAllBusinesses = false;
   let businessPage = 1;
 
-  function currentPendingActivities() {
-    return data.activities.filter(
-      item => item.status === 'pending'
-    );
+  // ------------------------- Tải dữ liệu từ API -------------------------
+
+  async function loadDashboard() {
+    try {
+      const [summary, customers, activeActivities, pendingActivitiesRes, pendingRequestsRes] = await Promise.all([
+        authFetch('/operator/dashboard'),
+        authFetch('/operator/users?role=customer'),
+        authFetch('/operator/activities?status=active'),
+        authFetch('/operator/activities?status=pending'),
+        authFetch('/operator/business-requests?status=pending'),
+      ]);
+
+      pendingActivities = pendingActivitiesRes;
+      pendingBusinessRequests = pendingRequestsRes;
+
+      renderStats(summary, customers, activeActivities);
+      renderPendingActivities();
+      renderPendingBusinesses();
+      document.getElementById('lastUpdated').textContent = new Date().toLocaleString('vi-VN', {
+        hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric',
+      });
+    } catch (error) {
+      console.error(error);
+      alert(error.message || 'Không tải được dữ liệu tổng quan.');
+    }
   }
 
-  function currentPendingBusinesses() {
-    return data.businesses.filter(
-      item => item.status === 'pending'
-    );
-  }
+  function renderStats(summary, customers, activeActivities) {
+    const lockedCustomers = customers.filter((c) => c.status === 'blocked').length;
+    const missingPhoneRequests = pendingBusinessRequests.filter((r) => !r.phone).length;
+    const pendingTotal = summary.pending_request_count + pendingActivities.length;
 
-  function updateOverview() {
-    const stats = document.querySelectorAll(
-      '.stats-grid .stat-num'
-    );
-
-    const activities = data.activities;
-    const customers = data.customers;
-
-    const pendingTotal =
-      currentPendingActivities().length +
-      currentPendingBusinesses().length;
-
+    const stats = document.querySelectorAll('.stats-grid .stat-num');
     const values = [
       customers.length,
-      data.businesses.length,
-      activities.length,
-      activities.filter(
-        item => item.status === 'active'
-      ).length,
+      summary.business_count,
+      summary.activity_count,
+      activeActivities.length,
       pendingTotal,
-      customers.filter(
-        item => item.status === 'locked'
-      ).length
+      lockedCustomers,
     ];
-
     values.forEach((value, index) => {
-      if (stats[index]) {
-        stats[index].textContent = value;
-      }
+      if (stats[index]) stats[index].textContent = value;
     });
 
-    document.getElementById(
-      'pendingActivityAlert'
-    ).textContent = currentPendingActivities().length;
-
-    document.getElementById(
-      'pendingBusinessAlert'
-    ).textContent = currentPendingBusinesses().length;
-
-    document.getElementById(
-      'missingPhoneAlert'
-    ).textContent = data.businesses.filter(
-      item => !item.phone
-    ).length;
-
-    document.getElementById(
-      'lockedCustomerAlert'
-    ).textContent = customers.filter(
-      item => item.status === 'locked'
-    ).length;
+    document.getElementById('pendingActivityAlert').textContent = pendingActivities.length;
+    document.getElementById('pendingBusinessAlert').textContent = pendingBusinessRequests.length;
+    document.getElementById('missingPhoneAlert').textContent = missingPhoneRequests;
+    document.getElementById('lockedCustomerAlert').textContent = lockedCustomers;
   }
 
-  function renderPageButtons(
-    container,
-    total,
-    currentPage,
-    onChange
-  ) {
-    const totalPages = Math.ceil(
-      total / PAGE_SIZE
-    );
+  // ------------------------- Bảng phân trang dùng chung -------------------------
 
+  function renderPageButtons(container, total, currentPage, onChange) {
+    const totalPages = Math.ceil(total / PAGE_SIZE);
     container.innerHTML = '';
 
-    const add = (
-      label,
-      page,
-      active = false
-    ) => {
-      const button = document.createElement(
-        'button'
-      );
-
-      button.className =
-        `page-btn${active ? ' active' : ''}`;
-
+    const add = (label, page, active = false) => {
+      const button = document.createElement('button');
+      button.className = `page-btn${active ? ' active' : ''}`;
       button.textContent = label;
-
-      button.disabled =
-        page < 1 || page > totalPages;
-
-      button.addEventListener('click', () => {
-        onChange(page);
-      });
-
+      button.disabled = page < 1 || page > totalPages;
+      button.addEventListener('click', () => onChange(page));
       container.appendChild(button);
     };
 
     add('‹', currentPage - 1);
-
-    for (
-      let page = 1;
-      page <= totalPages;
-      page += 1
-    ) {
-      add(
-        String(page),
-        page,
-        page === currentPage
-      );
-    }
-
+    for (let page = 1; page <= totalPages; page += 1) add(String(page), page, page === currentPage);
     add('›', currentPage + 1);
   }
 
+  // ------------------------- Hoạt động chờ duyệt -------------------------
+
   function renderPendingActivities() {
-    const activities =
-      currentPendingActivities();
-
-    const start = showingAllActivities
-      ? (activityPage - 1) * PAGE_SIZE
-      : 0;
-
+    const start = showingAllActivities ? (activityPage - 1) * PAGE_SIZE : 0;
     const rows = showingAllActivities
-      ? activities.slice(
-          start,
-          start + PAGE_SIZE
-        )
-      : activities.slice(0, DEFAULT_ROWS);
+      ? pendingActivities.slice(start, start + PAGE_SIZE)
+      : pendingActivities.slice(0, DEFAULT_ROWS);
 
-    document.getElementById(
-      'pendingCount'
-    ).textContent = `(${activities.length})`;
+    document.getElementById('pendingCount').textContent = `(${pendingActivities.length})`;
 
-    document.getElementById(
-      'pendingTableBody'
-    ).innerHTML = rows.length
-      ? rows.map(activity => `
+    document.getElementById('pendingTableBody').innerHTML = rows.length
+      ? rows.map((activity) => `
           <tr>
             <td>
-              <div class="cell-title">
-                ${data.escapeHTML(activity.name)}
-              </div>
-
-              <div class="cell-sub">
-                ${data.escapeHTML(activity.category)}
-                ·
-                ${data.escapeHTML(activity.price)}
-              </div>
+              <div class="cell-title">${escapeHTML(activity.name)}</div>
+              <div class="cell-sub">${escapeHTML(formatPrice(activity.price))}</div>
             </td>
-
-            <td>
-              ${data.escapeHTML(
-                data.businessName(activity)
-              )}
-            </td>
-
-            <td>
-              ${data.escapeHTML(activity.address)}
-            </td>
-
-            <td>
-              <span class="badge pending">
-                Chờ duyệt
-              </span>
-            </td>
-
+            <td>${escapeHTML(activity.business_name)}</td>
+            <td>${escapeHTML(activity.address)}</td>
+            <td><span class="badge pending">Chờ duyệt</span></td>
             <td>
               <div class="row-actions">
-                <button
-                  class="row-btn viewmore"
-                  data-activity-id="${data.escapeHTML(
-                    activity.id
-                  )}"
-                >
-                  Xem thêm
-                </button>
+                <button class="row-btn viewmore" data-activity-id="${escapeHTML(activity.activity_id)}">Xem thêm</button>
               </div>
             </td>
           </tr>
         `).join('')
-      : `
-          <tr>
-            <td
-              colspan="5"
-              style="text-align:center;"
-            >
-              Không có hoạt động chờ duyệt.
-            </td>
-          </tr>
-        `;
+      : '<tr><td colspan="5" style="text-align:center;">Không có hoạt động chờ duyệt.</td></tr>';
 
-    const pagination =
-      document.getElementById(
-        'pendingPagination'
-      );
+    const pagination = document.getElementById('pendingPagination');
+    const toggle = document.querySelector('#toggleViewAll a');
+    toggle.textContent = showingAllActivities ? 'Thu gọn ↑' : 'Xem tất cả';
+    pagination.classList.toggle('show', showingAllActivities && pendingActivities.length > PAGE_SIZE);
 
-    const toggle =
-      document.querySelector(
-        '#toggleViewAll a'
-      );
-
-    toggle.textContent = showingAllActivities
-      ? 'Thu gọn ↑'
-      : 'Xem tất cả';
-
-    pagination.classList.toggle(
-      'show',
-      showingAllActivities &&
-      activities.length > PAGE_SIZE
-    );
-
-    if (
-      showingAllActivities &&
-      activities.length > PAGE_SIZE
-    ) {
-      document.getElementById(
-        'paginationInfo'
-      ).textContent =
-        `Hiển thị ${start + 1}–` +
-        `${Math.min(
-          start + PAGE_SIZE,
-          activities.length
-        )} trong ${activities.length} hoạt động`;
-
-      renderPageButtons(
-        document.getElementById(
-          'paginationBtns'
-        ),
-        activities.length,
-        activityPage,
-        page => {
-          activityPage = page;
-          renderPendingActivities();
-        }
-      );
+    if (showingAllActivities && pendingActivities.length > PAGE_SIZE) {
+      document.getElementById('paginationInfo').textContent =
+        `Hiển thị ${start + 1}–${Math.min(start + PAGE_SIZE, pendingActivities.length)} trong ${pendingActivities.length} hoạt động`;
+      renderPageButtons(document.getElementById('paginationBtns'), pendingActivities.length, activityPage, (page) => {
+        activityPage = page;
+        renderPendingActivities();
+      });
     }
   }
 
-  function renderPendingBusinesses() {
-    const businesses =
-      currentPendingBusinesses();
-
-    const start = showingAllBusinesses
-      ? (businessPage - 1) * PAGE_SIZE
-      : 0;
-
-    const rows = showingAllBusinesses
-      ? businesses.slice(
-          start,
-          start + PAGE_SIZE
-        )
-      : businesses.slice(0, DEFAULT_ROWS);
-
-    document.getElementById(
-      'bizPendingCount'
-    ).textContent = `(${businesses.length})`;
-
-    document.getElementById(
-      'bizTableBody'
-    ).innerHTML = rows.length
-      ? rows.map(business => `
-          <tr>
-            <td>
-              <div class="cell-title">
-                ${data.escapeHTML(business.name)}
-              </div>
-            </td>
-
-            <td>
-              ${data.escapeHTML(business.type)}
-            </td>
-
-            <td>
-              ${data.escapeHTML(business.address)}
-            </td>
-
-            <td>
-              <span class="badge pending">
-                Chờ duyệt
-              </span>
-            </td>
-
-            <td>
-              <div class="row-actions">
-                <button
-                  class="row-btn viewmore"
-                  data-business-id="${data.escapeHTML(
-                    business.id
-                  )}"
-                >
-                  Xem thêm
-                </button>
-              </div>
-            </td>
-          </tr>
-        `).join('')
-      : `
-          <tr>
-            <td
-              colspan="5"
-              style="text-align:center;"
-            >
-              Không có doanh nghiệp chờ duyệt.
-            </td>
-          </tr>
-        `;
-
-    const pagination =
-      document.getElementById(
-        'bizPagination'
-      );
-
-    const toggle =
-      document.querySelector(
-        '#toggleBizViewAll a'
-      );
-
-    toggle.textContent = showingAllBusinesses
-      ? 'Thu gọn ↑'
-      : 'Xem tất cả';
-
-    pagination.classList.toggle(
-      'show',
-      showingAllBusinesses &&
-      businesses.length > PAGE_SIZE
-    );
-
-    if (
-      showingAllBusinesses &&
-      businesses.length > PAGE_SIZE
-    ) {
-      document.getElementById(
-        'bizPaginationInfo'
-      ).textContent =
-        `Hiển thị ${start + 1}–` +
-        `${Math.min(
-          start + PAGE_SIZE,
-          businesses.length
-        )} trong ${businesses.length} yêu cầu`;
-
-      renderPageButtons(
-        document.getElementById(
-          'bizPaginationBtns'
-        ),
-        businesses.length,
-        businessPage,
-        page => {
-          businessPage = page;
-          renderPendingBusinesses();
-        }
-      );
-    }
-  }
-
-  const activityModal =
-    document.getElementById(
-      'activityModal'
-    );
+  const activityModal = document.getElementById('activityModal');
 
   function openActivityModal(id) {
-    const activity = data.activities.find(
-      item => item.id === id
-    );
+    const activity = pendingActivities.find((item) => item.activity_id === id);
+    if (!activity) return;
 
-    if (!activity) {
-      return;
-    }
-
-    document.getElementById(
-      'modalTitle'
-    ).textContent = activity.name;
-
-    document.getElementById(
-      'modalSub'
-    ).textContent =
-      `${activity.category} · ${activity.price}`;
-
-    document.getElementById(
-      'modalDesc'
-    ).textContent = activity.description;
-
-    document.getElementById(
-      'modalImage'
-    ).className = 'modal-image empty';
-
-    document.getElementById(
-      'modalImage'
-    ).textContent =
-      'Chưa có hình ảnh mô tả';
+    document.getElementById('modalTitle').textContent = activity.name;
+    document.getElementById('modalSub').textContent = formatPrice(activity.price);
+    document.getElementById('modalDesc').textContent = activity.description || 'Chưa có mô tả.';
+    document.getElementById('modalImage').className = 'modal-image empty';
+    document.getElementById('modalImage').textContent = 'Chưa có hình ảnh mô tả';
 
     const information = [
-      [
-        'Doanh nghiệp',
-        data.businessName(activity)
-      ],
-      ['Ngân sách', activity.price],
+      ['Doanh nghiệp', activity.business_name],
+      ['Ngân sách', formatPrice(activity.price)],
       ['Địa chỉ', activity.address],
-      [
-        'Vị trí',
-        activity.location || 'Chưa cung cấp'
-      ],
-      ['Giờ hoạt động', activity.hours],
-      [
-        'Admin xác minh',
-        activity.verifiedBy ||
-          'Chưa xác minh'
-      ]
+      ['Giờ hoạt động', formatHours(activity.time_open, activity.time_close)],
+      ['Admin xác minh', activity.verified_by || 'Chưa xác minh'],
     ];
+    document.getElementById('modalInfo').innerHTML = information.map(([label, value]) => `
+      <div class="info-row">
+        <span class="info-label">${escapeHTML(label)}</span>
+        <span class="info-value">${escapeHTML(value)}</span>
+      </div>
+    `).join('');
 
-    document.getElementById(
-      'modalInfo'
-    ).innerHTML = information.map(
-      ([label, value]) => `
-        <div class="info-row">
-          <span class="info-label">
-            ${data.escapeHTML(label)}
-          </span>
-
-          <span class="info-value">
-            ${data.escapeHTML(value)}
-          </span>
-        </div>
-      `
-    ).join('');
-
-    document.getElementById(
-      'modalApprove'
-    ).onclick = () => {
-      decideActivity(id, 'active');
-    };
-
-    document.getElementById(
-      'modalReject'
-    ).onclick = () => {
-      decideActivity(id, 'rejected');
-    };
-
+    document.getElementById('modalApprove').onclick = () => decideActivity(id, 'approve');
+    document.getElementById('modalReject').onclick = () => decideActivity(id, 'hide');
     activityModal.classList.add('open');
   }
 
-  async function decideActivity(id, status) {
-    await data.setStatus(
-      'activity',
-      id,
-      status
-    );
-
-    activityModal.classList.remove('open');
-
-    renderAll();
+  async function decideActivity(id, action) {
+    try {
+      await authFetch(`/operator/activities/${id}/${action}`, { method: 'PATCH' });
+      activityModal.classList.remove('open');
+      await loadDashboard();
+    } catch (error) {
+      alert(error.message || 'Không xử lý được hoạt động này.');
+    }
   }
 
-  const businessModal =
-    document.getElementById(
-      'businessModal'
-    );
+  // ------------------------- Doanh nghiệp chờ duyệt -------------------------
+
+  function renderPendingBusinesses() {
+    const start = showingAllBusinesses ? (businessPage - 1) * PAGE_SIZE : 0;
+    const rows = showingAllBusinesses
+      ? pendingBusinessRequests.slice(start, start + PAGE_SIZE)
+      : pendingBusinessRequests.slice(0, DEFAULT_ROWS);
+
+    document.getElementById('bizPendingCount').textContent = `(${pendingBusinessRequests.length})`;
+
+    document.getElementById('bizTableBody').innerHTML = rows.length
+      ? rows.map((request) => `
+          <tr>
+            <td><div class="cell-title">${escapeHTML(request.business_name)}</div></td>
+            <td>${escapeHTML(request.phone || 'Chưa cung cấp')}</td>
+            <td>${escapeHTML(request.business_address)}</td>
+            <td><span class="badge pending">Chờ duyệt</span></td>
+            <td>
+              <div class="row-actions">
+                <button class="row-btn viewmore" data-business-id="${escapeHTML(request.request_id)}">Xem thêm</button>
+              </div>
+            </td>
+          </tr>
+        `).join('')
+      : '<tr><td colspan="5" style="text-align:center;">Không có doanh nghiệp chờ duyệt.</td></tr>';
+
+    const pagination = document.getElementById('bizPagination');
+    const toggle = document.querySelector('#toggleBizViewAll a');
+    toggle.textContent = showingAllBusinesses ? 'Thu gọn ↑' : 'Xem tất cả';
+    pagination.classList.toggle('show', showingAllBusinesses && pendingBusinessRequests.length > PAGE_SIZE);
+
+    if (showingAllBusinesses && pendingBusinessRequests.length > PAGE_SIZE) {
+      document.getElementById('bizPaginationInfo').textContent =
+        `Hiển thị ${start + 1}–${Math.min(start + PAGE_SIZE, pendingBusinessRequests.length)} trong ${pendingBusinessRequests.length} yêu cầu`;
+      renderPageButtons(document.getElementById('bizPaginationBtns'), pendingBusinessRequests.length, businessPage, (page) => {
+        businessPage = page;
+        renderPendingBusinesses();
+      });
+    }
+  }
+
+  const businessModal = document.getElementById('businessModal');
 
   function openBusinessModal(id) {
-    const business = data.businesses.find(
-      item => item.id === id
-    );
+    const request = pendingBusinessRequests.find((item) => item.request_id === id);
+    if (!request) return;
 
-    if (!business) {
-      return;
-    }
-
-    document.getElementById(
-      'bizModalTitle'
-    ).textContent = business.name;
-
-    document.getElementById(
-      'bizModalSub'
-    ).textContent = business.type;
-
-    document.getElementById(
-      'bizModalDesc'
-    ).textContent = business.description;
+    document.getElementById('bizModalTitle').textContent = request.business_name;
+    document.getElementById('bizModalSub').textContent = request.business_address;
+    document.getElementById('bizModalDesc').textContent = request.description || 'Chưa có mô tả.';
 
     const information = [
-      [
-        'Số điện thoại',
-        business.phone || 'Chưa cung cấp'
-      ],
-      ['Giờ mở cửa', business.hours],
-      [
-        'Giá tham khảo',
-        business.priceRange
-      ],
-      [
-        'Admin xác minh',
-        business.verifiedBy ||
-          'Chưa xác minh'
-      ]
+      ['Số điện thoại', request.phone || 'Chưa cung cấp'],
+      ['Địa chỉ', request.business_address],
     ];
+    document.getElementById('bizModalInfo').innerHTML = information.map(([label, value]) => `
+      <div class="info-row">
+        <span class="info-label">${escapeHTML(label)}</span>
+        <span class="info-value">${escapeHTML(value)}</span>
+      </div>
+    `).join('');
 
-    document.getElementById(
-      'bizModalInfo'
-    ).innerHTML = information.map(
-      ([label, value]) => `
-        <div class="info-row">
-          <span class="info-label">
-            ${data.escapeHTML(label)}
-          </span>
+    document.getElementById('bizModalImage').className = 'modal-image empty';
+    document.getElementById('bizModalImage').textContent = 'Chưa có hình ảnh minh họa';
+    document.getElementById('bizModalLicense').className = 'modal-image modal-license empty';
+    document.getElementById('bizModalLicense').textContent = 'Chưa có minh chứng giấy phép hoạt động';
 
-          <span class="info-value">
-            ${data.escapeHTML(value)}
-          </span>
-        </div>
-      `
-    ).join('');
-
-    document.getElementById(
-      'bizModalImage'
-    ).className = 'modal-image empty';
-
-    document.getElementById(
-      'bizModalImage'
-    ).textContent =
-      'Chưa có hình ảnh minh họa';
-
-    document.getElementById(
-      'bizModalLicense'
-    ).className =
-      'modal-image modal-license empty';
-
-    document.getElementById(
-      'bizModalLicense'
-    ).textContent =
-      'Chưa có minh chứng giấy phép hoạt động';
-
-    document.getElementById(
-      'bizModalApprove'
-    ).onclick = () => {
-      decideBusiness(id, 'active');
-    };
-
-    document.getElementById(
-      'bizModalReject'
-    ).onclick = () => {
-      decideBusiness(id, 'rejected');
-    };
-
+    document.getElementById('bizModalApprove').onclick = () => decideBusiness(id, 'approve');
+    document.getElementById('bizModalReject').onclick = () => decideBusiness(id, 'reject');
     businessModal.classList.add('open');
   }
 
-  async function decideBusiness(id, status) {
-    await data.setStatus(
-      'business',
-      id,
-      status
-    );
-
-    businessModal.classList.remove('open');
-
-    renderAll();
+  async function decideBusiness(id, action) {
+    try {
+      await authFetch(`/operator/business-requests/${id}/${action}`, { method: 'PATCH' });
+      businessModal.classList.remove('open');
+      await loadDashboard();
+    } catch (error) {
+      alert(error.message || 'Không xử lý được yêu cầu này.');
+    }
   }
 
-  function renderAll() {
-    updateOverview();
-    renderPendingActivities();
-    renderPendingBusinesses();
-  }
+  // ------------------------- Sự kiện -------------------------
 
-  document.getElementById(
-    'toggleViewAll'
-  ).addEventListener('click', () => {
-    showingAllActivities =
-      !showingAllActivities;
-
+  document.getElementById('toggleViewAll').addEventListener('click', () => {
+    showingAllActivities = !showingAllActivities;
     activityPage = 1;
-
     renderPendingActivities();
   });
 
-  document.getElementById(
-    'toggleBizViewAll'
-  ).addEventListener('click', () => {
-    showingAllBusinesses =
-      !showingAllBusinesses;
-
+  document.getElementById('toggleBizViewAll').addEventListener('click', () => {
+    showingAllBusinesses = !showingAllBusinesses;
     businessPage = 1;
-
     renderPendingBusinesses();
   });
 
-  document.getElementById(
-    'pendingTableBody'
-  ).addEventListener('click', event => {
-    const button = event.target.closest(
-      '[data-activity-id]'
-    );
+  document.getElementById('pendingTableBody').addEventListener('click', (event) => {
+    const button = event.target.closest('[data-activity-id]');
+    if (button) openActivityModal(button.dataset.activityId);
+  });
 
-    if (button) {
-      openActivityModal(
-        button.dataset.activityId
-      );
+  document.getElementById('bizTableBody').addEventListener('click', (event) => {
+    const button = event.target.closest('[data-business-id]');
+    if (button) openBusinessModal(button.dataset.businessId);
+  });
+
+  document.getElementById('modalClose').addEventListener('click', () => activityModal.classList.remove('open'));
+  document.getElementById('bizModalClose').addEventListener('click', () => businessModal.classList.remove('open'));
+
+  [activityModal, businessModal].forEach((modal) => {
+    modal.addEventListener('click', (event) => {
+      if (event.target === modal) modal.classList.remove('open');
+    });
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      activityModal.classList.remove('open');
+      businessModal.classList.remove('open');
     }
   });
 
-  document.getElementById(
-    'bizTableBody'
-  ).addEventListener('click', event => {
-    const button = event.target.closest(
-      '[data-business-id]'
-    );
-
-    if (button) {
-      openBusinessModal(
-        button.dataset.businessId
-      );
-    }
-  });
-
-  document.getElementById(
-    'modalClose'
-  ).addEventListener('click', () => {
-    activityModal.classList.remove('open');
-  });
-
-  document.getElementById(
-    'bizModalClose'
-  ).addEventListener('click', () => {
-    businessModal.classList.remove('open');
-  });
-
-  [activityModal, businessModal].forEach(
-    modal => {
-      modal.addEventListener(
-        'click',
-        event => {
-          if (event.target === modal) {
-            modal.classList.remove('open');
-          }
-        }
-      );
-    }
-  );
-
-  document.addEventListener(
-    'keydown',
-    event => {
-      if (event.key === 'Escape') {
-        activityModal.classList.remove(
-          'open'
-        );
-
-        businessModal.classList.remove(
-          'open'
-        );
-      }
-    }
-  );
-
-  data.ready.then(renderAll).catch(error => {
-    document.querySelector('.content').innerHTML = `<div class="card" style="padding:24px;color:#b3293a">${data.escapeHTML(error.message)}</div>`;
-  });
+  loadDashboard();
 })();

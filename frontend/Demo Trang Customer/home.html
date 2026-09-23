@@ -163,7 +163,17 @@
           <label><svg class="icon">
               <use href="#icon-sparkles"></use>
             </svg> Sở thích</label>
-          <div class="chip-row" id="interestFilters"><span>Đang tải sở thích...</span></div>
+          <div class="chip-row">
+            <div class="chip" data-interest="Workshop">Workshop</div>
+            <div class="chip" data-interest="Thể thao">Thể thao</div>
+            <div class="chip" data-interest="Nghệ thuật">Nghệ thuật</div>
+            <div class="chip" data-interest="Ăn uống">Ăn uống</div>
+            <div class="chip" data-interest="Giải trí">Giải trí</div>
+            <div class="chip" data-interest="Học tập">Học tập</div>
+            <div class="chip" data-interest="Cộng đồng">Cộng đồng</div>
+            <div class="chip" data-interest="Chill">Chill</div>
+            <div class="chip" data-interest="Outdoor">Outdoor</div>
+          </div>
         </div>
         <div class="match-actions">
           <a href="search.html" class="btn btn-primary" id="searchActivitiesButton">Tìm hoạt động cho tôi</a>
@@ -179,7 +189,45 @@
     <div class="wrap">
       <div class="section-title">Có thể bạn sẽ thích</div>
       <div class="section-sub">Chọn lọc dựa trên thời gian rảnh, vị trí và sở thích của bạn</div>
-      <div class="activity-grid" id="recommendedActivities"><p>Đang tải dữ liệu...</p></div>
+      <div class="activity-grid">
+
+        <a href="activity-detail.html?id=A001" class="activity-card">
+          <div class="activity-img" style="background:#F3D9A6;">🏺<span class="match-badge">92% phù hợp</span></div>
+          <div class="activity-body">
+            <div class="activity-title">Whimsical Crown</div>
+            <div class="activity-biz">She.slays · Bạch Mai</div>
+            <div class="activity-meta"><svg class="icon icon-sm">
+                <use href="#icon-star"></use>
+              </svg> 4.8 (32) · <span class="activity-price">200.000 ₫</span> · 1.2 km · 2 giờ</div>
+            <div class="tag-row"><span class="tag">Workshop</span><span class="tag">Sáng tạo</span></div>
+          </div>
+        </a>
+
+        <a href="activity-detail.html?id=A013" class="activity-card">
+          <div class="activity-img" style="background:#DDE3CB;">🎱<span class="match-badge">88% phù hợp</span></div>
+          <div class="activity-body">
+            <div class="activity-title">Bi-a Batuna Billiards</div>
+            <div class="activity-biz">Bi-a Batuna · Bạch Mai</div>
+            <div class="activity-meta"><svg class="icon icon-sm">
+                <use href="#icon-star"></use>
+              </svg> 4.6 (58) · <span class="activity-price">100.000 ₫</span> · 0.8 km · Linh hoạt</div>
+            <div class="tag-row"><span class="tag">Giải trí</span><span class="tag">Kết nối</span></div>
+          </div>
+        </a>
+
+        <a href="activity-detail.html?id=A020" class="activity-card">
+          <div class="activity-img" style="background:#F6D2D8;">💅<span class="match-badge">81% phù hợp</span></div>
+          <div class="activity-body">
+            <div class="activity-title">HaPam Nails House</div>
+            <div class="activity-biz">HaPam Nails · Đông Tác</div>
+            <div class="activity-meta"><svg class="icon icon-sm">
+                <use href="#icon-star"></use>
+              </svg> 4.7 (21) · <span class="activity-price">120.000 ₫</span> · 2.4 km · 1 giờ</div>
+            <div class="tag-row"><span class="tag">Thư giãn</span><span class="tag">Làm đẹp</span></div>
+          </div>
+        </a>
+
+      </div>
     </div>
   </div>
 
@@ -238,21 +286,68 @@
             <h3>Hoạt động gần bạn</h3>
             <p><span id="homeMapResultCount">0</span> hoạt động</p>
           </div>
-<div class="map-side-list" id="homeMapResults"><p>Đang tải dữ liệu...</p></div>
+          <div class="map-side-list" id="homeMapResults">
+            <div class="map-side-item">
+              <div class="map-side-img">🏺</div>
+              <div class="map-side-info">
+                <h4>Workshop làm gốm</h4>
+                <p>1.2 km · 120.000 ₫ · <svg class="icon icon-sm"><use href="#icon-star"></use></svg> 4.8</p>
+                <div class="map-match-badge">92% phù hợp</div>
+              </div>
+              <svg class="icon icon-sm map-side-arrow"><use href="#icon-chevron-down" style="transform:rotate(-90deg);"></use></svg>
+            </div>
+            
+            <div class="map-side-item">
+              <div class="map-side-img">🌅</div>
+              <div class="map-side-info">
+                <h4>Tour tham quan Hồ Tây</h4>
+                <p>2.4 km · 200.000 ₫ · <svg class="icon icon-sm"><use href="#icon-star"></use></svg> 4.9</p>
+                <div class="map-match-badge" style="background:#ede9fe; color:#7c3aed;">87% phù hợp</div>
+              </div>
+              <svg class="icon icon-sm map-side-arrow"><use href="#icon-chevron-down" style="transform:rotate(-90deg);"></use></svg>
+            </div>
+
+            <div class="map-side-item">
+              <div class="map-side-img">☕</div>
+              <div class="map-side-info">
+                <h4>Café Acoustic</h4>
+                <p>1.8 km · 80.000 ₫ · <svg class="icon icon-sm"><use href="#icon-star"></use></svg> 4.5</p>
+                <div class="map-match-badge" style="background:#d1fae5; color:#059669;">85% phù hợp</div>
+              </div>
+              <svg class="icon icon-sm map-side-arrow"><use href="#icon-chevron-down" style="transform:rotate(-90deg);"></use></svg>
+            </div>
+
+            <div class="map-side-item">
+              <div class="map-side-img">🎨</div>
+              <div class="map-side-info">
+                <h4>Workshop vẽ tranh</h4>
+                <p>3.1 km · 150.000 ₫ · <svg class="icon icon-sm"><use href="#icon-star"></use></svg> 4.7</p>
+                <div class="map-match-badge" style="background:#fef3c7; color:#d97706;">88% phù hợp</div>
+              </div>
+              <svg class="icon icon-sm map-side-arrow"><use href="#icon-chevron-down" style="transform:rotate(-90deg);"></use></svg>
+            </div>
+            
+            <div class="map-side-item">
+              <div class="map-side-img">🎱</div>
+              <div class="map-side-info">
+                <h4>Bi-a Batuna Billiards</h4>
+                <p>0.8 km · 100.000 ₫ · <svg class="icon icon-sm"><use href="#icon-star"></use></svg> 4.6</p>
+                <div class="map-match-badge">90% phù hợp</div>
+              </div>
+              <svg class="icon icon-sm map-side-arrow"><use href="#icon-chevron-down" style="transform:rotate(-90deg);"></use></svg>
+            </div>
+          </div>
         </div>
 
       </div>
     </div>
   </div>
 
-  <script src="../js/config.js"></script>
-  <script src="../js/api.js"></script>
-  <script src="../js/public-data.js"></script>
-  <script src="../js/user-nav.js"></script>
+  <script src="../js/admin-data.js"></script>
   <script>
     const radiusSlider = document.getElementById('radiusSlider');
     const radiusValue = document.getElementById('radiusValue');
-    const interestFilters = document.getElementById('interestFilters');
+    const interestChips = document.querySelectorAll('.chip[data-interest]');
     const searchActivitiesButton = document.getElementById('searchActivitiesButton');
     const homeMapBox = document.getElementById('homeMapBox');
     const homeMapResults = document.getElementById('homeMapResults');
@@ -290,22 +385,11 @@
       const activities = window.AdminData.activities.filter(activity => {
         const distance = homeDistance(activity.location);
         return activity.status === 'active'
-          && (!selectedInterests.length || activity.category.split(', ').some(category => selectedInterests.includes(category)))
+          && (!selectedInterests.length || selectedInterests.includes(activity.category))
           && (!budgetValue || homePrice(activity.price) <= budgetValue)
           && (distance === null || distance <= radius)
           && (!freeTime || homeDuration(activity.hours) >= freeTime);
       });
-
-      document.getElementById('recommendedActivities').innerHTML = window.AdminData.activities.slice(0, 3).map(activity => `
-        <a href="activity-detail.html?id=${encodeURIComponent(activity.id)}" class="activity-card">
-          <div class="activity-img" style="background:#F3D9A6;">${activity.icon || '✨'}</div>
-          <div class="activity-body">
-            <div class="activity-title">${window.AdminData.escapeHTML(activity.name)}</div>
-            <div class="activity-biz">${window.AdminData.escapeHTML(window.AdminData.businessName(activity))} · ${window.AdminData.escapeHTML(activity.address)}</div>
-            <div class="activity-meta">★ ${activity.rating || '—'} (${activity.reviewCount || 0}) · <span class="activity-price">${window.AdminData.escapeHTML(activity.price)}</span> · ${window.AdminData.escapeHTML(activity.hours)}</div>
-            <div class="tag-row"><span class="tag">${window.AdminData.escapeHTML(activity.category)}</span></div>
-          </div>
-        </a>`).join('') || '<p>Chưa có hoạt động đang mở.</p>';
 
       homeMapBox.querySelectorAll('.rich-map-pin').forEach(pin => pin.remove());
       homeMapResultCount.textContent = activities.length;
@@ -337,11 +421,11 @@
       renderHomeMap();
     });
 
-    interestFilters.addEventListener('click', function (event) {
-      const chip = event.target.closest('.chip[data-interest]');
-      if (!chip) return;
-      chip.classList.toggle('active');
-      renderHomeMap();
+    interestChips.forEach(function (chip) {
+      chip.addEventListener('click', function () {
+        chip.classList.toggle('active');
+        renderHomeMap();
+      });
     });
 
     ['freeHours', 'freeMinutes', 'locationInput', 'budgetInput'].forEach(function (id) {
@@ -374,12 +458,7 @@
       window.location.href = 'search.html?' + params.toString();
     });
 
-    window.AdminData.ready.then(() => {
-      interestFilters.innerHTML = window.AdminData.categories.map(category => `<button type="button" class="chip" data-interest="${window.AdminData.escapeHTML(category.name)}">${window.AdminData.escapeHTML(category.name)}</button>`).join('');
-      renderHomeMap();
-    }).catch(error => {
-      homeMapResults.textContent = error.message;
-    });
+    renderHomeMap();
 
     function toggleUserMenu(e) {
       e.stopPropagation();

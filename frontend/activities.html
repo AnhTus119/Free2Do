@@ -43,22 +43,17 @@
       </div>
 
       <div class="status-tabs">
-        <div class="status-tab active" data-status="all">Tất cả (<span data-count="all">…</span>)</div>
-        <div class="status-tab" data-status="active">Hoạt động (<span data-count="active">…</span>)</div>
-        <div class="status-tab" data-status="pending">Chờ duyệt (<span data-count="pending">…</span>)</div>
-        <div class="status-tab" data-status="hidden">Đã ẩn (<span data-count="hidden">…</span>)</div>
-        <div class="status-tab" data-status="rejected">Từ chối (<span data-count="rejected">…</span>)</div>
-        <div class="status-tab" data-status="expired">Hết hạn (<span data-count="expired">…</span>)</div>
+        <div class="status-tab active" data-status="all">Tất cả (<span data-count="all">0</span>)</div>
+        <div class="status-tab" data-status="active">Hoạt động (<span data-count="active">0</span>)</div>
+        <div class="status-tab" data-status="pending">Chờ duyệt (<span data-count="pending">0</span>)</div>
+        <div class="status-tab" data-status="hidden">Đã ẩn (<span data-count="hidden">0</span>)</div>
+        <div class="status-tab" data-status="cancelled">Đã hủy (<span data-count="cancelled">0</span>)</div>
       </div>
 
       <div class="filter-bar">
         <div class="search-box">🔍<input id="activitySearch" type="search" placeholder="Tìm theo mã, Hoạt động hoặc Doanh nghiệp..."></div>
         <select class="filter-select" id="typeFilter">
           <option value="all">Tất cả loại hình</option>
-          <option value="food">Ăn uống</option>
-          <option value="entertainment">Giải trí</option>
-          <option value="workshop">Workshop</option>
-          <option value="beauty">Làm đẹp</option>
         </select>
         <select class="filter-select" id="priceFilter">
           <option value="newest">Mới nhất</option>
@@ -70,10 +65,10 @@
       <div class="card">
         <table class="activity-table">
           <thead><tr><th>Mã</th><th>Hoạt động</th><th>Doanh nghiệp</th><th>Giá</th><th>Giờ hoạt động</th><th>Trạng thái</th><th>Hành động</th></tr></thead>
-          <tbody id="activityRows"></tbody>
+          <tbody id="activityRows"><tr><td colspan="7" style="text-align:center;">Đang tải dữ liệu...</td></tr></tbody>
         </table>
         <div class="pagination">
-          <span id="activityCount">Đang tải dữ liệu...</span>
+          <span id="activityCount"></span>
           <div class="page-btns" id="activityPagination"></div>
         </div>
       </div>

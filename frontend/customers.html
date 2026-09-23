@@ -42,31 +42,31 @@
       </div>
 
       <div class="stats-grid customer-stats" style="grid-template-columns:repeat(3,1fr);">
-        <div class="stat-card stat-filter selected" data-status="all"><div class="stat-icon" style="background:#EFF1E7;">👤</div><div class="stat-num" id="totalCustomers">…</div><div class="stat-label">Tổng Khách hàng</div></div>
-        <div class="stat-card stat-filter" data-status="active"><div class="stat-icon" style="background:var(--success-bg);">✅</div><div class="stat-num" id="activeCustomers">…</div><div class="stat-label">Đang hoạt động</div></div>
-        <div class="stat-card stat-filter" data-status="locked"><div class="stat-icon" style="background:var(--danger-bg);">🔒</div><div class="stat-num" id="lockedCustomers">…</div><div class="stat-label">Đã khóa</div></div>
+        <div class="stat-card stat-filter selected" data-status="all"><div class="stat-icon" style="background:#EFF1E7;">👤</div><div class="stat-num" id="totalCustomers">0</div><div class="stat-label">Tổng Khách hàng</div></div>
+        <div class="stat-card stat-filter" data-status="active"><div class="stat-icon" style="background:var(--success-bg);">✅</div><div class="stat-num" id="activeCustomers">0</div><div class="stat-label">Đang hoạt động</div></div>
+        <div class="stat-card stat-filter" data-status="blocked"><div class="stat-icon" style="background:var(--danger-bg);">🔒</div><div class="stat-num" id="lockedCustomers">0</div><div class="stat-label">Đã khóa</div></div>
       </div>
 
       <div class="filter-bar">
-        <div class="search-box">🔍<input id="customerSearch" type="search" placeholder="Tìm theo mã, tên hoặc email..."></div>
+        <div class="search-box">🔍<input id="customerSearch" type="search" placeholder="Tìm theo mã, tên, email hoặc số điện thoại..."></div>
         <select class="filter-select" id="statusFilter">
           <option value="all">Tất cả trạng thái</option>
           <option value="active">Đang hoạt động</option>
-          <option value="locked">Đã khóa</option>
+          <option value="blocked">Đã khóa</option>
         </select>
         <select class="filter-select" id="dateFilter">
-          <option value="newest">Mới nhất</option>
-          <option value="oldest">Cũ nhất</option>
+          <option value="nameAsc">Tên A → Z</option>
+          <option value="nameDesc">Tên Z → A</option>
         </select>
       </div>
 
       <div class="card">
         <table class="customer-table">
-          <thead><tr><th>Khách hàng</th><th>Email</th><th>Ngày đăng ký</th><th>Trạng thái</th><th>Hành động</th></tr></thead>
-          <tbody id="customerRows"></tbody>
+          <thead><tr><th>Khách hàng</th><th>Email</th><th>Số điện thoại</th><th>Trạng thái</th><th>Hành động</th></tr></thead>
+          <tbody id="customerRows"><tr><td colspan="5" style="text-align:center;">Đang tải dữ liệu...</td></tr></tbody>
         </table>
         <div class="pagination">
-          <span id="customerCount">Đang tải dữ liệu...</span>
+          <span id="customerCount"></span>
           <div class="page-btns" id="customerPagination"></div>
         </div>
       </div>

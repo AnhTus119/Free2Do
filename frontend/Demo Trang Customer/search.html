@@ -81,7 +81,9 @@
       </div>
       <div class="filter-group">
         <h4>Loại hoạt động</h4>
-        <div class="chip-row" id="interestFilters"><span>Đang tải sở thích...</span></div>
+        <div class="chip-row" id="interestFilters">
+          <div class="chip" data-interest="Workshop">Workshop</div><div class="chip" data-interest="Thể thao">Thể thao</div><div class="chip" data-interest="Nghệ thuật">Nghệ thuật</div><div class="chip" data-interest="Ăn uống">Ăn uống</div><div class="chip" data-interest="Giải trí">Giải trí</div><div class="chip" data-interest="Học tập">Học tập</div><div class="chip" data-interest="Cộng đồng">Cộng đồng</div><div class="chip" data-interest="Chill">Chill</div><div class="chip" data-interest="Outdoor">Outdoor</div>
+        </div>
       </div>
       <div class="filter-group">
         <h4>Hình thức</h4>
@@ -154,10 +156,7 @@
   </div>
 </div>
 
-<script src="../js/config.js"></script>
-<script src="../js/api.js"></script>
-<script src="../js/public-data.js"></script>
-<script src="../js/user-nav.js"></script>
+<script src="../js/admin-data.js"></script>
 <script>
 const searchParams = new URLSearchParams(window.location.search);
 const searchResults = document.getElementById('searchResults');
@@ -232,7 +231,7 @@ function activityMatches(activity) {
   const selectedDate = searchParams.get('date');
   const selectedMode = searchParams.get('mode') || 'all';
   const selectedAudiences = (searchParams.get('audience') || 'individual').split('|').filter(Boolean);
-  const matchesInterest = !selectedInterests.length || activity.category.split(', ').some(category => selectedInterests.includes(category));
+  const matchesInterest = !selectedInterests.length || selectedInterests.includes(activity.category);
   const distance = distanceFromUser(activity.location);
   const matchesRadius = distance === null || distance <= radius;
   const matchesTime = freeTime === 0 || availableMinutes(activity.hours) >= freeTime;
@@ -387,16 +386,14 @@ mapSideResults.addEventListener('pointerout', function (event) {
   if (!item || item.contains(event.relatedTarget)) return;
   highlightSearchMapPin(item.dataset.activityId, false);
 });
-document.getElementById('interestFilters').addEventListener('click', function (event) {
-  const chip = event.target.closest('.chip[data-interest]');
-  if (!chip) return;
+document.querySelectorAll('#interestFilters .chip').forEach(chip => chip.addEventListener('click', function () {
   const selected = new Set((searchParams.get('interests') || '').split('|').filter(Boolean));
   if (selected.has(chip.dataset.interest)) selected.delete(chip.dataset.interest);
   else selected.add(chip.dataset.interest);
   searchParams.set('interests', [...selected].join('|'));
   updateSelectedFilters();
   renderSearchResults();
-});
+}));
 sortSelect.addEventListener('change', renderSearchResults);
 viewSelect.addEventListener('change', function () {
   setView(viewSelect.value);
@@ -447,14 +444,8 @@ audienceInputs.forEach(input => input.addEventListener('change', function () {
   updateSelectedFilters();
   renderSearchResults();
 }));
-window.AdminData.ready.then(() => {
-  document.getElementById('interestFilters').innerHTML = window.AdminData.categories.map(category => `<button type="button" class="chip" data-interest="${window.AdminData.escapeHTML(category.name)}">${window.AdminData.escapeHTML(category.name)}</button>`).join('');
-  updateSelectedFilters();
-  renderSearchResults();
-  setView('list');
-}).catch(error => {
-  searchResults.textContent = error.message;
-});
+renderSearchResults();
+setView('list');
 
 function setView(v){
   currentView = v;

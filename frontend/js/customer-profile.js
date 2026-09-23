@@ -1,115 +1,89 @@
 (function () {
   'use strict';
 
-  const {
-    requireOperatorAuth, escapeHTML, statusBadge, shortId, formatDate, ratingStars,
-    setInfoRows, getQueryParam, showNotFound,
-  } = window.AdminAuth;
-  const { getUser, setUserStatus, getReviewsByUser } = window.AdminData;
-
-  requireOperatorAuth();
-
-  const id = getQueryParam('id');
+  const data = window.AdminData;
+  let id = new URLSearchParams(window.location.search).get('id');
   let customer = null;
 
-  const toggleButton = document.getElementById('toggleCustomerStatus');
-
-  function notFound(message) {
-    showNotFound('customers.html', 'Quay lại danh sách Khách hàng', 'Không tìm thấy khách hàng', message);
+  function badge(status) {
+    return `<span class="badge ${data.escapeHTML(status)}">${data.statusLabels[status]}</span>`;
   }
 
-  // ------------------------- Tải dữ liệu từ API -------------------------
-
-  async function loadCustomer() {
-    if (!id) {
-      notFound('Thiếu mã khách hàng trên đường dẫn.');
-      return;
-    }
-
-    try {
-      customer = await getUser(id);
-    } catch (error) {
-      notFound(error.message || 'Không tải được thông tin khách hàng.');
-      return;
-    }
-
-    renderCustomer();
-    loadReviews();
+  function showNotFound() {
+    document.querySelector('.content').innerHTML = `
+      <a href="customers.html" class="back-link">← Quay lại danh sách Khách hàng</a>
+      <div class="card" style="padding:24px;margin-top:20px;">
+        <h3>Không tìm thấy khách hàng</h3>
+        <p>Mã khách hàng “${data.escapeHTML(id)}” không tồn tại trong cơ sở dữ liệu.</p>
+      </div>`;
   }
 
-  async function loadReviews() {
-    try {
-      renderReviews(await getReviewsByUser(customer.user_id));
-    } catch (error) {
-      console.error(error);
-      document.getElementById('customerActivityRows').innerHTML =
-        `<tr><td colspan="5" style="text-align:center;">${escapeHTML(error.message || 'Không tải được đánh giá.')}</td></tr>`;
-    }
+  function setInfoRows(card, values) {
+    card.querySelectorAll('.info-row').forEach(row => {
+      const label = row.querySelector('.info-label').textContent.trim();
+      if (Object.hasOwn(values, label)) row.querySelector('.info-value').innerHTML = values[label];
+    });
   }
 
-  // ------------------------- Hiển thị -------------------------
+  function ratingStars(rating) {
+    return rating ? '★'.repeat(rating) + '☆'.repeat(5 - rating) : '—';
+  }
 
-  function renderCustomer() {
+  function render() {
+    customer = data.customers.find(item => item.id === id);
+    if (!customer) { showNotFound(); return; }
+
     document.title = `FREE2DO Admin — ${customer.name}`;
     document.querySelector('.profile-logo').textContent = customer.name.trim().charAt(0).toUpperCase();
     document.querySelector('.profile-name').textContent = customer.name;
-    document.querySelector('.profile-meta').textContent = `${shortId(customer.user_id)} · ${customer.email}`;
-    document.querySelector('.profile-head > .badge').outerHTML = statusBadge(customer.status);
+    document.querySelector('.profile-meta').textContent = `${customer.id} · ${customer.email} · Đăng ký ngày ${customer.registeredAt}`;
+    document.querySelector('.profile-head > .badge').outerHTML = badge(customer.status);
 
     const cards = document.querySelectorAll('.profile-grid .card');
+    const participationRows = data.participations.filter(item => item.customerId === customer.id);
+    const writtenReviews = participationRows.filter(item => item.rating > 0).length;
+    const latest = participationRows[0];
+
     setInfoRows(cards[0], {
-      'Họ và tên': escapeHTML(customer.name),
-      'Email': escapeHTML(customer.email),
-      'Số điện thoại': escapeHTML(customer.phone || 'Chưa cung cấp'),
-      'Mã người dùng': escapeHTML(customer.user_id),
-      'Trạng thái tài khoản': statusBadge(customer.status),
+      'Họ và tên': data.escapeHTML(customer.name),
+      'Email': data.escapeHTML(customer.email),
+      'Số điện thoại': data.escapeHTML(customer.phone),
+      'Khu vực': data.escapeHTML(customer.area),
+      'Ngày đăng ký': data.escapeHTML(customer.registeredAt),
+      'Đăng nhập gần nhất': data.escapeHTML(customer.lastLogin),
+      'Trạng thái tài khoản': badge(customer.status)
     });
-
-    toggleButton.textContent = customer.status === 'active' ? 'Khóa tài khoản' : 'Mở khóa tài khoản';
-  }
-
-  function renderReviews(reviews) {
-    const cards = document.querySelectorAll('.profile-grid .card');
-    const average = reviews.length
-      ? reviews.reduce((sum, item) => sum + item.review.rating, 0) / reviews.length
-      : 0;
-
     setInfoRows(cards[1], {
-      'Đánh giá đã viết': String(reviews.length),
-      'Điểm đánh giá trung bình': reviews.length ? `${average.toFixed(1)} ★` : 'Chưa có dữ liệu',
-      'Đánh giá gần nhất': reviews.length ? escapeHTML(formatDate(reviews[0].review.created_at)) : 'Chưa có',
+      'Hoạt động đã tham gia': String(participationRows.length),
+      'Đánh giá đã viết': String(writtenReviews),
+      'Hoạt động gần nhất': latest ? data.escapeHTML(latest.date) : 'Chưa có',
+      'Sở thích đã chọn': data.escapeHTML(customer.interests.join(', '))
     });
 
-    document.getElementById('customerReviewTitle').textContent = `Đánh giá đã viết (${reviews.length})`;
-    document.getElementById('customerActivityRows').innerHTML = reviews.length
-      ? reviews.map(({ review, activity }) => {
-        const content = review.content || '—';
-        const shortContent = content.length > 100 ? `${content.slice(0, 100)}…` : content;
-        return `<tr>
-          <td class="cell-title"><a href="activity-profile.html?id=${encodeURIComponent(activity.activity_id)}" style="color:inherit;text-decoration:none;">${escapeHTML(activity.name)}</a></td>
-          <td>${escapeHTML(activity.business_name)}</td>
-          <td>${escapeHTML(formatDate(review.created_at))}</td>
-          <td title="${escapeHTML(content)}">${escapeHTML(shortContent)}</td>
-          <td>${ratingStars(review.rating)}</td>
-        </tr>`;
-      }).join('')
-      : '<tr><td colspan="5" style="text-align:center;">Khách hàng chưa viết đánh giá nào.</td></tr>';
+    const tbody = document.getElementById('customerActivityRows');
+    tbody.innerHTML = participationRows.length ? participationRows.map(item => {
+      const activity = data.activities.find(entry => entry.id === item.activityId);
+      if (!activity) return '';
+      const business = data.businessName(activity);
+      return `<tr>
+        <td class="cell-title"><a href="activity-profile.html?id=${encodeURIComponent(activity.id)}" style="color:inherit;text-decoration:none;">${data.escapeHTML(activity.name)}</a></td>
+        <td>${data.escapeHTML(business)}</td><td>${data.escapeHTML(item.date)}</td>
+        <td>${badge(item.status)}</td><td>${ratingStars(item.rating)}</td>
+      </tr>`;
+    }).join('') : '<tr><td colspan="5" style="text-align:center;">Khách hàng chưa tham gia hoạt động nào.</td></tr>';
+
+    const toggleButton = document.getElementById('toggleCustomerStatus');
+    toggleButton.textContent = customer.status === 'locked' ? '🔓 Mở khóa tài khoản' : '🔒 Khóa tài khoản';
   }
 
-  // ------------------------- Khóa / mở khóa -------------------------
-
-  toggleButton.addEventListener('click', async () => {
-    if (!customer) return;
-    toggleButton.disabled = true;
+  document.getElementById('toggleCustomerStatus').addEventListener('click', async () => {
     try {
-      customer = await setUserStatus(customer.user_id, customer.status === 'active' ? 'blocked' : 'active');
-      renderCustomer();
-    } catch (error) {
-      alert(error.message || 'Không cập nhật được trạng thái tài khoản.');
-    } finally {
-      toggleButton.disabled = false;
-    }
+      await data.setStatus('customer', customer.id, customer.status === 'locked' ? 'active' : 'locked');
+      render();
+    } catch (error) { alert(error.message); }
   });
 
-  loadCustomer();
+  data.ready.then(() => { id ||= data.customers[0]?.id; render(); }).catch(error => {
+    document.querySelector('.content').textContent = error.message;
+  });
 })();

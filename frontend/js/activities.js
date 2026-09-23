@@ -1,16 +1,7 @@
 (function () {
   'use strict';
 
-  const {
-    requireOperatorAuth, escapeHTML, normalize, statusBadge, shortId,
-    formatPrice, formatHours, renderPagination,
-  } = window.AdminAuth;
-  const {
-    getActivities, getCategories, getCategoryIdsByActivity, decideActivity,
-  } = window.AdminData;
-
-  requireOperatorAuth();
-
+  const data = window.AdminData;
   const tableBody = document.getElementById('activityRows');
   const searchInput = document.getElementById('activitySearch');
   const typeFilter = document.getElementById('typeFilter');
@@ -19,151 +10,94 @@
   const pagination = document.getElementById('activityPagination');
   const statusTabs = document.querySelectorAll('.status-tab');
   const pageSize = 10;
-
-  let activities = [];
   let currentPage = 1;
   let selectedStatus = 'all';
 
-  // Danh mục của từng hoạt động (category_ids) chỉ có ở API chi tiết, không có trong API danh sách.
-  // Nên chỉ tải (1 lần) khi người dùng thật sự lọc theo loại hình.
-  let categoryIdsByActivity = null;
-
-  // ------------------------- Tải dữ liệu từ API -------------------------
-
-  async function loadActivities() {
-    try {
-      const [activityList, categories] = await Promise.all([
-        getActivities(),
-        getCategories(),
-      ]);
-      activities = activityList;
-      fillTypeOptions(categories);
-      render();
-    } catch (error) {
-      console.error(error);
-      tableBody.innerHTML = `<tr><td colspan="7" style="text-align:center;">${escapeHTML(error.message || 'Không tải được danh sách hoạt động.')}</td></tr>`;
-      countLabel.textContent = '';
-    }
+  function startingPrice(activity) {
+    return Number(activity.price.split('–')[0].replace(/\D/g, '')) || 0;
   }
-
-  function fillTypeOptions(categories) {
-    typeFilter.innerHTML = '<option value="all">Tất cả loại hình</option>'
-      + categories.map((category) => `<option value="${escapeHTML(category.category_id)}">${escapeHTML(category.name)}</option>`).join('');
-  }
-
-  async function ensureCategoryIds() {
-    if (categoryIdsByActivity) return;
-
-    categoryIdsByActivity = await getCategoryIdsByActivity(activities);
-  }
-
-  // ------------------------- Hiển thị -------------------------
 
   function updateCounts() {
-    ['all', 'active', 'pending', 'hidden', 'cancelled'].forEach((status) => {
+    const activities = data.activities;
+    ['all', 'active', 'pending', 'hidden', 'rejected', 'expired'].forEach(status => {
       const element = document.querySelector(`[data-count="${status}"]`);
-      if (element) {
-        element.textContent = status === 'all' ? activities.length : activities.filter((item) => item.status === status).length;
-      }
+      if (element) element.textContent = status === 'all' ? activities.length : activities.filter(item => item.status === status).length;
     });
   }
 
   function filteredActivities() {
-    const query = normalize(searchInput.value);
-    const rows = activities.filter((activity) => {
+    const query = data.normalize(searchInput.value);
+    const activities = data.activities.filter(activity => {
       const matchesStatus = selectedStatus === 'all' || activity.status === selectedStatus;
-      const matchesType = typeFilter.value === 'all'
-        || (categoryIdsByActivity && (categoryIdsByActivity[activity.activity_id] || []).includes(typeFilter.value));
-      const matchesSearch = !query
-        || normalize(`${activity.activity_id} ${activity.name} ${activity.business_name}`).includes(query);
+      const matchesType = typeFilter.value === 'all' || activity.type === typeFilter.value;
+      const matchesSearch = !query || data.normalize(`${activity.id} ${activity.name} ${data.businessName(activity)}`).includes(query);
       return matchesStatus && matchesType && matchesSearch;
     });
-
-    // Hoạt động chưa có giá luôn xếp cuối khi sắp xếp theo giá.
-    const priceOf = (activity, missing) => (activity.price === null || activity.price === undefined ? missing : activity.price);
-    if (priceFilter.value === 'priceAsc') rows.sort((a, b) => priceOf(a, Infinity) - priceOf(b, Infinity));
-    if (priceFilter.value === 'priceDesc') rows.sort((a, b) => priceOf(b, -Infinity) - priceOf(a, -Infinity));
-    return rows;
+    if (priceFilter.value === 'priceAsc') activities.sort((a, b) => startingPrice(a) - startingPrice(b));
+    if (priceFilter.value === 'priceDesc') activities.sort((a, b) => startingPrice(b) - startingPrice(a));
+    return activities;
   }
 
-  function renderRows(rows) {
-    if (!rows.length) {
+  function renderRows(activities) {
+    if (!activities.length) {
       tableBody.innerHTML = '<tr><td colspan="7" style="text-align:center;">Không có hoạt động phù hợp.</td></tr>';
       return;
     }
-
-    tableBody.innerHTML = rows.map((activity) => {
-      const approve = activity.status === 'pending'
-        ? '<button class="row-btn approve" data-action="approve">Duyệt</button>'
-        : '';
-      return `<tr data-id="${escapeHTML(activity.activity_id)}">
-        <td>${escapeHTML(shortId(activity.activity_id))}</td>
-        <td class="cell-title">${escapeHTML(activity.name)}</td>
-        <td>${escapeHTML(activity.business_name)}</td>
-        <td>${escapeHTML(formatPrice(activity.price))}</td>
-        <td>${escapeHTML(formatHours(activity.time_open, activity.time_close))}</td>
-        <td>${statusBadge(activity.status)}</td>
-        <td><div class="row-actions"><a class="row-btn" href="activity-profile.html?id=${encodeURIComponent(activity.activity_id)}">Xem</a>${approve}</div></td>
+    tableBody.innerHTML = activities.map(activity => {
+      const approve = activity.status === 'pending' ? '<button class="row-btn approve" data-action="approve">Duyệt</button>' : '';
+      return `<tr data-id="${data.escapeHTML(activity.id)}" data-type="${data.escapeHTML(activity.type)}">
+        <td>${data.escapeHTML(activity.id)}</td><td class="cell-title">${data.escapeHTML(activity.name)}</td>
+        <td>${data.escapeHTML(data.businessName(activity))}</td><td>${data.escapeHTML(activity.price)}</td><td>${data.escapeHTML(activity.hours)}</td>
+        <td><span class="badge ${data.escapeHTML(activity.status)}">${data.statusLabels[activity.status]}</span></td>
+        <td><div class="row-actions"><a class="row-btn" href="activity-profile.html?id=${encodeURIComponent(activity.id)}">Xem</a>${approve}</div></td>
       </tr>`;
     }).join('');
   }
 
+  function renderPagination(totalPages) {
+    pagination.innerHTML = '';
+    if (totalPages <= 1) return;
+    const makeButton = (label, page, extra = '') => {
+      const button = document.createElement('button');
+      button.type = 'button'; button.className = `page-btn${extra}`; button.textContent = label;
+      button.disabled = page < 1 || page > totalPages;
+      button.addEventListener('click', () => { currentPage = page; render(); });
+      return button;
+    };
+    pagination.appendChild(makeButton('‹', currentPage - 1, currentPage === 1 ? ' disabled' : ''));
+    for (let page = 1; page <= totalPages; page += 1) pagination.appendChild(makeButton(String(page), page, page === currentPage ? ' active' : ''));
+    pagination.appendChild(makeButton('›', currentPage + 1, currentPage === totalPages ? ' disabled' : ''));
+  }
+
   function render() {
-    const rows = filteredActivities();
-    const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
+    const activities = filteredActivities();
+    const totalPages = Math.max(1, Math.ceil(activities.length / pageSize));
     currentPage = Math.min(currentPage, totalPages);
     const start = (currentPage - 1) * pageSize;
-
-    renderRows(rows.slice(start, start + pageSize));
-    countLabel.textContent = rows.length
-      ? `Hiển thị ${start + 1}–${Math.min(start + pageSize, rows.length)} trong tổng số ${rows.length} Hoạt động`
+    renderRows(activities.slice(start, start + pageSize));
+    countLabel.textContent = activities.length
+      ? `Hiển thị ${start + 1}–${Math.min(start + pageSize, activities.length)} trong tổng số ${activities.length} Hoạt động`
       : 'Không có hoạt động phù hợp';
-    renderPagination(pagination, totalPages, currentPage, (page) => { currentPage = page; render(); });
-    updateCounts();
+    renderPagination(totalPages); updateCounts();
   }
 
-  // ------------------------- Duyệt hoạt động -------------------------
-
-  async function approveActivity(button) {
-    const id = button.closest('tr').dataset.id;
+  [searchInput, typeFilter, priceFilter].forEach(control => control.addEventListener(control.tagName === 'INPUT' ? 'input' : 'change', () => { currentPage = 1; render(); }));
+  statusTabs.forEach(tab => tab.addEventListener('click', () => {
+    selectedStatus = tab.dataset.status; currentPage = 1;
+    statusTabs.forEach(item => item.classList.toggle('active', item === tab)); render();
+  }));
+  tableBody.addEventListener('click', async event => {
+    const button = event.target.closest('[data-action="approve"]');
+    if (!button) return;
     button.disabled = true;
     try {
-      const updated = await decideActivity(id, 'approve');
-      activities = activities.map((item) => (
-        item.activity_id === id ? { ...item, status: updated.status, verified_by: updated.verified_by } : item
-      ));
+      await data.setStatus('activity', button.closest('tr').dataset.id, 'active');
+      render();
     } catch (error) {
-      alert(error.message || 'Không duyệt được hoạt động này.');
+      alert(error.message);
+      button.disabled = false;
     }
-    render();
-  }
-
-  // ------------------------- Sự kiện -------------------------
-
-  searchInput.addEventListener('input', () => { currentPage = 1; render(); });
-  priceFilter.addEventListener('change', () => { currentPage = 1; render(); });
-
-  typeFilter.addEventListener('change', async () => {
-    currentPage = 1;
-    if (typeFilter.value !== 'all') {
-      typeFilter.disabled = true;
-      await ensureCategoryIds();
-      typeFilter.disabled = false;
-    }
-    render();
   });
 
-  statusTabs.forEach((tab) => tab.addEventListener('click', () => {
-    selectedStatus = tab.dataset.status;
-    currentPage = 1;
-    statusTabs.forEach((item) => item.classList.toggle('active', item === tab));
-    render();
-  }));
-
-  tableBody.addEventListener('click', (event) => {
-    const button = event.target.closest('[data-action="approve"]');
-    if (button) approveActivity(button);
-  });
-
-  loadActivities();
+  data.ready.then(render).catch(error => { tableBody.innerHTML = `<tr><td colspan="7">${data.escapeHTML(error.message)}</td></tr>`; });
 })();

@@ -159,20 +159,9 @@
 
   </div>
 
-  <script>
-    function submitForm() {
-      document.getElementById('form-view').style.display = 'none';
-      document.getElementById('success-view').style.display = 'block';
-    }
-    function toggleUserMenu(e) {
-      e.stopPropagation();
-      document.getElementById('user-dropdown').classList.toggle('open');
-    }
-    document.addEventListener('click', function () {
-      const dd = document.getElementById('user-dropdown');
-      if (dd) dd.classList.remove('open');
-    });
-  </script>
+  <script src="../js/config.js"></script>
+  <script src="../js/customer-api.js"></script>
+  <script src="../js/customer-business-request.js"></script>
 </body>
 
 </html>

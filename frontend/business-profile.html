@@ -40,41 +40,37 @@
       <a href="businesses.html" class="back-link">← Quay lại danh sách Doanh nghiệp</a>
 
       <div class="profile-head">
-        <div class="profile-logo">–</div>
+        <div class="profile-logo">…</div>
         <div style="flex:1;">
           <div class="profile-name">Đang tải...</div>
           <div class="profile-meta"></div>
         </div>
-        <span class="badge active">…</span>
+        <span class="badge active">Hoạt động</span>
         <button class="qa-btn" style="margin-left:12px;">✏️ Chỉnh sửa</button>
       </div>
 
       <div class="quick-row" style="margin-bottom:24px;">
         <button class="qa-btn" id="toggleBusinessStatus">🔒 Khóa Doanh nghiệp</button>
-        <button class="qa-btn" id="approveBusinessRequest" style="display:none;">✅ Duyệt Doanh nghiệp</button>
-        <button class="qa-btn" id="rejectBusinessRequest" style="display:none;">🚫 Từ chối yêu cầu</button>
       </div>
 
       <div class="profile-grid">
         <div class="card">
           <div class="section-head" style="padding:18px 20px 0;"><h3>Thông tin chi tiết</h3></div>
-          <div class="info-row"><span class="info-label">Tên Doanh nghiệp</span><span class="info-value">—</span></div>
-          <div class="info-row"><span class="info-label">Chủ tài khoản</span><span class="info-value">—</span></div>
-          <div class="info-row"><span class="info-label">Email</span><span class="info-value">—</span></div>
-          <div class="info-row"><span class="info-label">Số điện thoại</span><span class="info-value">—</span></div>
-          <div class="info-row"><span class="info-label">Địa chỉ</span><span class="info-value" style="text-align:right;max-width:340px;">—</span></div>
-          <div class="info-row"><span class="info-label">Ngày gửi yêu cầu</span><span class="info-value">—</span></div>
-          <div class="info-row"><span class="info-label">Admin xác minh (verified_by)</span><span class="info-value">—</span></div>
-          <div class="info-row"><span class="info-label">Ngày xác minh</span><span class="info-value">—</span></div>
-          <div class="info-row"><span class="info-label">Mô tả</span><span class="info-value" style="text-align:right;max-width:340px;">—</span></div>
+          <div class="info-row"><span class="info-label">Tên Doanh nghiệp</span><span class="info-value">Đang tải...</span></div>
+          <div class="info-row"><span class="info-label">Loại hình</span><span class="info-value">Đang tải...</span></div>
+          <div class="info-row"><span class="info-label">Số điện thoại</span><span class="info-value">Đang tải...</span></div>
+          <div class="info-row"><span class="info-label">Giờ mở cửa</span><span class="info-value">Đang tải...</span></div>
+          <div class="info-row"><span class="info-label">Giá tham khảo</span><span class="info-value">Đang tải...</span></div>
+          <div class="info-row"><span class="info-label">Admin xác minh (verified_by)</span><span class="info-value" style="color:var(--warn);">Đang tải...</span></div>
+          <div class="info-row"><span class="info-label">Mô tả</span><span class="info-value" style="text-align:right;max-width:340px;">Đang tải...</span></div>
         </div>
 
         <div class="card">
           <div class="section-head" style="padding:18px 20px 0;"><h3>Thống kê nhanh</h3></div>
-          <div class="info-row"><span class="info-label">Tổng Hoạt động</span><span class="info-value">—</span></div>
-          <div class="info-row"><span class="info-label">Đang hoạt động</span><span class="info-value">—</span></div>
-          <div class="info-row"><span class="info-label">Chờ duyệt</span><span class="info-value">—</span></div>
-          <div class="info-row"><span class="info-label">Đánh giá trung bình</span><span class="info-value">—</span></div>
+          <div class="info-row"><span class="info-label">Tổng Hoạt động</span><span class="info-value">Đang tải...</span></div>
+          <div class="info-row"><span class="info-label">Đang hoạt động</span><span class="info-value">Đang tải...</span></div>
+          <div class="info-row"><span class="info-label">Chờ duyệt</span><span class="info-value">Đang tải...</span></div>
+          <div class="info-row"><span class="info-label">Đánh giá trung bình</span><span class="info-value">Đang tải...</span></div>
         </div>
       </div>
 
@@ -82,8 +78,8 @@
         <div class="section-head"><h3 id="businessActivityTitle">Hoạt động của Doanh nghiệp này</h3><a href="activities.html" class="section-link">Xem tất cả →</a></div>
         <div class="card">
           <table>
-            <thead><tr><th>Hoạt động</th><th>Địa chỉ chi nhánh</th><th>Giờ mở cửa</th><th>Trạng thái</th><th>Hành động</th></tr></thead>
-            <tbody id="businessActivityRows"><tr><td colspan="5" style="text-align:center;">Đang tải dữ liệu...</td></tr></tbody>
+            <thead><tr><th>Mã</th><th>Địa chỉ chi nhánh</th><th>Giờ mở cửa</th><th>Trạng thái</th><th>Hành động</th></tr></thead>
+            <tbody id="businessActivityRows"><tr><td colspan="5">Đang tải dữ liệu...</td></tr></tbody>
           </table>
         </div>
       </div>

@@ -89,40 +89,38 @@
     const password = document.getElementById('admin-password').value;
     const submitBtn = document.querySelector('.admin-login__submit');
 
+    if (!email || !password) {
+      showFieldError('admin-account', 'admin-account-error', 'Vui lòng nhập email và mật khẩu.');
+      return;
+    }
+
     submitBtn.disabled = true;
     submitBtn.textContent = 'Đang đăng nhập...';
 
     try {
-      const formData = new URLSearchParams();
-      formData.append('username', email);
-      formData.append('password', password);
-
+      const formData = new URLSearchParams({ username: email, password });
       const loginRes = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: formData,
       });
-      const loginData = await loginRes.json();
-
-      if (!loginRes.ok) {
-        showFieldError('admin-account', 'admin-account-error', loginData.detail || 'Không tìm thấy tài khoản quản trị này.');
-        return;
-      }
+      const loginData = await loginRes.json().catch(() => ({}));
+      if (!loginRes.ok) throw new Error(loginData.detail || 'Sai email hoặc mật khẩu.');
 
       const meRes = await fetch(`${API_BASE_URL}/auth/me`, {
         headers: { Authorization: `Bearer ${loginData.access_token}` },
       });
-      const me = await meRes.json();
-
-      if (!meRes.ok || me.account_type !== 'operator') {
-        showFieldError('admin-account', 'admin-account-error', 'Tài khoản này không có quyền quản trị.');
-        return;
+      const me = await meRes.json().catch(() => ({}));
+      if (!meRes.ok) throw new Error(me.detail || 'Không đọc được thông tin tài khoản.');
+      if (me.account_type !== 'operator') {
+        throw new Error('Tài khoản này không có quyền Operator.');
       }
 
       localStorage.setItem('token', loginData.access_token);
-      window.location.href = 'dashboard.html';
+      window.location.href = me.redirect || 'dashboard.html';
     } catch (error) {
-      showFieldError('admin-account', 'admin-account-error', 'Không kết nối được máy chủ, vui lòng thử lại.');
+      localStorage.removeItem('token');
+      showFieldError('admin-account', 'admin-account-error', error.message || 'Không kết nối được máy chủ.');
     } finally {
       submitBtn.disabled = false;
       submitBtn.textContent = 'Đăng nhập Quản trị';

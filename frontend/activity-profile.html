@@ -40,12 +40,12 @@
       <a href="activities.html" class="back-link">← Quay lại danh sách Hoạt động</a>
 
       <div class="profile-head">
-        <div class="profile-logo">🗓️</div>
+        <div class="profile-logo">…</div>
         <div style="flex:1;">
           <div class="profile-name">Đang tải...</div>
           <div class="profile-meta"></div>
         </div>
-        <span class="badge active">…</span>
+        <span class="badge active">Hoạt động</span>
         <button class="qa-btn" style="margin-left:12px;">✏️ Chỉnh sửa</button>
       </div>
 
@@ -58,45 +58,52 @@
       <div class="profile-grid">
         <div class="card">
           <div class="section-head" style="padding:18px 20px 0;"><h3>Thông tin chi tiết</h3></div>
-          <div class="info-row"><span class="info-label">Tên Hoạt động</span><span class="info-value">—</span></div>
-          <div class="info-row"><span class="info-label">Doanh nghiệp</span><span class="info-value">—</span></div>
-          <div class="info-row"><span class="info-label">Mô tả</span><span class="info-value" style="text-align:right;max-width:340px;">—</span></div>
-          <div class="info-row"><span class="info-label">Danh mục</span><span class="info-value" style="text-align:right;max-width:340px;">—</span></div>
-          <div class="info-row"><span class="info-label">Ngân sách</span><span class="info-value">—</span></div>
-          <div class="info-row"><span class="info-label">Địa chỉ</span><span class="info-value" style="text-align:right;max-width:340px;">—</span></div>
-          <div class="info-row"><span class="info-label">Vị trí (lat, long)</span><span class="info-value">—</span></div>
-          <div class="info-row"><span class="info-label">Giờ hoạt động</span><span class="info-value">—</span></div>
-          <div class="info-row"><span class="info-label">Admin xác minh (verified_by)</span><span class="info-value">—</span></div>
-          <div class="info-row"><span class="info-label">Ngày xác minh</span><span class="info-value">—</span></div>
+          <div class="info-row"><span class="info-label">Tên Hoạt động</span><span class="info-value">Đang tải...</span></div>
+          <div class="info-row"><span class="info-label">Doanh nghiệp</span><span class="info-value">Đang tải...</span></div>
+          <div class="info-row"><span class="info-label">Mô tả</span><span class="info-value" style="text-align:right;max-width:340px;">Đang tải...</span></div>
+          <div class="info-row"><span class="info-label">Ngân sách</span><span class="info-value">Đang tải...</span></div>
+          <div class="info-row"><span class="info-label">Địa chỉ</span><span class="info-value">Đang tải...</span></div>
+          <div class="info-row"><span class="info-label">Vị trí (lat, long)</span><span class="info-value">Đang tải...</span></div>
+          <div class="info-row"><span class="info-label">Giờ hoạt động</span><span class="info-value">Đang tải...</span></div>
+          <div class="info-row"><span class="info-label">Admin xác minh (verified_by)</span><span class="info-value" style="color:var(--warn);">Đang tải...</span></div>
+          <div class="info-row"><span class="info-label">Hạn hoạt động (expire_at)</span><span class="info-value" style="color:var(--muted);">Đang tải...</span></div>
         </div>
 
         <div class="card">
           <div class="section-head" style="padding:18px 20px 0;"><h3>Thống kê nhanh</h3></div>
-          <div class="info-row"><span class="info-label">Số đánh giá</span><span class="info-value">—</span></div>
-          <div class="info-row"><span class="info-label">Đánh giá trung bình</span><span class="info-value">—</span></div>
-          <div class="info-row"><span class="info-label">Số hình ảnh / video</span><span class="info-value">—</span></div>
-          <div class="info-row"><span class="info-label">Ngày tạo</span><span class="info-value">—</span></div>
+          <div class="info-row"><span class="info-label">Lượt xem</span><span class="info-value">Đang tải...</span></div>
+          <div class="info-row"><span class="info-label">Lượt tham gia</span><span class="info-value">Đang tải...</span></div>
+          <div class="info-row"><span class="info-label">Đánh giá trung bình</span><span class="info-value">Đang tải...</span></div>
+          <div class="info-row"><span class="info-label">Ngày tạo</span><span class="info-value">Đang tải...</span></div>
         </div>
       </div>
 
       <div class="section" style="margin-top:24px;">
-        <div class="section-head"><h3>Hình ảnh &amp; video của Hoạt động</h3></div>
-        <div class="card" id="activityMedia"></div>
+        <div class="section-head"><h3>File minh chứng</h3></div>
+        <div class="card" id="activityMedia">
+          <div class="alert-row" style="cursor:default;">
+            <div class="alert-ic" style="background:var(--danger-bg);">📎</div>
+            <div class="alert-text">Chưa có file minh chứng nào được doanh nghiệp tải lên</div>
+            <button class="row-btn" style="margin-left:auto;">Yêu cầu bổ sung</button>
+          </div>
+        </div>
       </div>
 
       <div class="section">
-        <div class="section-head"><h3 id="activityReviewTitle">Đánh giá của Khách hàng</h3></div>
+        <div class="section-head"><h3>Khách hàng đã tham gia</h3></div>
         <div class="card">
           <table>
-            <thead><tr><th>Khách hàng</th><th>Ngày đánh giá</th><th>Nội dung</th><th>Đánh giá</th></tr></thead>
-            <tbody id="activityCustomerRows"><tr><td colspan="4" style="text-align:center;">Đang tải dữ liệu...</td></tr></tbody>
+            <thead><tr><th>Khách hàng</th><th>Ngày tham gia</th><th>Trạng thái</th><th>Đánh giá</th></tr></thead>
+            <tbody id="activityCustomerRows"><tr><td colspan="4">Đang tải dữ liệu...</td></tr></tbody>
           </table>
         </div>
       </div>
 
       <div class="section">
         <div class="section-head"><h3>Lịch sử thao tác Admin</h3></div>
-        <div class="card" id="activityHistory"></div>
+        <div class="card">
+          <div class="alert-row"><div class="alert-text">Backend chưa cung cấp API nhật ký thao tác.</div></div>
+        </div>
       </div>
 
     </div>

@@ -39,25 +39,25 @@
     <div class="content">
       <div class="welcome">
         <div><h2>Tổng quan hệ thống</h2><p>Giám sát hoạt động của Free2Do.</p></div>
-        <div class="updated">Cập nhật lần cuối: <span id="lastUpdated">—</span></div>
+        <div class="updated">Cập nhật lần cuối: hôm nay, 14:30</div>
       </div>
 
       <div class="stats-grid">
-        <div class="stat-card"><div class="stat-top"><div class="stat-icon" style="background:#EFF1E7;">👤</div></div><div class="stat-num">0</div><div class="stat-label">Tổng Khách hàng</div></div>
-        <div class="stat-card"><div class="stat-top"><div class="stat-icon" style="background:#FDEDEF;">🏬</div></div><div class="stat-num">0</div><div class="stat-label">Tổng Doanh nghiệp</div></div>
-        <div class="stat-card"><div class="stat-top"><div class="stat-icon" style="background:#FFF1E0;">🗓️</div></div><div class="stat-num">0</div><div class="stat-label">Tổng Hoạt động</div></div>
-        <div class="stat-card"><div class="stat-top"><div class="stat-icon" style="background:var(--success-bg);">✅</div></div><div class="stat-num">0</div><div class="stat-label">Hoạt động đang diễn ra</div></div>
-        <div class="stat-card"><div class="stat-top"><div class="stat-icon" style="background:var(--warn-bg);">⚠️</div><div class="stat-change flag">Cần xử lý</div></div><div class="stat-num">0</div><div class="stat-label">Đang chờ kiểm tra</div></div>
-        <div class="stat-card"><div class="stat-top"><div class="stat-icon" style="background:var(--danger-bg);">🔒</div><div class="stat-change danger">Chú ý</div></div><div class="stat-num">0</div><div class="stat-label">Tài khoản bị khóa</div></div>
+        <div class="stat-card"><div class="stat-top"><div class="stat-icon" style="background:#EFF1E7;">👤</div></div><div class="stat-num">…</div><div class="stat-label">Tổng Khách hàng</div></div>
+        <div class="stat-card"><div class="stat-top"><div class="stat-icon" style="background:#FDEDEF;">🏬</div></div><div class="stat-num">…</div><div class="stat-label">Tổng Doanh nghiệp</div></div>
+        <div class="stat-card"><div class="stat-top"><div class="stat-icon" style="background:#FFF1E0;">🗓️</div></div><div class="stat-num">…</div><div class="stat-label">Tổng Hoạt động</div></div>
+        <div class="stat-card"><div class="stat-top"><div class="stat-icon" style="background:var(--success-bg);">✅</div></div><div class="stat-num">…</div><div class="stat-label">Hoạt động đang diễn ra</div></div>
+        <div class="stat-card"><div class="stat-top"><div class="stat-icon" style="background:var(--warn-bg);">⚠️</div><div class="stat-change flag">Cần xử lý</div></div><div class="stat-num">…</div><div class="stat-label">Đang chờ kiểm tra</div></div>
+        <div class="stat-card"><div class="stat-top"><div class="stat-icon" style="background:var(--danger-bg);">🔒</div><div class="stat-change danger">Chú ý</div></div><div class="stat-num">…</div><div class="stat-label">Tài khoản bị khóa</div></div>
       </div>
 
       <div class="section">
         <div class="section-head"><h3>Cảnh báo hệ thống</h3></div>
         <div class="quick-row">
-          <a href="activities.html" class="qa-btn">⚠️ <span id="pendingActivityAlert">0</span> hoạt động đang chờ duyệt</a>
-          <a href="businesses.html" class="qa-btn">📋 <span id="pendingBusinessAlert">0</span> doanh nghiệp đang chờ duyệt</a>
-          <a href="businesses.html" class="qa-btn">📵 <span id="missingPhoneAlert">0</span> doanh nghiệp thiếu số điện thoại liên hệ</a>
-          <a href="customers.html" class="qa-btn">🔒 <span id="lockedCustomerAlert">0</span> tài khoản đang bị khóa</a>
+          <a href="activities.html" class="qa-btn">⚠️ <span id="pendingActivityAlert">…</span> hoạt động đang chờ duyệt</a>
+          <a href="businesses.html" class="qa-btn">📋 <span id="pendingBusinessAlert">…</span> doanh nghiệp đang chờ duyệt</a>
+          <a href="businesses.html" class="qa-btn">📵 <span id="missingPhoneAlert">…</span> doanh nghiệp thiếu số điện thoại liên hệ</a>
+          <a href="customers.html" class="qa-btn">🔒 <span id="lockedCustomerAlert">…</span> tài khoản đang bị khóa</a>
         </div>
       </div>
 
@@ -121,7 +121,7 @@
               <col style="width:13%;">
               <col style="width:14%;">
             </colgroup>
-            <thead><tr><th>Doanh nghiệp</th><th>Số điện thoại</th><th>Địa chỉ</th><th>Trạng thái</th><th>Chi tiết</th></tr></thead>
+            <thead><tr><th>Doanh nghiệp</th><th>Loại hình</th><th>Địa chỉ</th><th>Trạng thái</th><th>Chi tiết</th></tr></thead>
             <tbody id="bizTableBody"></tbody>
           </table>
           <div class="table-pagination" id="bizPagination">
@@ -164,6 +164,7 @@
 
 <script src="js/config.js"></script>
 <script src="js/admin-auth.js"></script>
+<script src="js/admin-data.js"></script>
 <script src="js/dashboard.js"></script>
 </body>
 </html>

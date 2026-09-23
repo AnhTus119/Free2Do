@@ -196,7 +196,10 @@
 
 </div>
 
-<script src="../js/admin-data.js"></script>
+<script src="../js/config.js"></script>
+<script src="../js/api.js"></script>
+<script src="../js/public-data.js"></script>
+<script src="../js/user-nav.js"></script>
 <script>
 let memberFormCount = 0;
 let groupMembers = [];
@@ -306,8 +309,10 @@ function selectTab(name){
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.tab===name));
   if (name === 'expense') renderExpense();
 }
-function showGroupResult(){
+async function showGroupResult(){
   if (!groupMembers.length) return;
+  try { await window.AdminData.ready; }
+  catch (error) { alert(error.message); return; }
   const ranked = rankActivities();
   const best = ranked[0];
   if (!best) { alert('Không tìm thấy hoạt động phù hợp cho nhóm.'); return; }

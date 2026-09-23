@@ -61,8 +61,8 @@
     <div style="display:flex;align-items:center;gap:18px;margin-bottom:28px;">
       <div class="nav-avatar" style="width:64px;height:64px;font-size:22px;">M</div>
       <div>
-        <div style="font-size:19px;font-weight:800;">Nguyễn Đăng Minh</div>
-        <div style="color:var(--muted);font-size:13px;">minh.nguyen@gmail.com · 0987 654 321</div>
+        <div style="font-size:19px;font-weight:800;">Đang tải...</div>
+        <div style="color:var(--muted);font-size:13px;"></div>
       </div>
       <button class="btn btn-secondary" style="margin-left:auto;" onclick="toggleEdit()"><svg class="icon"><use href="#icon-edit"></use></svg> Chỉnh sửa thông tin</button>
     </div>
@@ -75,9 +75,9 @@
     </div>
 
     <div id="edit-mode" style="display:none;background:#fff;border:1px solid var(--line);border-radius:16px;padding:22px;margin-bottom:20px;">
-      <div class="field"><label>Họ và tên</label><input type="text" value="Nguyễn Đăng Minh"></div>
-      <div class="field"><label>Email</label><input type="text" value="minh.nguyen@gmail.com"></div>
-      <div class="field"><label>Số điện thoại</label><input type="text" value="0987 654 321"></div>
+      <div class="field"><label>Họ và tên</label><input type="text" value=""></div>
+      <div class="field"><label>Email</label><input type="text" value=""></div>
+      <div class="field"><label>Số điện thoại</label><input type="text" value=""></div>
       <div class="field">
         <label>Sở thích</label>
         <div class="chip-row">
@@ -99,157 +99,17 @@
       <p>Bạn chưa lưu hoạt động nào.</p>
       <a href="search.html" class="btn btn-primary">Khám phá hoạt động phù hợp với bạn →</a>
     </div>
-    <!-- Danh sách mẫu được render từ dữ liệu và localStorage -->
-    <div style="display:none;">
-      <div class="activity-card">
-        <div class="activity-img" style="background:#F3D9A6;">🏺</div>
-        <div class="activity-body">
-          <div class="activity-title">Whimsical Crown</div>
-          <div class="activity-meta"><svg class="icon icon-sm"><use href="#icon-star"></use></svg> 4.8 · <span class="activity-price">200.000 ₫</span> · 1.2 km · Thứ 7, 14:00</div>
-          <div style="display:flex;gap:8px;margin-top:10px;">
-            <a href="activity-detail.html?id=A001" class="btn btn-secondary" style="height:36px;padding:0 14px;font-size:12.5px;">Xem chi tiết</a>
-            <button class="btn btn-ghost" style="height:36px;padding:0 10px;font-size:12.5px;">Xóa khỏi yêu thích</button>
-          </div>
-        </div>
-      </div>
-      <div class="activity-card">
-        <div class="activity-img" style="background:#DDE3CB;">🎱</div>
-        <div class="activity-body">
-          <div class="activity-title">Bi-a Batuna Billiards</div>
-          <div class="activity-meta"><svg class="icon icon-sm"><use href="#icon-star"></use></svg> 4.6 · <span class="activity-price">100.000 ₫</span> · 0.8 km · Cả ngày</div>
-          <div style="display:flex;gap:8px;margin-top:10px;">
-            <a href="activity-detail.html?id=A013" class="btn btn-secondary" style="height:36px;padding:0 14px;font-size:12.5px;">Xem chi tiết</a>
-            <button class="btn btn-ghost" style="height:36px;padding:0 10px;font-size:12.5px;">Xóa khỏi yêu thích</button>
-          </div>
-        </div>
-      </div>
-    </div>
   </div>
 
   <!-- ===== LỊCH SỬ TÌM KIẾM ===== -->
   <div class="tab-pane" id="pane-lichsu">
-    <div style="display:flex;justify-content:flex-end;margin-bottom:14px;">
-      <button class="btn btn-ghost" style="height:auto;padding:0;">Xóa lịch sử</button>
-    </div>
-
-    <div class="history-row">
-      <div>
-        <div style="font-weight:700;font-size:14px;">"Workshop"</div>
-        <div class="history-tags">
-          <span><svg class="icon icon-sm"><use href="#icon-calendar"></use></svg> 16/09/2026</span><span><svg class="icon icon-sm"><use href="#icon-clock"></use></svg> Rảnh 2 giờ</span><span><svg class="icon icon-sm"><use href="#icon-wallet"></use></svg> ≤ 200.000 ₫</span><span><svg class="icon icon-sm"><use href="#icon-map-pin"></use></svg> Cầu Giấy, 5 km</span>
-        </div>
-      </div>
-      <a href="activity-detail.html?id=A001" class="btn btn-secondary">Tìm lại</a>
-    </div>
-    <div class="history-row">
-      <div>
-        <div style="font-weight:700;font-size:14px;">"Bida"</div>
-        <div class="history-tags">
-          <span><svg class="icon icon-sm"><use href="#icon-calendar"></use></svg> 12/09/2026</span><span><svg class="icon icon-sm"><use href="#icon-clock"></use></svg> Rảnh 3+ giờ</span><span><svg class="icon icon-sm"><use href="#icon-wallet"></use></svg> ≤ 150.000 ₫</span><span><svg class="icon icon-sm"><use href="#icon-map-pin"></use></svg> Bạch Mai, 3 km</span>
-        </div>
-      </div>
-      <a href="activity-detail.html?id=A013" class="btn btn-secondary">Tìm lại</a>
-    </div>
-    <div class="history-row">
-      <div>
-        <div style="font-weight:700;font-size:14px;">"Cà phê học bài"</div>
-        <div class="history-tags">
-          <span><svg class="icon icon-sm"><use href="#icon-calendar"></use></svg> 08/09/2026</span><span><svg class="icon icon-sm"><use href="#icon-clock"></use></svg> Rảnh 3+ giờ</span><span><svg class="icon icon-sm"><use href="#icon-wallet"></use></svg> Dưới 100.000 ₫</span><span><svg class="icon icon-sm"><use href="#icon-map-pin"></use></svg> Hai Bà Trưng, 2 km</span>
-        </div>
-      </div>
-      <a href="activity-detail.html?id=A025" class="btn btn-secondary">Tìm lại</a>
-    </div>
+    <p>Đang tải lịch sử từ máy chủ...</p>
   </div>
 
 </div>
 
-<script src="../js/admin-data.js"></script>
-<script>
-const FAVORITES_KEY = 'free2do-favorites';
-
-function getFavorites() {
-  try {
-    const stored = localStorage.getItem(FAVORITES_KEY);
-    if (stored === null) return ['A001', 'A013'];
-    return JSON.parse(stored);
-  } catch (error) {
-    return [];
-  }
-}
-
-function renderFavorites() {
-  const container = document.getElementById('favoriteActivities');
-  const emptyState = document.getElementById('favoriteEmptyState');
-  const favoriteIds = getFavorites();
-  const activities = window.AdminData.activities.filter(activity => favoriteIds.includes(activity.id));
-  container.innerHTML = activities.map(activity => `<div class="activity-card">
-    <div class="activity-img" style="background:#F3D9A6;">${activity.icon || '✨'}</div>
-    <div class="activity-body">
-      <div class="activity-title">${window.AdminData.escapeHTML(activity.name)}</div>
-      <div class="activity-biz">${window.AdminData.escapeHTML(window.AdminData.businessName(activity))}</div>
-      <div class="activity-meta">★ ${activity.rating || '—'} · <span class="activity-price">${window.AdminData.escapeHTML(activity.price)}</span> · ${window.AdminData.escapeHTML(activity.hours)}</div>
-      <div style="display:flex;gap:8px;margin-top:10px;">
-        <a href="activity-detail.html?id=${encodeURIComponent(activity.id)}" class="btn btn-secondary" style="height:36px;padding:0 14px;font-size:12.5px;">Xem chi tiết</a>
-        <button class="btn btn-ghost remove-favorite" data-activity-id="${window.AdminData.escapeHTML(activity.id)}" style="height:36px;padding:0 10px;font-size:12.5px;">Xóa khỏi yêu thích</button>
-      </div>
-    </div>
-  </div>`).join('');
-  emptyState.style.display = activities.length ? 'none' : 'block';
-}
-
-document.getElementById('favoriteActivities').addEventListener('click', function (event) {
-  const button = event.target.closest('.remove-favorite');
-  if (!button) return;
-  const favorites = getFavorites().filter(id => id !== button.dataset.activityId);
-  localStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites));
-  renderFavorites();
-});
-
-function selectTab(name){
-  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.toggle('active', p.id==='pane-'+name));
-  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.tab===name));
-}
-function toggleEdit(){
-  const editing = document.getElementById('edit-mode').style.display === 'block';
-  document.getElementById('edit-mode').style.display = editing ? 'none':'block';
-  document.getElementById('view-mode').style.display = editing ? 'block':'none';
-}
-function saveProfile(){
-  toggleEdit();
-  const toast = document.getElementById('save-toast');
-  toast.style.display='block';
-  setTimeout(()=>toast.style.display='none', 2500);
-}
-function toggleUserMenu(e){
-  e.stopPropagation();
-  document.getElementById('user-dropdown').classList.toggle('open');
-}
-document.addEventListener('click', function(){
-  const dd = document.getElementById('user-dropdown');
-  if(dd) dd.classList.remove('open');
-});
-function handleHashChange() {
-  const hash = window.location.hash.replace('#','');
-  const target = hash === 'lichsu' || hash === 'hoso' ? hash : 'yeuthich';
-  selectTab(target);
-  
-  const tabsDiv = document.getElementById('main-tabs');
-  if (tabsDiv) {
-    tabsDiv.style.display = target === 'hoso' ? 'none' : 'flex';
-  }
-
-  const yeuthichLink = document.querySelector('.nav-center a[href="account.html#yeuthich"]');
-  if (yeuthichLink) {
-    if (target === 'yeuthich' || target === 'lichsu') {
-      yeuthichLink.classList.add('active');
-    } else {
-      yeuthichLink.classList.remove('active');
-    }
-  }
-}
-window.addEventListener('hashchange', handleHashChange);
-handleHashChange();
-renderFavorites();
-</script>
+<script src="../js/config.js"></script>
+<script src="../js/customer-api.js"></script>
+<script src="../js/customer-account.js"></script>
 </body>
 </html>

@@ -45,12 +45,12 @@
     }
     tableBody.innerHTML = businesses.map(business => {
       let action = `<button class="row-btn danger" data-action="lock">Khóa</button>`;
-      if (business.status === 'pending') action = '<button class="row-btn approve" data-action="approve">Duyệt</button><button class="row-btn danger" data-action="reject">Từ chối</button>'; 
+      if (business.status === 'pending') action = '<button class="row-btn approve" data-action="approve">Duyệt</button>';
       if (business.status === 'locked') action = '<button class="row-btn approve" data-action="unlock">Mở khóa</button>';
       return `<tr data-id="${data.escapeHTML(business.id)}">
         <td>${data.escapeHTML(business.id)}</td>
         <td><div class="cell-title">${data.escapeHTML(business.name)}</div><div class="cell-sub">${data.escapeHTML(business.address)}</div></td>
-        <td>${data.escapeHTML(business.address)}</td><td>${activityCount(business.id)}</td>
+        <td>${data.escapeHTML(business.type)}</td><td>${activityCount(business.id)}</td>
         <td><span class="badge ${data.escapeHTML(business.status)}">${data.statusLabels[business.status]}</span></td>
         <td><div class="row-actions"><a class="row-btn" href="business-profile.html?id=${encodeURIComponent(business.id)}">Xem</a>${action}</div></td>
       </tr>`;
@@ -87,17 +87,14 @@
 
   [searchInput, statusFilter, activityFilter].forEach(control => control.addEventListener(control.tagName === 'INPUT' ? 'input' : 'change', () => { currentPage = 1; render(); }));
   statFilters.forEach(card => card.addEventListener('click', () => { statusFilter.value = card.dataset.status; currentPage = 1; render(); }));
-  tableBody.addEventListener('click', async event => {
+  tableBody.addEventListener('click', event => {
     const button = event.target.closest('button[data-action]');
     if (!button) return;
     const id = button.closest('tr').dataset.id;
-    button.disabled = true;
-    try {
-      if (button.dataset.action === 'reject') await data.rejectBusiness(id);
-      else await data.setStatus('business', id, ['approve', 'unlock'].includes(button.dataset.action) ? 'active' : 'locked');
-      render();
-    } catch (error) { alert(error.message); button.disabled = false; }
+    const nextStatus = button.dataset.action === 'approve' || button.dataset.action === 'unlock' ? 'active' : 'locked';
+    data.setStatus('business', id, nextStatus);
+    render();
   });
 
-  data.load().then(render).catch(error => { tableBody.innerHTML = `<tr><td colspan="6">${data.escapeHTML(error.message)}</td></tr>`; });
+  render();
 })();

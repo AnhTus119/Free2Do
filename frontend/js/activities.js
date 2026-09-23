@@ -4,6 +4,7 @@
   const data = window.AdminData;
   const tableBody = document.getElementById('activityRows');
   const searchInput = document.getElementById('activitySearch');
+  const typeFilter = document.getElementById('typeFilter');
   const priceFilter = document.getElementById('priceFilter');
   const countLabel = document.getElementById('activityCount');
   const pagination = document.getElementById('activityPagination');
@@ -13,12 +14,12 @@
   let selectedStatus = 'all';
 
   function startingPrice(activity) {
-    return Number(activity.priceRaw ?? activity.price.replace(/[^0-9]/g, '')) || 0;
+    return Number(activity.price.split('–')[0].replace(/\D/g, '')) || 0;
   }
 
   function updateCounts() {
     const activities = data.activities;
-    ['all', 'active', 'pending', 'hidden', 'cancelled'].forEach(status => {
+    ['all', 'active', 'pending', 'hidden', 'rejected', 'expired'].forEach(status => {
       const element = document.querySelector(`[data-count="${status}"]`);
       if (element) element.textContent = status === 'all' ? activities.length : activities.filter(item => item.status === status).length;
     });
@@ -28,8 +29,9 @@
     const query = data.normalize(searchInput.value);
     const activities = data.activities.filter(activity => {
       const matchesStatus = selectedStatus === 'all' || activity.status === selectedStatus;
+      const matchesType = typeFilter.value === 'all' || activity.type === typeFilter.value;
       const matchesSearch = !query || data.normalize(`${activity.id} ${activity.name} ${data.businessName(activity)}`).includes(query);
-      return matchesStatus && matchesSearch;
+      return matchesStatus && matchesType && matchesSearch;
     });
     if (priceFilter.value === 'priceAsc') activities.sort((a, b) => startingPrice(a) - startingPrice(b));
     if (priceFilter.value === 'priceDesc') activities.sort((a, b) => startingPrice(b) - startingPrice(a));
@@ -79,18 +81,16 @@
     renderPagination(totalPages); updateCounts();
   }
 
-  [searchInput, priceFilter].forEach(control => control.addEventListener(control.tagName === 'INPUT' ? 'input' : 'change', () => { currentPage = 1; render(); }));
+  [searchInput, typeFilter, priceFilter].forEach(control => control.addEventListener(control.tagName === 'INPUT' ? 'input' : 'change', () => { currentPage = 1; render(); }));
   statusTabs.forEach(tab => tab.addEventListener('click', () => {
     selectedStatus = tab.dataset.status; currentPage = 1;
     statusTabs.forEach(item => item.classList.toggle('active', item === tab)); render();
   }));
-  tableBody.addEventListener('click', async event => {
+  tableBody.addEventListener('click', event => {
     const button = event.target.closest('[data-action="approve"]');
     if (!button) return;
-    button.disabled = true;
-    try { await data.setStatus('activity', button.closest('tr').dataset.id, 'active'); render(); }
-    catch (error) { alert(error.message); button.disabled = false; }
+    data.setStatus('activity', button.closest('tr').dataset.id, 'active'); render();
   });
 
-  data.load().then(render).catch(error => { tableBody.innerHTML = `<tr><td colspan="7">${data.escapeHTML(error.message)}</td></tr>`; });
+  render();
 })();

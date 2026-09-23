@@ -110,10 +110,314 @@
   </div>
 </div>
 
-<div class="wrap" style="padding:48px 0;max-width:900px"><h1>Lên kế hoạch nhóm</h1><p>Backend chưa có API tạo nhóm hoặc gợi ý hoạt động theo nhóm.</p><a class="btn btn-secondary" href="home.html">Về trang chủ</a></div>
-<script src="../js/config.js"></script><script src="../js/customer-api.js"></script>
+<div class="wrap" style="padding-top:32px;padding-bottom:60px;max-width:900px;">
+  <div class="section-title"><svg class="icon icon-lg"><use href="#icon-users"></use></svg> Lên kế hoạch nhóm</div>
+  <div class="section-sub">Mỗi người có thời gian, vị trí, ngân sách và sở thích khác nhau — FREE2DO tìm hoạt động phù hợp nhất cho cả nhóm.</div>
+
+  <div class="tabs">
+    <button class="tab-btn" data-tab="matching" onclick="selectTab('matching')">Ghép lịch nhóm</button>
+    <button class="tab-btn" data-tab="expense" onclick="selectTab('expense')">Chia chi phí</button>
+  </div>
+
+  <!-- ===== TAB 1: GHÉP LỊCH NHÓM ===== -->
+  <div class="tab-pane" id="pane-matching">
+    <div id="groupStart" style="background:#fff;border:1px solid var(--line);border-radius:18px;padding:28px;text-align:center;">
+      <div class="section-title" style="font-size:18px;">Bắt đầu ghép lịch nhóm</div>
+      <p class="section-sub" style="margin-bottom:18px;">Tạo nhóm, thêm thông tin thành viên rồi tìm hoạt động phù hợp cho tất cả.</p>
+      <button class="btn btn-primary" type="button" onclick="openGroupModal()"><svg class="icon icon-white"><use href="#icon-users"></use></svg> Tạo nhóm</button>
+    </div>
+
+    <div class="created-members" id="createdMembers">
+      <div class="section-title" id="memberCountTitle" style="font-size:15px;"></div>
+      <div id="memberCards"></div>
+      <button class="btn btn-primary btn-block" type="button" onclick="showGroupResult()">Tìm hoạt động phù hợp cho cả nhóm</button>
+    </div>
+
+    <div class="group-result" id="group-result" style="display:none;">
+      <div id="bestMatch"></div>
+      <div class="suggestions" id="suggestions">
+        <div class="section-title" style="font-size:15px;">Gợi ý phù hợp khác</div>
+        <div class="suggestions-grid" id="suggestionCards"></div>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:20px;">
+        <button class="btn btn-primary" style="flex:1;" onclick="selectTab('expense')">Chốt hoạt động & Chia chi phí</button>
+        <button class="btn btn-secondary" type="button" id="suggestionsToggle" onclick="toggleSuggestions()">Xem gợi ý khác</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="group-overlay" id="groupOverlay" role="dialog" aria-modal="true" aria-labelledby="groupModalTitle">
+    <div class="group-modal">
+      <div class="group-modal-head">
+        <div><h2 id="groupModalTitle">Tạo nhóm ghép lịch</h2><p>Mời bạn bè hoặc nhập thông tin từng thành viên.</p></div>
+        <button class="modal-close" type="button" onclick="closeGroupModal()" aria-label="Đóng">×</button>
+      </div>
+      <div class="invite-row">
+        <input id="inviteLink" type="text" readonly placeholder="Link mời tham gia nhóm">
+        <button class="copy-link-btn" type="button" id="copyInviteButton" onclick="createInviteLink()">Tạo link nhóm</button>
+      </div>
+      <div id="memberForms"></div>
+      <button class="add-member-btn" type="button" onclick="addMemberForm()"><svg class="icon"><use href="#icon-plus"></use></svg> Thêm thành viên</button>
+      <div class="group-actions">
+        <button class="btn btn-secondary" type="button" onclick="closeGroupModal()">Hủy</button>
+        <button class="btn btn-primary" type="button" onclick="createGroup()">Tạo nhóm</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="group-overlay" id="memberEditOverlay" role="dialog" aria-modal="true" aria-labelledby="memberEditTitle">
+    <div class="group-modal member-edit-modal">
+      <div class="group-modal-head"><div class="member-edit-heading"><div class="member-avatar" id="memberEditAvatar"></div><div><strong id="memberEditTitle"></strong><span>Thông tin thành viên</span></div></div><button class="modal-close" type="button" onclick="closeMemberEdit()">×</button></div>
+      <div class="member-edit-fields" id="memberEditFields"></div>
+      <div class="group-actions member-edit-footer"><button class="btn btn-secondary" type="button" onclick="closeMemberEdit()">Hủy</button><button class="btn btn-primary" type="button" onclick="saveMemberEdit()">Lưu thay đổi</button></div>
+    </div>
+  </div>
+
+  <div class="group-overlay" id="activityOverlay" role="dialog" aria-modal="true" aria-labelledby="activityPopupTitle">
+    <div class="group-modal activity-overlay-card"><div class="group-modal-head"><div><h2 id="activityPopupTitle">Chi tiết hoạt động</h2></div><button class="modal-close" type="button" onclick="closeActivityPopup()">×</button></div><div id="activityPopupBody"></div></div>
+  </div>
+
+  <!-- ===== TAB 2: CHIA CHI PHÍ ===== -->
+  <div class="tab-pane" id="pane-expense">
+    <div id="expenseActivity"></div>
+    <div class="cost-stats">
+      <div class="cost-stat"><div class="num" id="expenseTotal">0 ₫</div><div class="lbl">Tổng chi phí</div></div>
+      <div class="cost-stat"><div class="num" id="expensePerPerson">0 ₫</div><div class="lbl">Chi phí mỗi người</div></div>
+      <div class="cost-stat"><div class="num" id="expensePaid" style="color:var(--success);">0 ₫</div><div class="lbl">Đã thu</div></div>
+      <div class="cost-stat"><div class="num" id="expenseMissing" style="color:var(--warn);">0 ₫</div><div class="lbl">Còn thiếu</div></div>
+    </div>
+
+    <div class="section-title" style="font-size:15px;">Chi tiết thanh toán</div>
+
+    <div id="paymentRows"></div>
+
+  </div>
+
+</div>
+
+<script src="../js/admin-data.js"></script>
 <script>
-window.CustomerAPI.requireUser().catch(() => {});
-function showGroupResult() { document.getElementById('group-result').style.display = 'block'; document.getElementById('bestMatch').textContent = 'Backend chưa có API gợi ý hoạt động theo nhóm.'; document.getElementById('suggestionCards').innerHTML = ''; }
-function toggleUserMenu(e) { e.stopPropagation(); document.getElementById('user-dropdown').classList.toggle('open'); }
-</script></body></html>
+let memberFormCount = 0;
+let groupMembers = [];
+let editingMemberIndex = -1;
+let selectedActivity = null;
+let paymentStates = [];
+
+function openGroupModal(){
+  document.getElementById('groupOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  if (!document.getElementById('memberForms').children.length) addMemberForm();
+}
+function closeGroupModal(){
+  document.getElementById('groupOverlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+function addMemberForm(){
+  memberFormCount += 1;
+  const form = document.createElement('div');
+  form.className = 'member-form';
+  form.dataset.memberNumber = memberFormCount;
+  form.innerHTML = `<button class="remove-member-btn" type="button" onclick="removeMemberForm(this)" aria-label="Xóa thành viên">×</button><h3>Thành viên ${memberFormCount}</h3><div class="member-form-grid">
+    <label>Tên<input name="member-name" required placeholder="Nhập tên"></label>
+    <label>Rảnh mấy giờ<input name="member-hours" type="number" min="0" step="0.5" required placeholder="Ví dụ: 2"></label>
+    <label>Địa chỉ<input name="member-address" required placeholder="Nhập khu vực hoặc địa chỉ"></label>
+    <label>Ngân sách tối đa<input name="member-budget" type="number" min="0" step="1000" required placeholder="Ví dụ: 200000"></label>
+    <div class="interest-input"><label>Sở thích</label><div class="interest-chips">${interestOptions('member-interests')}</div></div>
+  </div>`;
+  document.getElementById('memberForms').appendChild(form);
+}
+const INTERESTS = ['Workshop','Thể thao','Nghệ thuật','Ăn uống','Giải trí','Học tập','Cộng đồng','Chill','Outdoor'];
+function interestOptions(name, selected = []) {
+  return INTERESTS.map(interest => `<label class="interest-option"><input type="checkbox" name="${name}" value="${interest}" ${selected.includes(interest) ? 'checked' : ''}><span>${interest}</span></label>`).join('');
+}
+function removeMemberForm(button){
+  const forms = document.querySelectorAll('#memberForms .member-form');
+  if (forms.length === 1) { alert('Nhóm cần ít nhất một thành viên.'); return; }
+  button.closest('.member-form').remove();
+}
+function createInviteLink(){
+  const link = `${window.location.origin}${window.location.pathname}?groupInvite=${Math.random().toString(36).slice(2, 10)}`;
+  const input = document.getElementById('inviteLink');
+  const button = document.getElementById('copyInviteButton');
+  input.value = link;
+  button.textContent = 'Sao chép link';
+  button.onclick = copyInviteLink;
+}
+async function copyInviteLink(){
+  const input = document.getElementById('inviteLink');
+  if (!input.value) {
+    createInviteLink();
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(input.value);
+  } catch (error) {
+    input.select();
+    document.execCommand('copy');
+  }
+  alert('Đã sao chép link nhóm.');
+}
+function createGroup(){
+  const forms = [...document.querySelectorAll('#memberForms .member-form')];
+  const members = forms.map(form => {
+    const value = name => form.querySelector(`[name="${name}"]`).value.trim();
+    const interests = [...form.querySelectorAll('[name="member-interests"]:checked')].map(input => input.value);
+    return { name: value('member-name'), hours: value('member-hours'), address: value('member-address'), budget: value('member-budget'), interests };
+  });
+  if (members.some(member => !member.name || !member.hours || !member.address || !member.budget || !member.interests.length)) {
+    alert('Vui lòng nhập đầy đủ thông tin cho tất cả thành viên.');
+    return;
+  }
+  groupMembers = members;
+  paymentStates = members.map(() => ({ paid: false, reminded: false }));
+  renderCreatedMembers();
+  document.getElementById('groupStart').style.display = 'none';
+  document.getElementById('createdMembers').style.display = 'block';
+  closeGroupModal();
+}
+function escapeGroupValue(value){
+  return String(value).replace(/[&<>"']/g, character => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[character]));
+}
+function renderCreatedMembers(){
+  document.getElementById('memberCountTitle').textContent = `Thành viên trong nhóm (${groupMembers.length})`;
+  document.getElementById('memberCards').innerHTML = groupMembers.map((member, index) => `<button class="member-card" type="button" onclick="openMemberEdit(${index})" style="width:100%;text-align:left;cursor:pointer;"><div class="member-avatar">${escapeGroupValue(member.name.charAt(0).toUpperCase())}</div><div><div class="member-name">${escapeGroupValue(member.name)}</div><div class="member-crit"><span>◷ Rảnh ${escapeGroupValue(member.hours)} giờ</span> · <span>⌖ ${escapeGroupValue(member.address)}</span> · <span>▣ ≤${Number(member.budget).toLocaleString('vi-VN')} ₫</span> · <span>✦ ${escapeGroupValue(member.interests.join(', '))}</span></div></div></button>`).join('');
+}
+function openMemberEdit(index){
+  editingMemberIndex = index;
+  const member = groupMembers[index];
+  document.getElementById('memberEditTitle').textContent = member.name;
+  document.getElementById('memberEditAvatar').textContent = member.name.charAt(0).toUpperCase();
+  document.getElementById('memberEditFields').innerHTML = `<label class="member-edit-field">Tên<input id="edit-name" value="${escapeGroupValue(member.name)}"></label><label class="member-edit-field">Rảnh mấy giờ<input id="edit-hours" type="number" min="0" step="0.5" value="${escapeGroupValue(member.hours)}"></label><label class="member-edit-field">Địa chỉ<input id="edit-address" value="${escapeGroupValue(member.address)}"></label><label class="member-edit-field">Ngân sách tối đa<input id="edit-budget" type="number" min="0" step="1000" value="${escapeGroupValue(member.budget)}"></label><div class="member-edit-interests"><label>Sở thích</label><div class="interest-chips">${interestOptions('edit-interests', member.interests)}</div></div>`;
+  document.getElementById('memberEditOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeMemberEdit(){ document.getElementById('memberEditOverlay').classList.remove('open'); document.body.style.overflow = ''; }
+function saveMemberEdit(){
+  const member = groupMembers[editingMemberIndex];
+  member.name = document.getElementById('edit-name').value.trim(); member.hours = document.getElementById('edit-hours').value.trim(); member.address = document.getElementById('edit-address').value.trim(); member.budget = document.getElementById('edit-budget').value.trim(); member.interests = [...document.querySelectorAll('[name="edit-interests"]:checked')].map(input => input.value);
+  if (!member.name || !member.hours || !member.address || !member.budget || !member.interests.length) { alert('Vui lòng nhập đầy đủ thông tin thành viên.'); return; }
+  renderCreatedMembers();
+  closeMemberEdit();
+  if (document.getElementById('group-result').style.display === 'block') showGroupResult();
+}
+function selectTab(name){
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.toggle('active', p.id==='pane-'+name));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.tab===name));
+  if (name === 'expense') renderExpense();
+}
+function showGroupResult(){
+  if (!groupMembers.length) return;
+  const ranked = rankActivities();
+  const best = ranked[0];
+  if (!best) { alert('Không tìm thấy hoạt động phù hợp cho nhóm.'); return; }
+  renderBestMatch(best);
+  document.getElementById('suggestionCards').innerHTML = ranked.slice(1).map(activity => suggestionCard(activity)).join('');
+  document.getElementById('group-result').style.display = 'block';
+}
+function parseActivityPrice(value){
+  const numbers = String(value).match(/\d[\d.]*/g);
+  return numbers ? Math.max(...numbers.map(number => Number(number.replace(/\./g, '')))) : 0;
+}
+function activityDuration(value){
+  const times = String(value).match(/(\d{1,2}):(\d{2})/g);
+  if (!times || times.length < 2 || value === 'Cả ngày') return 1440;
+  const toMinutes = time => { const [hour, minute] = time.split(':').map(Number); return hour * 60 + minute; };
+  let result = toMinutes(times[1]) - toMinutes(times[0]);
+  if (result < 0) result += 1440;
+  return result;
+}
+function scoreActivity(activity){
+  const scores = groupMembers.map(member => {
+    const interests = member.interests.map(item => item.trim().toLowerCase());
+    const interestScore = interests.some(item => item === String(activity.category).toLowerCase()) ? 35 : 10;
+    const budgetScore = parseActivityPrice(activity.price) <= Number(member.budget) ? 30 : 0;
+    const timeScore = activityDuration(activity.hours) >= Number(member.hours) * 60 ? 25 : 0;
+    const addressScore = String(activity.address).toLowerCase().includes(String(member.address).toLowerCase()) ? 10 : 4;
+    return interestScore + budgetScore + timeScore + addressScore;
+  });
+  return { activity, score: Math.round(scores.reduce((sum, value) => sum + value, 0) / scores.length), scores };
+}
+function rankActivities(){
+  return window.AdminData.activities.filter(activity => activity.status === 'active').map(scoreActivity).sort((a, b) => b.score - a.score).map(item => item.activity);
+}
+function renderBestMatch(activity){
+  selectedActivity = activity;
+  renderExpense();
+  const result = scoreActivity(activity);
+  document.getElementById('bestMatch').innerHTML = `<div class="group-avg"><div class="pct">${result.score}%</div><div class="lbl">Độ phù hợp cao nhất cho cả nhóm</div></div><button class="suggestion-card" type="button" onclick="openActivityPopup('${activity.id}')" style="width:100%;text-align:left;"><div class="activity-title">${escapeGroupValue(activity.icon || '✨')} ${escapeGroupValue(activity.name)}</div><div class="activity-biz">${escapeGroupValue(activity.address)} · ${escapeGroupValue(activity.price)}</div><div class="member-crit">★ ${activity.rating || '—'} · ${escapeGroupValue(activity.hours)} · ${escapeGroupValue(activity.category)}</div></button>`;
+}
+function suggestionCard(activity){
+  return `<button class="suggestion-card" type="button" onclick="openActivityPopup('${activity.id}')"><div class="activity-title">${escapeGroupValue(activity.icon || '✨')} ${escapeGroupValue(activity.name)}</div><div class="activity-biz">${escapeGroupValue(activity.address)}</div><div class="member-crit">${escapeGroupValue(activity.price)} · ★ ${activity.rating || '—'}</div></button>`;
+}
+function toggleSuggestions(){
+  const suggestions = document.getElementById('suggestions');
+  const button = document.getElementById('suggestionsToggle');
+  const isHidden = suggestions.style.display === 'none' || !suggestions.style.display;
+  suggestions.style.display = isHidden ? 'block' : 'none';
+  button.textContent = isHidden ? 'Ẩn gợi ý' : 'Xem gợi ý khác';
+}
+function selectActivity(id){
+  const activity = window.AdminData.activities.find(item => item.id === id);
+  if (!activity) return;
+  renderBestMatch(activity);
+  document.getElementById('suggestions').style.display = 'none';
+  document.getElementById('suggestionsToggle').textContent = 'Xem gợi ý khác';
+  closeActivityPopup();
+}
+function openActivityPopup(id){
+  const activity = window.AdminData.activities.find(item => item.id === id); if (!activity) return;
+  document.getElementById('activityPopupTitle').textContent = activity.name;
+  document.getElementById('activityPopupBody').innerHTML = `<div style="font-size:42px;text-align:center;background:#F3D9A6;border-radius:12px;padding:20px;">${escapeGroupValue(activity.icon || '✨')}</div><div class="activity-popup-meta"><div><b>Địa chỉ</b><br>${escapeGroupValue(activity.address)}</div><div><b>Giá</b><br>${escapeGroupValue(activity.price)}</div><div><b>Thời gian</b><br>${escapeGroupValue(activity.hours)}</div><div><b>Đánh giá</b><br>★ ${activity.rating || '—'}</div></div><p style="line-height:1.6;color:var(--muted);">${escapeGroupValue(activity.description)}</p><div class="group-actions"><a href="activity-detail.html?id=${encodeURIComponent(activity.id)}" class="btn btn-secondary">Chi tiết</a><button type="button" class="btn btn-primary" onclick="selectActivity('${activity.id}')">Chọn hoạt động</button></div>`;
+  document.getElementById('activityOverlay').classList.add('open'); document.body.style.overflow = 'hidden';
+}
+function closeActivityPopup(){ document.getElementById('activityOverlay').classList.remove('open'); document.body.style.overflow = ''; }
+function money(value){ return `${Number(value || 0).toLocaleString('vi-VN')} ₫`; }
+function getExpenseActivity(){ return selectedActivity || rankActivities()[0] || null; }
+function renderExpense(){
+  const activity = getExpenseActivity();
+  if (!activity || !groupMembers.length) return;
+  const price = parseActivityPrice(activity.price);
+  const total = price * groupMembers.length;
+  const paidTotal = paymentStates.reduce((sum, state) => sum + (state.paid ? price : 0), 0);
+  document.getElementById('expenseActivity').innerHTML = `<div style="background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:20px;display:flex;align-items:center;gap:12px;"><div class="result-thumb" style="background:#DDE3CB;">${escapeGroupValue(activity.icon || '✨')}</div><div><div class="member-name">${escapeGroupValue(activity.name)}</div><div class="member-crit">${escapeGroupValue(activity.hours)} · ${groupMembers.length} người tham gia</div></div></div>`;
+  document.getElementById('expenseTotal').textContent = money(total);
+  document.getElementById('expensePerPerson').textContent = money(price);
+  document.getElementById('expensePaid').textContent = money(paidTotal);
+  document.getElementById('expenseMissing').textContent = money(total - paidTotal);
+  document.getElementById('paymentRows').innerHTML = groupMembers.map((member, index) => {
+    const state = paymentStates[index] || { paid: false, reminded: false };
+    const status = state.paid ? '<span class="pay-badge paid">Đã trả</span>' : state.reminded ? '<span class="pay-badge unpaid">Chưa trả</span>' : '<span class="pay-badge unpaid">Chưa trả</span>';
+    const actions = state.paid ? '' : `<div class="payment-actions"><button class="btn btn-secondary" type="button" onclick="markMemberPaid(${index})">Đã trả</button><button class="btn btn-secondary" type="button" onclick="remindMember(${index})">${state.reminded ? 'Đã nhắc' : 'Nhắc thanh toán'}</button></div>`;
+    return `<div class="split-row"><div class="member-avatar">${escapeGroupValue(member.name.charAt(0).toUpperCase())}</div><div><div class="member-name">${escapeGroupValue(member.name)} ${status}</div><div class="member-crit">${money(price)}</div></div><div class="split-amount">${money(price)}</div>${actions}</div>`;
+  }).join('');
+}
+function markMemberPaid(index){
+  paymentStates[index] = { paid: true, reminded: paymentStates[index]?.reminded || false };
+  renderExpense();
+}
+function remindMember(index){
+  paymentStates[index] = { paid: false, reminded: true };
+  renderExpense();
+}
+function toggleUserMenu(e){
+  e.stopPropagation();
+  document.getElementById('user-dropdown').classList.toggle('open');
+}
+document.addEventListener('click', function(){
+  const dd = document.getElementById('user-dropdown');
+  if(dd) dd.classList.remove('open');
+});
+document.getElementById('groupOverlay').addEventListener('click', function(event){
+  if (event.target === this) closeGroupModal();
+});
+document.getElementById('memberEditOverlay').addEventListener('click', function(event){
+  if (event.target === this) closeMemberEdit();
+});
+document.getElementById('activityOverlay').addEventListener('click', function(event){
+  if (event.target === this) closeActivityPopup();
+});
+selectTab('matching');
+</script>
+</body>
+</html>

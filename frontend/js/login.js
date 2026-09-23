@@ -1,4 +1,4 @@
-const API_BASE_URL = window.FREE2DO_CONFIG.API_BASE_URL;
+const API_BASE_URL = "http://localhost:8000";
 
 const loginForm = document.querySelector(".login__form");
 let loginErrorEl = document.getElementById("login-error");
@@ -67,10 +67,10 @@ if (loginForm) {
         return;
       }
 
-      window.location.href = me.account_type === "operator" ? "dashboard.html" : "Demo Trang Customer/home.html";
+      window.location.href = "Demo Trang Customer/home.html";
     } catch (error) {
       console.error(error);
-      showLoginError("Không kết nối được máy chủ.");
+      showLoginError("Không kết nối được backend tại http://localhost:8000.");
     }
   });
 }

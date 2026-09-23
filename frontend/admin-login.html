@@ -7,7 +7,6 @@
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/admin-login.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <script src="js/config.js"></script>
 </head>
 
 <body>
@@ -63,7 +62,12 @@
     });
   });
 
-  const API_BASE_URL = window.FREE2DO_CONFIG.API_BASE_URL;
+  // Danh sách tài khoản quản trị viên
+  const ADMIN_ACCOUNTS = [
+    { email: 'a@gmail.com', password: 'Test@123' },
+    { email: 'b@gmail.com', password: 'Test@123' },
+    { email: 'c@gmail.com', password: 'Test@123' },
+  ];
 
   function showFieldError(inputId, errorId, message) {
     const field = document.getElementById(inputId).closest('.admin-login__field');
@@ -79,54 +83,33 @@
     field.classList.remove('admin-login__field--error');
   }
 
-  document.querySelector('.admin-login__form').addEventListener('submit', async function (e) {
+  document.querySelector('.admin-login__form').addEventListener('submit', function (e) {
     e.preventDefault();
 
     clearFieldError('admin-account', 'admin-account-error');
     clearFieldError('admin-password', 'admin-password-error');
 
-    const email = document.getElementById('admin-account').value.trim();
+    const email = document.getElementById('admin-account').value;
     const password = document.getElementById('admin-password').value;
-    const submitBtn = document.querySelector('.admin-login__submit');
 
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'Đang đăng nhập...';
+    const account = ADMIN_ACCOUNTS.find(function (acc) {
+      return acc.email === email;
+    });
 
-    try {
-      const formData = new URLSearchParams();
-      formData.append('username', email);
-      formData.append('password', password);
-
-      const loginRes = await fetch(`${API_BASE_URL}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: formData,
-      });
-      const loginData = await loginRes.json();
-
-      if (!loginRes.ok) {
-        showFieldError('admin-account', 'admin-account-error', loginData.detail || 'Không tìm thấy tài khoản quản trị này.');
-        return;
-      }
-
-      const meRes = await fetch(`${API_BASE_URL}/auth/me`, {
-        headers: { Authorization: `Bearer ${loginData.access_token}` },
-      });
-      const me = await meRes.json();
-
-      if (!meRes.ok || me.account_type !== 'operator') {
-        showFieldError('admin-account', 'admin-account-error', 'Tài khoản này không có quyền quản trị.');
-        return;
-      }
-
-      localStorage.setItem('token', loginData.access_token);
-      window.location.href = 'dashboard.html';
-    } catch (error) {
-      showFieldError('admin-account', 'admin-account-error', 'Không kết nối được máy chủ, vui lòng thử lại.');
-    } finally {
-      submitBtn.disabled = false;
-      submitBtn.textContent = 'Đăng nhập Quản trị';
+    if (!account) {
+      showFieldError('admin-account', 'admin-account-error', 'Không tìm thấy tài khoản quản trị này.');
+      return;
     }
+
+    if (account.password !== password) {
+      showFieldError('admin-password', 'admin-password-error', 'Sai mật khẩu. Vui lòng thử lại.');
+      return;
+    }
+
+    
+    // Đăng nhập thành công
+    alert('Đăng nhập quản trị thành công!');
+    window.location.href = 'dashboard.html';
   });
 </script>
 

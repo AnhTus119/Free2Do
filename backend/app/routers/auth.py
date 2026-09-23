@@ -155,6 +155,8 @@ def read_me(account: models.Account = Depends(get_current_account), db: Session 
             account_type="operator",
             role="operator",
             name=operator.name if operator else "",
+            operator_id=operator.operator_id if operator else None,
+            level=operator.level if operator else None,
             redirect="admin.html",
         )
 
@@ -166,6 +168,8 @@ def read_me(account: models.Account = Depends(get_current_account), db: Session 
         account_type="user",
         role=role_name,
         name=user.name if user else "",
+        user_id=user.user_id if user else None,
+        phone=user.phone if user else None,
         redirect="index.html",
     )
 

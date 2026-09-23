@@ -67,7 +67,9 @@ if (loginForm) {
         return;
       }
 
-      window.location.href = "Demo Trang Customer/home.html";
+      window.location.href = me.account_type === "operator"
+        ? (me.redirect || "admin.html")
+        : "Demo Trang Customer/home.html";
     } catch (error) {
       console.error(error);
       showLoginError(`Không kết nối được backend tại ${API_BASE_URL}.`);

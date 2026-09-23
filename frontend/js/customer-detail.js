@@ -23,7 +23,7 @@
     text('sideActivityMeta', api.hours(activity.time_open, activity.time_close));
     text('reviewsTitle', `Đánh giá (${reviews.length})`);
     document.getElementById('activityTags').innerHTML = matched.map(c => `<span class="tag">${api.escapeHTML(c.name)}</span>`).join('');
-    document.getElementById('activityReviews').innerHTML = reviews.length ? reviews.map(r => `<div class="review-card"><div class="review-top"><div class="review-name">Khách hàng</div><div class="review-stars">${'★'.repeat(Math.max(0, Math.min(5, r.rating)))}</div><div class="review-date">${api.escapeHTML(new Date(r.created_at).toLocaleDateString('vi-VN'))}</div></div><div class="review-text">${api.escapeHTML(r.content || '')}</div></div>`).join('') : '<p>Chưa có đánh giá.</p>';
+    document.getElementById('activityReviews').innerHTML = reviews.length ? reviews.map(r => `<div class="review-card"><div class="review-top"><div class="review-name">${api.escapeHTML(r.reviewer_name)}</div><div class="review-stars">${'★'.repeat(Math.max(0, Math.min(5, r.rating)))}</div><div class="review-date">${api.escapeHTML(new Date(r.created_at).toLocaleDateString('vi-VN'))}</div></div><div class="review-text">${api.escapeHTML(r.content || '')}</div></div>`).join('') : '<p>Chưa có đánh giá.</p>';
     document.title = `FREE2DO — ${activity.name}`;
     const favorite = document.getElementById('favoriteButton');
     const label = document.getElementById('favoriteLabel');

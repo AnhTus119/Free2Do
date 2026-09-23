@@ -8,6 +8,19 @@ from app.auth import get_current_user
 router = APIRouter(prefix="/users/me", tags=["users"])
 
 
+@router.get("/search-history", response_model=list[schemas.SearchHistory])
+def get_my_search_history(
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    return (
+        db.query(models.SearchHistory)
+        .filter(models.SearchHistory.user_id == user.user_id)
+        .order_by(models.SearchHistory.created_at.desc())
+        .all()
+    )
+
+
 @router.get("/categories", response_model=list[schemas.Category])
 def get_my_categories(user: models.User = Depends(get_current_user)):
     return [uc.category for uc in user.categories]

@@ -455,8 +455,8 @@
     activityModal.classList.add('open');
   }
 
-  function decideActivity(id, status) {
-    data.setStatus(
+  async function decideActivity(id, status) {
+    await data.setStatus(
       'activity',
       id,
       status
@@ -560,8 +560,8 @@
     businessModal.classList.add('open');
   }
 
-  function decideBusiness(id, status) {
-    data.setStatus(
+  async function decideBusiness(id, status) {
+    await data.setStatus(
       'business',
       id,
       status
@@ -668,5 +668,7 @@
     }
   );
 
-  renderAll();
+  data.ready.then(renderAll).catch(error => {
+    document.querySelector('.content').innerHTML = `<div class="card" style="padding:24px;color:#b3293a">${data.escapeHTML(error.message)}</div>`;
+  });
 })();

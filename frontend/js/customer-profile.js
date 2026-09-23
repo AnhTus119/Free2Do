@@ -2,8 +2,8 @@
   'use strict';
 
   const data = window.AdminData;
-  const id = new URLSearchParams(window.location.search).get('id') || data.customers[0].id;
-  let customer = data.customers.find(item => item.id === id);
+  let id = new URLSearchParams(window.location.search).get('id');
+  let customer = null;
 
   function badge(status) {
     return `<span class="badge ${data.escapeHTML(status)}">${data.statusLabels[status]}</span>`;
@@ -14,7 +14,7 @@
       <a href="customers.html" class="back-link">← Quay lại danh sách Khách hàng</a>
       <div class="card" style="padding:24px;margin-top:20px;">
         <h3>Không tìm thấy khách hàng</h3>
-        <p>Mã khách hàng “${data.escapeHTML(id)}” không tồn tại trong admin-data.js.</p>
+        <p>Mã khách hàng “${data.escapeHTML(id)}” không tồn tại trong cơ sở dữ liệu.</p>
       </div>`;
   }
 
@@ -76,10 +76,14 @@
     toggleButton.textContent = customer.status === 'locked' ? '🔓 Mở khóa tài khoản' : '🔒 Khóa tài khoản';
   }
 
-  document.getElementById('toggleCustomerStatus').addEventListener('click', () => {
-    data.setStatus('customer', customer.id, customer.status === 'locked' ? 'active' : 'locked');
-    render();
+  document.getElementById('toggleCustomerStatus').addEventListener('click', async () => {
+    try {
+      await data.setStatus('customer', customer.id, customer.status === 'locked' ? 'active' : 'locked');
+      render();
+    } catch (error) { alert(error.message); }
   });
 
-  render();
+  data.ready.then(() => { id ||= data.customers[0]?.id; render(); }).catch(error => {
+    document.querySelector('.content').textContent = error.message;
+  });
 })();

@@ -9,14 +9,22 @@ from app.auth import get_current_user
 router = APIRouter(tags=["reviews"])
 
 
-@router.get("/activities/{activity_id}/reviews", response_model=list[schemas.Review])
+def _to_review_out(review: models.Review) -> schemas.ReviewOut:
+    return schemas.ReviewOut(
+        **schemas.Review.model_validate(review).model_dump(),
+        reviewer_name=review.user.name,
+    )
+
+
+@router.get("/activities/{activity_id}/reviews", response_model=list[schemas.ReviewOut])
 def list_activity_reviews(activity_id: str, db: Session = Depends(get_db)):
-    return (
+    reviews = (
         db.query(models.Review)
         .filter(models.Review.activity_id == activity_id)
         .order_by(models.Review.created_at.desc())
         .all()
     )
+    return [_to_review_out(review) for review in reviews]
 
 
 @router.post("/reviews", response_model=schemas.Review, status_code=status.HTTP_201_CREATED)

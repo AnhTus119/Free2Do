@@ -2,11 +2,20 @@
   'use strict';
 
   const data = window.AdminData;
-  const id = new URLSearchParams(window.location.search).get('id') || data.activities[0].id;
-  let activity = data.activities.find(item => item.id === id);
+  let id = new URLSearchParams(window.location.search).get('id');
+  let activity = null;
 
   function badge(status) {
     return `<span class="badge ${data.escapeHTML(status)}">${data.statusLabels[status]}</span>`;
+  }
+
+  function safeMediaUrl(value) {
+    try {
+      const url = new URL(value, window.location.href);
+      return ['http:', 'https:'].includes(url.protocol) ? url.href : '#';
+    } catch (error) {
+      return '#';
+    }
   }
 
   function setInfoRows(card, values) {
@@ -17,7 +26,7 @@
   }
 
   function showNotFound() {
-    document.querySelector('.content').innerHTML = `<a href="activities.html" class="back-link">← Quay lại danh sách Hoạt động</a><div class="card" style="padding:24px;margin-top:20px;"><h3>Không tìm thấy hoạt động</h3><p>Mã “${data.escapeHTML(id)}” không tồn tại trong admin-data.js.</p></div>`;
+    document.querySelector('.content').innerHTML = `<a href="activities.html" class="back-link">← Quay lại danh sách Hoạt động</a><div class="card" style="padding:24px;margin-top:20px;"><h3>Không tìm thấy hoạt động</h3><p>Mã “${data.escapeHTML(id)}” không tồn tại trong cơ sở dữ liệu.</p></div>`;
   }
 
   function renderParticipants() {
@@ -55,19 +64,30 @@
       'Hạn hoạt động (expire_at)': data.escapeHTML(activity.expireAt || 'Chưa thiết lập')
     });
     setInfoRows(cards[1], {
-      'Lượt xem': String(activity.views), 'Lượt tham gia': String(activity.participants),
+      'Lượt xem': activity.views == null ? 'Chưa có dữ liệu' : String(activity.views),
+      'Lượt tham gia': String(activity.participants),
       'Đánh giá trung bình': activity.rating ? `${activity.rating.toFixed(1)} ★` : 'Chưa có đánh giá',
       'Ngày tạo': data.escapeHTML(activity.createdAt)
     });
+    document.getElementById('activityMedia').innerHTML = activity.media.length
+      ? activity.media.map(item => `<div class="alert-row"><div class="alert-text"><a href="${data.escapeHTML(safeMediaUrl(item.media_url))}" target="_blank" rel="noopener">${data.escapeHTML(item.media_type)} — ${data.escapeHTML(item.media_url)}</a></div></div>`).join('')
+      : '<div class="alert-row"><div class="alert-text">Chưa có file minh chứng trong cơ sở dữ liệu.</div></div>';
     renderParticipants();
     document.getElementById('toggleActivityVisibility').textContent = activity.status === 'hidden' ? '👁️ Hiện Hoạt động' : '🙈 Ẩn Hoạt động';
     document.getElementById('approveActivity').hidden = activity.status === 'active';
   }
 
-  document.getElementById('toggleActivityVisibility').addEventListener('click', () => {
-    data.setStatus('activity', activity.id, activity.status === 'hidden' ? 'active' : 'hidden'); render();
+  document.getElementById('toggleActivityVisibility').addEventListener('click', async () => {
+    try {
+      await data.setStatus('activity', activity.id, activity.status === 'hidden' ? 'active' : 'hidden'); render();
+    } catch (error) { alert(error.message); }
   });
-  document.getElementById('approveActivity').addEventListener('click', () => { data.setStatus('activity', activity.id, 'active'); render(); });
+  document.getElementById('approveActivity').addEventListener('click', async () => {
+    try { await data.setStatus('activity', activity.id, 'active'); render(); }
+    catch (error) { alert(error.message); }
+  });
 
-  render();
+  data.ready.then(() => { id ||= data.activities[0]?.id; render(); }).catch(error => {
+    document.querySelector('.content').textContent = error.message;
+  });
 })();

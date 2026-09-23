@@ -186,6 +186,10 @@ class Review(BaseModel):
     created_at: datetime
     updated_at: Optional[datetime] = None
 
+class ReviewOut(Review):
+    """Review trả về frontend kèm tên thật của người đánh giá."""
+    reviewer_name: str
+
 # ReviewMedia
 class ReviewMedia(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -297,6 +301,10 @@ class MeResponse(BaseModel):
     account_type: str            # "user" | "operator"
     role: Optional[str] = None   # role_name nếu là user (vd "customer","business"), "operator" nếu là Operator
     name: str
+    user_id: Optional[str] = None
+    operator_id: Optional[str] = None
+    phone: Optional[str] = None
+    level: Optional[str] = None
     redirect: str                # "admin.html" | "index.html"
 
 # ---------------------------------------------------------------------------
@@ -325,6 +333,10 @@ class ActivityDetail(Activity):
     media: list[ActivityMedia] = []
     avg_rating: Optional[float] = None
     review_count: int = 0
+
+class ActivityPublicOut(ActivityDetail):
+    """Hoạt động công khai kèm tên doanh nghiệp để frontend không phải dùng dữ liệu mẫu."""
+    business_name: str
 
 class ActivityAdminOut(Activity):
     """Dùng cho danh sách Operator duyệt -- kèm tên doanh nghiệp và thông tin xác minh"""
@@ -367,6 +379,7 @@ class UserAdminOut(BaseModel):
     name: str
     phone: Optional[str] = None
     status: str  # accounts.status: active | blocked | suspended
+    created_at: datetime
 
 class UserAdminUpdate(BaseModel):
     name: Optional[str] = None

@@ -27,6 +27,10 @@
   document.addEventListener('click', e => {
     if (e.target.closest('a.logout')) { e.preventDefault(); localStorage.removeItem('token'); location.href = '../log-in.html'; }
   });
+  window.toggleUserMenu = event => {
+    event.stopPropagation();
+    document.getElementById('user-dropdown')?.classList.toggle('open');
+  };
   window.CustomerAPI = { request, requireUser, escapeHTML,
     price: value => value == null ? 'Chưa cập nhật' : `${Number(value).toLocaleString('vi-VN')} ₫`,
     hours: (a, b) => !a && !b ? 'Chưa cập nhật' : [a, b].filter(Boolean).map(v => new Date(v).toLocaleString('vi-VN')).join(' – ') };

@@ -18,6 +18,7 @@ def _to_user_admin_out(user: models.User) -> schemas.UserAdminOut:
         name=user.name,
         phone=user.phone,
         status=user.account.status,
+        created_at=user.account.created_at,
     )
 
 
@@ -47,6 +48,19 @@ def get_user(
     if not user:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Không tìm thấy người dùng")
     return _to_user_admin_out(user)
+
+
+@router.get("/users/{user_id}/categories", response_model=list[schemas.Category])
+def get_user_categories(
+    user_id: str,
+    db: Session = Depends(get_db),
+    _operator: models.Operator = Depends(get_current_operator),
+):
+    """Operator đọc sở thích của user để hiển thị hồ sơ bằng dữ liệu DB."""
+    user = db.query(models.User).filter(models.User.user_id == user_id).first()
+    if not user:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Không tìm thấy người dùng")
+    return [item.category for item in user.categories]
 
 
 @router.patch("/users/{user_id}", response_model=schemas.UserAdminOut)

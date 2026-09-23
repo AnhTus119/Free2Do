@@ -12,7 +12,7 @@ from app.utils.email import send_activity_approved_email, send_activity_hidden_e
 router = APIRouter(prefix="/activities", tags=["activities"])
 
 
-def _to_detail(db: Session, activity: models.Activity) -> schemas.ActivityDetail:
+def _to_detail(db: Session, activity: models.Activity) -> schemas.ActivityPublicOut:
     avg_rating = (
         db.query(func.avg(models.Review.rating))
         .filter(models.Review.activity_id == activity.activity_id)
@@ -23,8 +23,9 @@ def _to_detail(db: Session, activity: models.Activity) -> schemas.ActivityDetail
         .filter(models.Review.activity_id == activity.activity_id)
         .scalar()
     )
-    return schemas.ActivityDetail(
+    return schemas.ActivityPublicOut(
         **schemas.Activity.model_validate(activity).model_dump(),
+        business_name=activity.business.business_name,
         category_ids=[c.category_id for c in activity.categories],
         media=[schemas.ActivityMedia.model_validate(m) for m in activity.media],
         avg_rating=round(avg_rating, 1) if avg_rating else None,
@@ -41,7 +42,25 @@ def _set_categories(db: Session, activity_id: str, category_ids: list[str]) -> N
 # ---------------------------------------------------------------------------
 # Customer -- xem chi tiết hoạt động (chỉ thấy pending/active, không thấy hidden/cancelled)
 # ---------------------------------------------------------------------------
-@router.get("/{activity_id}", response_model=schemas.ActivityDetail)
+@router.get("", response_model=list[schemas.ActivityPublicOut])
+def list_public_activities(
+    status_filter: Optional[str] = Query("active", alias="status"),
+    db: Session = Depends(get_db),
+):
+    """Danh sách hoạt động lấy từ DB cho trang chủ/tìm kiếm của frontend.
+
+    Mặc định chỉ trả hoạt động đang hoạt động. ``status=all`` cho phép frontend
+    nghiệp vụ xem cả pending mà không làm lộ hidden/cancelled.
+    """
+    query = db.query(models.Activity)
+    if status_filter == "all":
+        query = query.filter(models.Activity.status.in_(("active", "pending")))
+    else:
+        query = query.filter(models.Activity.status == status_filter)
+    return [_to_detail(db, activity) for activity in query.order_by(models.Activity.created_at.desc()).all()]
+
+
+@router.get("/{activity_id}", response_model=schemas.ActivityPublicOut)
 def get_activity(activity_id: str, db: Session = Depends(get_db)):
     activity = db.query(models.Activity).filter(models.Activity.activity_id == activity_id).first()
     if not activity or activity.status not in ("active", "pending"):

@@ -83,6 +83,15 @@
         window.location.href = 'log-in.html';
         throw new Error('Tài khoản không có quyền quản trị.');
       }
+      document.querySelectorAll('.side-admin-name, .who .name').forEach((element) => {
+        element.textContent = me.name || me.email;
+      });
+      document.querySelectorAll('.side-admin-role').forEach((element) => {
+        element.textContent = me.level === 'admin' ? 'Quản trị viên cấp cao' : 'Nhân viên vận hành';
+      });
+      document.querySelectorAll('.who .avatar').forEach((element) => {
+        element.textContent = (me.name || me.email || '?').charAt(0).toUpperCase();
+      });
       return me;
     }).catch(error => { validation = null; throw error; });
     return validation;

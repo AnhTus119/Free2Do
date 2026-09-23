@@ -12,18 +12,18 @@
     <div class="sidebar">
     <div class="side-logo"><img src="Vecto/Group.svg" alt="Customer"><span>FREE2DO</span></div>
     <div class="nav-group">
-      <a href="dashboard.html" class="nav-item active"><span class="ic"></span>Tổng quan</a>
+      <a href="dashboard.html" class="nav-item"><span class="ic"></span>Tổng quan</a>
       <a href="customers.html" class="nav-item"><span class="ic"></span>Khách hàng</a>
       <a href="businesses.html" class="nav-item"><span class="ic"></span>Doanh nghiệp</a>
-      <a href="activities.html" class="nav-item"><span class="ic"></span>Hoạt động</a>
+      <a href="activities.html" class="nav-item active"><span class="ic"></span>Hoạt động</a>
     </div>
     <div class="side-bottom">
       <div class="side-admin">
         <div class="side-avatar">A</div>
-        <div><div class="side-admin-name">Admin Nhân</div><div class="side-admin-role">Quản trị viên</div></div>
+        <div><div class="side-admin-name">Admin</div><div class="side-admin-role">Quản trị viên</div></div>
       </div>
       <a href="#" class="nav-item"><span class="ic">⚙️</span>Cài đặt</a>
-      <a href="#" class="nav-item"><span class="ic">↩</span>Đăng xuất</a>
+      <a href="admin-login.html" class="nav-item"><span class="ic">↩</span>Đăng xuất</a>
     </div>
   </div>
 
@@ -32,7 +32,7 @@
       <div><div class="breadcrumb">Quản trị / Hoạt động / Hồ sơ Hoạt động</div><h1>Hồ sơ Hoạt động</h1></div>
       <div class="header-right">
         <div class="bell">🔔<span class="badge-dot"></span></div>
-        <div class="who"><div class="avatar">A</div><div class="name">Admin Nhân</div><div class="chev">▾</div></div>
+        <div class="who"><div class="avatar">A</div><div class="name">Admin</div><div class="chev">▾</div></div>
       </div>
     </div>
 
@@ -50,9 +50,9 @@
       </div>
 
       <div class="quick-row" style="margin-bottom:24px;">
-        <button class="qa-btn">🙈 Ẩn Hoạt động</button>
+        <button class="qa-btn" id="toggleActivityVisibility">🙈 Ẩn Hoạt động</button>
         <button class="qa-btn">🔁 Đổi trạng thái</button>
-        <button class="qa-btn">✅ Đánh dấu đã xác minh</button>
+        <button class="qa-btn" id="approveActivity">✅ Duyệt Hoạt động</button>
       </div>
 
       <div class="profile-grid">
@@ -94,7 +94,7 @@
         <div class="card">
           <table>
             <thead><tr><th>Khách hàng</th><th>Ngày tham gia</th><th>Trạng thái</th><th>Đánh giá</th></tr></thead>
-            <tbody>
+            <tbody id="activityCustomerRows">
               <tr><td class="cell-title">Hoàng Minh</td><td>07/09/2026</td><td><span class="badge active">Đã tham gia</span></td><td>★★★★★</td></tr>
               <tr><td class="cell-title">Lê Thu</td><td>05/09/2026</td><td><span class="badge active">Đã tham gia</span></td><td>★★★★☆</td></tr>
               <tr><td class="cell-title">Đỗ Khánh Linh</td><td>02/09/2026</td><td><span class="badge pending">Đã đăng ký</span></td><td>—</td></tr>
@@ -113,5 +113,7 @@
     </div>
   </div>
 </div>
+<script src="js/admin-data.js"></script>
+<script src="js/activity-profile.js"></script>
 </body>
 </html>

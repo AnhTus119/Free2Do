@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>FREE2DO — Chi tiết hoạt động</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app-style.css">
+<style>
+  .gallery{display:grid;grid-template-columns:2fr 1fr 1fr;grid-template-rows:1fr 1fr;gap:8px;height:340px;border-radius:20px;overflow:hidden;margin-bottom:28px;}
+  .gallery div{display:flex;align-items:center;justify-content:center;font-size:36px;}
+  .gallery .g1{grid-row:1/3;background:#F3D9A6;}
+  .detail-grid{display:grid;grid-template-columns:1.6fr 1fr;gap:32px;align-items:start;}
+</style>
+</head>
+<body>
+
+<svg style="display:none" aria-hidden="true">
+  <symbol id="icon-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></symbol>
+  <symbol id="icon-bell" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M10 21a2 2 0 0 0 4 0"/></symbol>
+  <symbol id="icon-chevron-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></symbol>
+  <symbol id="icon-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></symbol>
+  <symbol id="icon-log-out" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></symbol>
+  <symbol id="icon-star" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15 9 22 9.5 16.5 14 18 21 12 17.3 6 21 7.5 14 2 9.5 9 9 12 2"/></symbol>
+  <symbol id="icon-flag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v18"/><path d="M5 4h11l-2 4 2 4H5"/></symbol>
+  <symbol id="icon-heart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7.5-4.7-10-9.3C.5 8 2.5 4 6.5 4c2 0 3.5 1.1 5.5 3.3C14 5.1 15.5 4 17.5 4c4 0 6 4 4.5 7.7C19.5 16.3 12 21 12 21z"/></symbol>
+</svg>
+
+<div class="navbar">
+  <div class="nav-left">
+    <a href="home.html" class="nav-logo" style="text-decoration:none; color:inherit;"><img src="Logo.svg" alt="logo" style="width:38px;height:auto;">FREE2DO</a>
+    <div class="nav-search">
+      <svg class="icon"><use href="#icon-search"></use></svg>
+      <input type="text" placeholder="Tìm hoạt động, địa điểm...">
+    </div>
+  </div>
+  <div class="nav-right">
+    <div class="nav-center">
+      <a href="home.html" class="nav-link">Trang chủ</a>
+      <a href="account.html#yeuthich" class="nav-link">Yêu thích</a>
+    </div>
+    <div class="nav-icon"><svg class="icon"><use href="#icon-bell"></use></svg><span class="dot-badge"></span></div>
+    <div class="nav-who" onclick="toggleUserMenu(event)">
+      <div class="nav-avatar">M</div><div class="nav-name">Minh</div>
+      <svg class="icon icon-sm"><use href="#icon-chevron-down"></use></svg>
+      <div class="nav-dropdown" id="user-dropdown">
+        <a href="account.html#hoso"><svg class="icon"><use href="#icon-user"></use></svg>Hồ sơ cá nhân</a>
+        <a href="#" class="logout"><svg class="icon"><use href="#icon-log-out"></use></svg>Đăng xuất</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="wrap" style="padding-top:28px;padding-bottom:60px;">
+  <a href="search.html" style="font-size:13px;color:var(--muted);text-decoration:none;">← Quay lại</a>
+
+  <div class="gallery" id="activityGallery" style="margin-top:16px;">
+    <div class="g1" id="galleryIcon">✨</div>
+    <div style="background:#EADFCB;">🖼️</div>
+    <div style="background:#F6D2D8;">🖼️</div>
+    <div style="background:#DDE3CB;">🖼️</div>
+    <div style="background:#E4D5EC;">🖼️</div>
+  </div>
+
+  <div class="detail-grid">
+    <div>
+      <h1 id="activityName" style="font-size:26px;font-weight:800;margin:0 0 6px;"></h1>
+      <div id="activityMeta" style="color:var(--muted);font-size:14px;margin-bottom:14px;"></div>
+
+      <div style="display:flex;gap:22px;flex-wrap:wrap;margin-bottom:20px;font-size:13.5px;">
+        <div><b id="activityPrice"></b><div style="color:var(--muted);font-size:12px;">Giá vé</div></div>
+        <div><b id="activityDuration"></b><div style="color:var(--muted);font-size:12px;">Thời lượng</div></div>
+        <div><b id="activityHours"></b><div style="color:var(--muted);font-size:12px;">Khung giờ</div></div>
+        <div><b id="activityDistance"></b><div style="color:var(--muted);font-size:12px;">Khoảng cách</div></div>
+      </div>
+
+      <div class="tag-row" id="activityTags" style="margin-bottom:20px;"></div>
+
+      <div class="section-title" style="font-size:16px;">Mô tả</div>
+      <p id="activityDescription" style="font-size:13.5px;line-height:1.7;color:var(--ink);"></p>
+
+      <div class="section-title" style="font-size:16px;margin-top:28px;">Vị trí</div>
+      <div class="map-box" style="height:220px;margin-top:12px;">
+        <div class="map-grid-bg"></div>
+        <div class="map-pin" id="activityMapPin" style="left:50%;top:45%;"></div>
+        <a href="#" class="btn btn-secondary map-cta" style="background:#fff;">Xem đường đi</a>
+      </div>
+
+      <div class="section-title" id="reviewsTitle" style="font-size:16px;margin-top:32px;"></div>
+      <div style="background:#fff;border:1px solid var(--line);border-radius:16px;padding:8px 20px;margin-top:12px;">
+        <div id="activityReviews"></div>
+      </div>
+    </div>
+
+    <div>
+      <div style="background:#fff;border:1px solid var(--line);border-radius:18px;padding:22px;position:sticky;top:90px;">
+        <div><b id="sideActivityPrice" style="font-size:22px;font-weight:800;"></b><span style="font-size:12px;font-weight:500;color:var(--muted);"> / người</span></div>
+        <div id="sideActivityMeta" style="font-size:12.5px;color:var(--muted);margin-bottom:18px;"></div>
+        <button class="btn btn-secondary btn-block favorite-btn" id="favoriteButton" type="button"><svg class="icon"><use href="#icon-heart"></use></svg> <span id="favoriteLabel">Lưu vào yêu thích</span></button>
+        <div style="text-align:center;margin-top:16px;">
+          <a href="#" style="font-size:12.5px;color:var(--muted);text-decoration:underline;"><svg class="icon icon-sm"><use href="#icon-flag"></use></svg> Báo cáo hoạt động này</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="../js/admin-data.js"></script>
+<script>
+const activityId = new URLSearchParams(window.location.search).get('id') || 'A001';
+const activityData = window.AdminData.activities.find(item => item.id === activityId);
+const FAVORITES_KEY = 'free2do-favorites';
+
+function getFavorites() {
+  try {
+    const stored = localStorage.getItem(FAVORITES_KEY);
+    if (stored === null) return ['A001', 'A013'];
+    return JSON.parse(stored);
+  } catch (error) {
+    return [];
+  }
+}
+
+function setFavoriteState(isFavorite) {
+  const button = document.getElementById('favoriteButton');
+  const label = document.getElementById('favoriteLabel');
+  if (!button || !label) return;
+  button.classList.toggle('is-favorite', isFavorite);
+  label.textContent = isFavorite ? 'Đã yêu thích' : 'Lưu vào yêu thích';
+}
+
+function toggleFavorite() {
+  const favorites = new Set(getFavorites());
+  if (favorites.has(activityId)) favorites.delete(activityId);
+  else favorites.add(activityId);
+  localStorage.setItem(FAVORITES_KEY, JSON.stringify([...favorites]));
+  setFavoriteState(favorites.has(activityId));
+}
+
+function escape(value) {
+  return window.AdminData.escapeHTML(String(value || ''));
+}
+
+function distanceFromUser(location) {
+  if (!location) return null;
+  const [latitude, longitude] = location.split(',').map(Number);
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
+  const latitudeDistance = (latitude - 21.0352) * 111;
+  const longitudeDistance = (longitude - 105.7944) * 111 * Math.cos(21.0352 * Math.PI / 180);
+  return Math.sqrt(latitudeDistance ** 2 + longitudeDistance ** 2);
+}
+
+function duration(hours) {
+  const times = String(hours).match(/(\d{1,2}):(\d{2})/g);
+  if (!times || times.length < 2) return 'Linh hoạt';
+  const toMinutes = value => { const [hour, minute] = value.split(':').map(Number); return hour * 60 + minute; };
+  let minutes = toMinutes(times[1]) - toMinutes(times[0]);
+  if (minutes < 0) minutes += 1440;
+  return `${Math.floor(minutes / 60)} giờ${minutes % 60 ? ` ${minutes % 60} phút` : ''}`;
+}
+
+function renderNotFound() {
+  document.querySelector('.wrap').innerHTML = '<div class="card" style="padding:24px;margin-top:20px;"><h2>Không tìm thấy hoạt động</h2><p>Hoạt động này không tồn tại trong dữ liệu chung.</p><a href="search.html" class="btn btn-secondary">Quay lại tìm kiếm</a></div>';
+}
+
+if (!activityData) {
+  renderNotFound();
+} else {
+  const businessName = window.AdminData.businessName(activityData);
+  const distance = distanceFromUser(activityData.location);
+  const participants = window.AdminData.participations.filter(item => item.activityId === activityData.id);
+  const ratedParticipants = participants.filter(item => item.rating > 0);
+  document.title = `FREE2DO — ${activityData.name}`;
+  document.getElementById('galleryIcon').textContent = activityData.icon || '✨';
+  document.getElementById('activityName').textContent = activityData.name;
+  document.getElementById('activityMeta').innerHTML = `${escape(businessName)} · <svg class="icon icon-sm"><use href="#icon-star"></use></svg> ${activityData.rating || 'Chưa có'} (${ratedParticipants.length} đánh giá) · ${escape(activityData.address)}`;
+  document.getElementById('activityPrice').textContent = activityData.price;
+  document.getElementById('activityDuration').textContent = duration(activityData.hours);
+  document.getElementById('activityHours').textContent = activityData.hours;
+  document.getElementById('activityDistance').textContent = distance === null ? '—' : `${distance.toFixed(1)} km`;
+  document.getElementById('activityTags').innerHTML = [activityData.category, 'Offline', 'Cá nhân/Nhóm'].map(tag => `<span class="tag">${escape(tag)}</span>`).join('');
+  document.getElementById('activityDescription').textContent = activityData.description;
+  document.getElementById('activityMapPin').textContent = `${activityData.icon || '✨'} ${activityData.name}`;
+  document.getElementById('reviewsTitle').textContent = `Đánh giá (${ratedParticipants.length})`;
+  document.getElementById('sideActivityPrice').textContent = activityData.price;
+  document.getElementById('sideActivityMeta').textContent = `${activityData.hours} · ${participants.length} lượt đăng ký`;
+  setFavoriteState(getFavorites().includes(activityId));
+  document.getElementById('favoriteButton').addEventListener('click', toggleFavorite);
+  document.getElementById('activityReviews').innerHTML = ratedParticipants.length ? ratedParticipants.map(item => {
+    const customer = window.AdminData.customers.find(entry => entry.id === item.customerId);
+    return `<div class="review-card"><div class="review-top"><div class="nav-avatar" style="width:28px;height:28px;font-size:11px;">${escape((customer?.name || '?')[0])}</div><div class="review-name">${escape(customer?.name || 'Khách hàng')}</div><div class="review-stars">${'★'.repeat(item.rating)}${'☆'.repeat(5 - item.rating)}</div><div class="review-date">${escape(item.date)}</div></div><div class="review-text">Đã tham gia hoạt động này.</div></div>`;
+  }).join('') : '<p style="padding:16px 0;color:var(--muted);">Chưa có đánh giá cho hoạt động này.</p>';
+}
+
+function toggleUserMenu(e){
+  e.stopPropagation();
+  document.getElementById('user-dropdown').classList.toggle('open');
+}
+document.addEventListener('click', function(){
+  const dd = document.getElementById('user-dropdown');
+  if(dd) dd.classList.remove('open');
+});
+</script>
+</body>
+</html>

@@ -12,18 +12,18 @@
     <div class="sidebar">
     <div class="side-logo"><img src="Vecto/Group.svg" alt="Customer"><span>FREE2DO</span></div>
     <div class="nav-group">
-      <a href="dashboard.html" class="nav-item active"><span class="ic"></span>Tổng quan</a>
+      <a href="dashboard.html" class="nav-item"><span class="ic"></span>Tổng quan</a>
       <a href="customers.html" class="nav-item"><span class="ic"></span>Khách hàng</a>
-      <a href="businesses.html" class="nav-item"><span class="ic"></span>Doanh nghiệp</a>
+      <a href="businesses.html" class="nav-item active"><span class="ic"></span>Doanh nghiệp</a>
       <a href="activities.html" class="nav-item"><span class="ic"></span>Hoạt động</a>
     </div>
     <div class="side-bottom">
       <div class="side-admin">
         <div class="side-avatar">A</div>
-        <div><div class="side-admin-name">Admin Nhân</div><div class="side-admin-role">Quản trị viên</div></div>
+        <div><div class="side-admin-name">Admin</div><div class="side-admin-role">Quản trị viên</div></div>
       </div>
       <a href="#" class="nav-item"><span class="ic">⚙️</span>Cài đặt</a>
-      <a href="#" class="nav-item"><span class="ic">↩</span>Đăng xuất</a>
+      <a href="admin-login.html" class="nav-item"><span class="ic">↩</span>Đăng xuất</a>
     </div>
   </div>
 
@@ -32,7 +32,7 @@
       <div><div class="breadcrumb">Quản trị / Doanh nghiệp / Hồ sơ Doanh nghiệp</div><h1>Hồ sơ Doanh nghiệp</h1></div>
       <div class="header-right">
         <div class="bell">🔔<span class="badge-dot"></span></div>
-        <div class="who"><div class="avatar">A</div><div class="name">Admin Nhân</div><div class="chev">▾</div></div>
+        <div class="who"><div class="avatar">A</div><div class="name">Admin</div><div class="chev">▾</div></div>
       </div>
     </div>
 
@@ -50,7 +50,7 @@
       </div>
 
       <div class="quick-row" style="margin-bottom:24px;">
-        <button class="qa-btn">🔒 Khóa Doanh nghiệp</button>
+        <button class="qa-btn" id="toggleBusinessStatus">🔒 Khóa Doanh nghiệp</button>
       </div>
 
       <div class="profile-grid">
@@ -75,11 +75,11 @@
       </div>
 
       <div class="section" style="margin-top:24px;">
-        <div class="section-head"><h3>Hoạt động của Doanh nghiệp này (3 chi nhánh)</h3><a href="activities.html" class="section-link">Xem tất cả →</a></div>
+        <div class="section-head"><h3 id="businessActivityTitle">Hoạt động của Doanh nghiệp này</h3><a href="activities.html" class="section-link">Xem tất cả →</a></div>
         <div class="card">
           <table>
             <thead><tr><th>Mã</th><th>Địa chỉ chi nhánh</th><th>Giờ mở cửa</th><th>Trạng thái</th><th>Hành động</th></tr></thead>
-            <tbody>
+            <tbody id="businessActivityRows">
               <tr><td>A004</td><td>697 Đ. Giải Phóng, Tương Mai, Hà Nội</td><td>Cả ngày</td><td><span class="badge active">Hoạt động</span></td><td><a class="row-btn" href="activity-profile.html">Xem</a></td></tr>
               <tr><td>A005</td><td>20 Ng.165 Đ. Cầu Giấy, Hà Nội</td><td>Cả ngày</td><td><span class="badge active">Hoạt động</span></td><td><a class="row-btn" href="activity-profile.html">Xem</a></td></tr>
               <tr><td>A006</td><td>713 Đ. Hoàng Hoa Thám, Hà Nội</td><td>Cả ngày</td><td><span class="badge active">Hoạt động</span></td><td><a class="row-btn" href="activity-profile.html">Xem</a></td></tr>
@@ -91,5 +91,7 @@
     </div>
   </div>
 </div>
+<script src="js/admin-data.js"></script>
+<script src="js/business-profile.js"></script>
 </body>
 </html>

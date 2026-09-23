@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>FREE2DO — Tài khoản của tôi</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app-style.css">
+</head>
+<body>
+
+<svg style="display:none" aria-hidden="true">
+  <symbol id="icon-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></symbol>
+  <symbol id="icon-bell" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M10 21a2 2 0 0 0 4 0"/></symbol>
+  <symbol id="icon-chevron-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></symbol>
+  <symbol id="icon-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></symbol>
+  <symbol id="icon-log-out" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></symbol>
+  <symbol id="icon-edit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></symbol>
+  <symbol id="icon-heart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7.5-4.7-10-9.3C.5 8 2.5 4 6.5 4c2 0 3.5 1.1 5.5 3.3C14 5.1 15.5 4 17.5 4c4 0 6 4 4.5 7.7C19.5 16.3 12 21 12 21z"/></symbol>
+  <symbol id="icon-calendar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><line x1="16" y1="3" x2="16" y2="7"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="3" y1="10" x2="21" y2="10"/></symbol>
+  <symbol id="icon-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/></symbol>
+  <symbol id="icon-wallet" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h13a1 1 0 0 1 1 1v2"/><rect x="3" y="7" width="18" height="12" rx="2"/><circle cx="16" cy="13" r="1.2" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="icon-map-pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.5 7-11a7 7 0 0 0-14 0c0 4.5 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></symbol>
+  <symbol id="icon-star" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15 9 22 9.5 16.5 14 18 21 12 17.3 6 21 7.5 14 2 9.5 9 9 12 2"/></symbol>
+  <symbol id="icon-building" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="1"/><line x1="8" y1="7" x2="8" y2="7.01"/><line x1="12" y1="7" x2="12" y2="7.01"/><line x1="16" y1="7" x2="16" y2="7.01"/><line x1="8" y1="11" x2="8" y2="11.01"/><line x1="12" y1="11" x2="12" y2="11.01"/><line x1="16" y1="11" x2="16" y2="11.01"/><line x1="8" y1="15" x2="8" y2="15.01"/><line x1="12" y1="15" x2="12" y2="15.01"/><line x1="16" y1="15" x2="16" y2="15.01"/><path d="M9 21v-3h6v3"/></symbol>
+</svg>
+
+<div class="navbar">
+  <div class="nav-left">
+    <a href="home.html" class="nav-logo" style="text-decoration:none; color:inherit;"><img src="Logo.svg" alt="logo" style="width:38px;height:auto;">FREE2DO</a>
+    <div class="nav-search">
+      <svg class="icon"><use href="#icon-search"></use></svg>
+      <input type="text" placeholder="Tìm hoạt động, địa điểm...">
+    </div>
+  </div>
+  <div class="nav-right">
+    <div class="nav-center">
+      <a href="home.html" class="nav-link">Trang chủ</a>
+      <a href="account.html#yeuthich" class="nav-link active" onclick="selectTab('yeuthich')">Yêu thích</a>
+    </div>
+    <div class="nav-icon"><svg class="icon"><use href="#icon-bell"></use></svg><span class="dot-badge"></span></div>
+    <div class="nav-who" onclick="toggleUserMenu(event)">
+      <div class="nav-avatar">M</div><div class="nav-name">Minh</div>
+      <svg class="icon icon-sm"><use href="#icon-chevron-down"></use></svg>
+      <div class="nav-dropdown" id="user-dropdown">
+        <a href="account.html#hoso"><svg class="icon"><use href="#icon-user"></use></svg>Hồ sơ cá nhân</a>
+        <a href="#" class="logout"><svg class="icon"><use href="#icon-log-out"></use></svg>Đăng xuất</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="wrap" style="padding-top:32px;padding-bottom:60px;max-width:900px;">
+
+  <div class="tabs" id="main-tabs">
+    <button class="tab-btn" data-tab="yeuthich" onclick="selectTab('yeuthich')">Yêu thích</button>
+    <button class="tab-btn" data-tab="lichsu" onclick="selectTab('lichsu')">Lịch sử tìm kiếm</button>
+  </div>
+
+  <!-- ===== HỒ SƠ CÁ NHÂN ===== -->
+  <div class="tab-pane" id="pane-hoso">
+    <div style="display:flex;align-items:center;gap:18px;margin-bottom:28px;">
+      <div class="nav-avatar" style="width:64px;height:64px;font-size:22px;">M</div>
+      <div>
+        <div style="font-size:19px;font-weight:800;">Nguyễn Đăng Minh</div>
+        <div style="color:var(--muted);font-size:13px;">minh.nguyen@gmail.com · 0987 654 321</div>
+      </div>
+      <button class="btn btn-secondary" style="margin-left:auto;" onclick="toggleEdit()"><svg class="icon"><use href="#icon-edit"></use></svg> Chỉnh sửa thông tin</button>
+    </div>
+
+    <div id="view-mode" style="background:#fff;border:1px solid var(--line);border-radius:16px;padding:22px;margin-bottom:20px;">
+      <div class="section-title" style="font-size:15px;margin-bottom:14px;">Sở thích của tôi</div>
+      <div class="chip-row">
+        <div class="chip active">Workshop</div><div class="chip active">Ăn uống</div><div class="chip active">Nghệ thuật</div><div class="chip">Thể thao</div><div class="chip">Du lịch</div>
+      </div>
+    </div>
+
+    <div id="edit-mode" style="display:none;background:#fff;border:1px solid var(--line);border-radius:16px;padding:22px;margin-bottom:20px;">
+      <div class="field"><label>Họ và tên</label><input type="text" value="Nguyễn Đăng Minh"></div>
+      <div class="field"><label>Email</label><input type="text" value="minh.nguyen@gmail.com"></div>
+      <div class="field"><label>Số điện thoại</label><input type="text" value="0987 654 321"></div>
+      <div class="field">
+        <label>Sở thích</label>
+        <div class="chip-row">
+          <div class="chip active">Workshop</div><div class="chip active">Ăn uống</div><div class="chip active">Nghệ thuật</div><div class="chip">Thể thao</div><div class="chip">Âm nhạc</div><div class="chip">Du lịch</div><div class="chip">Học tập</div><div class="chip">Giải trí</div>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="saveProfile()">Lưu thay đổi</button>
+    </div>
+    <div id="save-toast" style="display:none;background:var(--success-bg);color:var(--success);padding:12px 16px;border-radius:12px;font-size:13.5px;font-weight:600;">✓ Cập nhật thông tin thành công.</div>
+
+    <a href="become-business.html" class="btn btn-secondary btn-block" style="margin-top:8px;"><svg class="icon"><use href="#icon-building"></use></svg> Trở thành Business</a>
+  </div>
+
+  <!-- ===== YÊU THÍCH ===== -->
+  <div class="tab-pane" id="pane-yeuthich">
+    <div class="activity-grid" id="favoriteActivities" style="grid-template-columns:repeat(2,1fr);"></div>
+    <div class="empty-state" id="favoriteEmptyState" style="display:none;">
+      <svg class="icon" style="width:36px;height:36px;color:var(--rose);"><use href="#icon-heart"></use></svg>
+      <p>Bạn chưa lưu hoạt động nào.</p>
+      <a href="search.html" class="btn btn-primary">Khám phá hoạt động phù hợp với bạn →</a>
+    </div>
+    <!-- Danh sách mẫu được render từ dữ liệu và localStorage -->
+    <div style="display:none;">
+      <div class="activity-card">
+        <div class="activity-img" style="background:#F3D9A6;">🏺</div>
+        <div class="activity-body">
+          <div class="activity-title">Whimsical Crown</div>
+          <div class="activity-meta"><svg class="icon icon-sm"><use href="#icon-star"></use></svg> 4.8 · <span class="activity-price">200.000 ₫</span> · 1.2 km · Thứ 7, 14:00</div>
+          <div style="display:flex;gap:8px;margin-top:10px;">
+            <a href="activity-detail.html?id=A001" class="btn btn-secondary" style="height:36px;padding:0 14px;font-size:12.5px;">Xem chi tiết</a>
+            <button class="btn btn-ghost" style="height:36px;padding:0 10px;font-size:12.5px;">Xóa khỏi yêu thích</button>
+          </div>
+        </div>
+      </div>
+      <div class="activity-card">
+        <div class="activity-img" style="background:#DDE3CB;">🎱</div>
+        <div class="activity-body">
+          <div class="activity-title">Bi-a Batuna Billiards</div>
+          <div class="activity-meta"><svg class="icon icon-sm"><use href="#icon-star"></use></svg> 4.6 · <span class="activity-price">100.000 ₫</span> · 0.8 km · Cả ngày</div>
+          <div style="display:flex;gap:8px;margin-top:10px;">
+            <a href="activity-detail.html?id=A013" class="btn btn-secondary" style="height:36px;padding:0 14px;font-size:12.5px;">Xem chi tiết</a>
+            <button class="btn btn-ghost" style="height:36px;padding:0 10px;font-size:12.5px;">Xóa khỏi yêu thích</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== LỊCH SỬ TÌM KIẾM ===== -->
+  <div class="tab-pane" id="pane-lichsu">
+    <div style="display:flex;justify-content:flex-end;margin-bottom:14px;">
+      <button class="btn btn-ghost" style="height:auto;padding:0;">Xóa lịch sử</button>
+    </div>
+
+    <div class="history-row">
+      <div>
+        <div style="font-weight:700;font-size:14px;">"Workshop"</div>
+        <div class="history-tags">
+          <span><svg class="icon icon-sm"><use href="#icon-calendar"></use></svg> 16/09/2026</span><span><svg class="icon icon-sm"><use href="#icon-clock"></use></svg> Rảnh 2 giờ</span><span><svg class="icon icon-sm"><use href="#icon-wallet"></use></svg> ≤ 200.000 ₫</span><span><svg class="icon icon-sm"><use href="#icon-map-pin"></use></svg> Cầu Giấy, 5 km</span>
+        </div>
+      </div>
+      <a href="activity-detail.html?id=A001" class="btn btn-secondary">Tìm lại</a>
+    </div>
+    <div class="history-row">
+      <div>
+        <div style="font-weight:700;font-size:14px;">"Bida"</div>
+        <div class="history-tags">
+          <span><svg class="icon icon-sm"><use href="#icon-calendar"></use></svg> 12/09/2026</span><span><svg class="icon icon-sm"><use href="#icon-clock"></use></svg> Rảnh 3+ giờ</span><span><svg class="icon icon-sm"><use href="#icon-wallet"></use></svg> ≤ 150.000 ₫</span><span><svg class="icon icon-sm"><use href="#icon-map-pin"></use></svg> Bạch Mai, 3 km</span>
+        </div>
+      </div>
+      <a href="activity-detail.html?id=A013" class="btn btn-secondary">Tìm lại</a>
+    </div>
+    <div class="history-row">
+      <div>
+        <div style="font-weight:700;font-size:14px;">"Cà phê học bài"</div>
+        <div class="history-tags">
+          <span><svg class="icon icon-sm"><use href="#icon-calendar"></use></svg> 08/09/2026</span><span><svg class="icon icon-sm"><use href="#icon-clock"></use></svg> Rảnh 3+ giờ</span><span><svg class="icon icon-sm"><use href="#icon-wallet"></use></svg> Dưới 100.000 ₫</span><span><svg class="icon icon-sm"><use href="#icon-map-pin"></use></svg> Hai Bà Trưng, 2 km</span>
+        </div>
+      </div>
+      <a href="activity-detail.html?id=A025" class="btn btn-secondary">Tìm lại</a>
+    </div>
+  </div>
+
+</div>
+
+<script src="../js/admin-data.js"></script>
+<script>
+const FAVORITES_KEY = 'free2do-favorites';
+
+function getFavorites() {
+  try {
+    const stored = localStorage.getItem(FAVORITES_KEY);
+    if (stored === null) return ['A001', 'A013'];
+    return JSON.parse(stored);
+  } catch (error) {
+    return [];
+  }
+}
+
+function renderFavorites() {
+  const container = document.getElementById('favoriteActivities');
+  const emptyState = document.getElementById('favoriteEmptyState');
+  const favoriteIds = getFavorites();
+  const activities = window.AdminData.activities.filter(activity => favoriteIds.includes(activity.id));
+  container.innerHTML = activities.map(activity => `<div class="activity-card">
+    <div class="activity-img" style="background:#F3D9A6;">${activity.icon || '✨'}</div>
+    <div class="activity-body">
+      <div class="activity-title">${window.AdminData.escapeHTML(activity.name)}</div>
+      <div class="activity-biz">${window.AdminData.escapeHTML(window.AdminData.businessName(activity))}</div>
+      <div class="activity-meta">★ ${activity.rating || '—'} · <span class="activity-price">${window.AdminData.escapeHTML(activity.price)}</span> · ${window.AdminData.escapeHTML(activity.hours)}</div>
+      <div style="display:flex;gap:8px;margin-top:10px;">
+        <a href="activity-detail.html?id=${encodeURIComponent(activity.id)}" class="btn btn-secondary" style="height:36px;padding:0 14px;font-size:12.5px;">Xem chi tiết</a>
+        <button class="btn btn-ghost remove-favorite" data-activity-id="${window.AdminData.escapeHTML(activity.id)}" style="height:36px;padding:0 10px;font-size:12.5px;">Xóa khỏi yêu thích</button>
+      </div>
+    </div>
+  </div>`).join('');
+  emptyState.style.display = activities.length ? 'none' : 'block';
+}
+
+document.getElementById('favoriteActivities').addEventListener('click', function (event) {
+  const button = event.target.closest('.remove-favorite');
+  if (!button) return;
+  const favorites = getFavorites().filter(id => id !== button.dataset.activityId);
+  localStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites));
+  renderFavorites();
+});
+
+function selectTab(name){
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.toggle('active', p.id==='pane-'+name));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.tab===name));
+}
+function toggleEdit(){
+  const editing = document.getElementById('edit-mode').style.display === 'block';
+  document.getElementById('edit-mode').style.display = editing ? 'none':'block';
+  document.getElementById('view-mode').style.display = editing ? 'block':'none';
+}
+function saveProfile(){
+  toggleEdit();
+  const toast = document.getElementById('save-toast');
+  toast.style.display='block';
+  setTimeout(()=>toast.style.display='none', 2500);
+}
+function toggleUserMenu(e){
+  e.stopPropagation();
+  document.getElementById('user-dropdown').classList.toggle('open');
+}
+document.addEventListener('click', function(){
+  const dd = document.getElementById('user-dropdown');
+  if(dd) dd.classList.remove('open');
+});
+function handleHashChange() {
+  const hash = window.location.hash.replace('#','');
+  const target = hash === 'lichsu' || hash === 'hoso' ? hash : 'yeuthich';
+  selectTab(target);
+  
+  const tabsDiv = document.getElementById('main-tabs');
+  if (tabsDiv) {
+    tabsDiv.style.display = target === 'hoso' ? 'none' : 'flex';
+  }
+
+  const yeuthichLink = document.querySelector('.nav-center a[href="account.html#yeuthich"]');
+  if (yeuthichLink) {
+    if (target === 'yeuthich' || target === 'lichsu') {
+      yeuthichLink.classList.add('active');
+    } else {
+      yeuthichLink.classList.remove('active');
+    }
+  }
+}
+window.addEventListener('hashchange', handleHashChange);
+handleHashChange();
+renderFavorites();
+</script>
+</body>
+</html>

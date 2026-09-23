@@ -12,18 +12,18 @@
     <div class="sidebar">
     <div class="side-logo"><img src="Vecto/Group.svg" alt="Customer"><span>FREE2DO</span></div>
     <div class="nav-group">
-      <a href="dashboard.html" class="nav-item active"><span class="ic"></span>Tổng quan</a>
-      <a href="customers.html" class="nav-item"><span class="ic"></span>Khách hàng</a>
+      <a href="dashboard.html" class="nav-item"><span class="ic"></span>Tổng quan</a>
+      <a href="customers.html" class="nav-item active"><span class="ic"></span>Khách hàng</a>
       <a href="businesses.html" class="nav-item"><span class="ic"></span>Doanh nghiệp</a>
       <a href="activities.html" class="nav-item"><span class="ic"></span>Hoạt động</a>
     </div>
     <div class="side-bottom">
       <div class="side-admin">
         <div class="side-avatar">A</div>
-        <div><div class="side-admin-name">Admin Nhân</div><div class="side-admin-role">Quản trị viên</div></div>
+        <div><div class="side-admin-name">Admin</div><div class="side-admin-role">Quản trị viên</div></div>
       </div>
       <a href="#" class="nav-item"><span class="ic">⚙️</span>Cài đặt</a>
-      <a href="#" class="nav-item"><span class="ic">↩</span>Đăng xuất</a>
+      <a href="admin-login.html" class="nav-item"><span class="ic">↩</span>Đăng xuất</a>
     </div>
   </div>
 
@@ -33,7 +33,7 @@
       <div><div class="breadcrumb">Quản trị / Khách hàng / Hồ sơ Khách hàng</div><h1>Hồ sơ Khách hàng</h1></div>
       <div class="header-right">
         <div class="bell">🔔<span class="badge-dot"></span></div>
-        <div class="who"><div class="avatar">A</div><div class="name">Admin Nhân</div><div class="chev">▾</div></div>
+        <div class="who"><div class="avatar">A</div><div class="name">Admin</div><div class="chev">▾</div></div>
       </div>
     </div>
 
@@ -51,7 +51,7 @@
       </div>
 
       <div class="quick-row" style="margin-bottom:24px;">
-        <button class="qa-btn">🔒 Khóa tài khoản</button>
+        <button class="qa-btn" id="toggleCustomerStatus">🔒 Khóa tài khoản</button>
         <button class="qa-btn">✉️ Gửi thông báo</button>
       </div>
 
@@ -81,7 +81,7 @@
         <div class="card">
           <table>
             <thead><tr><th>Hoạt động</th><th>Doanh nghiệp</th><th>Ngày tham gia</th><th>Trạng thái</th><th>Đánh giá</th></tr></thead>
-            <tbody>
+            <tbody id="customerActivityRows">
               <tr><td class="cell-title">Whimsical Crown</td><td>She.slays</td><td>07/09/2026</td><td><span class="badge active">Đã tham gia</span></td><td>★★★★★</td></tr>
               <tr><td class="cell-title">Tập Gym & Fitness</td><td>Fitness</td><td>05/09/2026</td><td><span class="badge active">Đã tham gia</span></td><td>★★★★☆</td></tr>
               <tr><td class="cell-title">Bi-a Batuna Billiards</td><td>Bi-a Batuna Billiards</td><td>02/09/2026</td><td><span class="badge active">Đã tham gia</span></td><td>★★★★★</td></tr>
@@ -102,5 +102,7 @@
     </div>
   </div>
 </div>
+<script src="js/admin-data.js"></script>
+<script src="js/customer-profile.js"></script>
 </body>
 </html>

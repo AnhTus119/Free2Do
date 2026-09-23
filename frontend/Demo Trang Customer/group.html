@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>FREE2DO — Lên kế hoạch nhóm</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app-style.css">
+<style>
+  .member-card{display:flex;align-items:center;gap:14px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:12px;}
+  .member-avatar{width:42px;height:42px;border-radius:50%;background:var(--cream);color:var(--brown);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex:0 0 auto;}
+  .member-name{font-weight:700;font-size:14px;}
+  .member-crit{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:4px;}
+  .member-match{margin-left:auto;text-align:right;flex:0 0 auto;}
+  .member-match .pct{font-size:18px;font-weight:800;color:var(--rose-dark);}
+  .member-match .lbl{font-size:11px;color:var(--muted);}
+  .add-member-btn{display:flex;align-items:center;justify-content:center;gap:6px;border:1.5px dashed var(--line);border-radius:14px;padding:14px 16px;text-align:center;color:var(--muted);font-size:13.5px;font-weight:600;cursor:pointer;margin-bottom:20px;}
+  .add-member-btn:hover{border-color:var(--rose);color:var(--rose-dark);}
+
+  .group-result{background:#fff;border:1px solid var(--line);border-radius:18px;padding:22px;margin-top:24px;}
+  .group-avg{text-align:center;padding:16px 0;border-bottom:1px solid var(--line);margin-bottom:16px;}
+  .group-avg .pct{font-size:30px;font-weight:800;color:var(--rose-dark);}
+  .group-avg .lbl{font-size:13px;color:var(--muted);}
+
+  .cost-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px;}
+  .cost-stat{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px;text-align:center;}
+  .cost-stat .num{font-size:20px;font-weight:800;}
+  .cost-stat .lbl{font-size:12px;color:var(--muted);margin-top:4px;}
+
+  .split-row{display:flex;align-items:center;gap:14px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:10px;}
+  .split-amount{font-size:13.5px;font-weight:700;margin-left:auto;}
+  .payment-actions{display:flex;gap:7px;margin-left:8px;}
+  .payment-actions .btn{height:32px;padding:0 10px;font-size:11.5px;}
+  .pay-badge{display:inline-block;margin-left:10px;padding:4px 12px;border-radius:100px;font-size:11.5px;font-weight:700;vertical-align:middle;}
+  .pay-badge.paid{background:var(--success-bg);color:var(--success);}
+  .pay-badge.unpaid{background:var(--warn-bg);color:var(--warn);}
+  .group-overlay{position:fixed;inset:0;background:rgba(43,36,32,.42);display:none;align-items:center;justify-content:center;padding:20px;z-index:80;}
+  .group-overlay.open{display:flex;}
+  .group-modal{width:min(680px,100%);max-height:90vh;overflow:auto;background:#fff;border-radius:20px;padding:24px;box-shadow:0 24px 70px rgba(43,36,32,.25);}
+  .group-modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:20px;}
+  .group-modal-head h2{font-size:20px;margin:0 0 5px;}
+  .group-modal-head p{font-size:13px;color:var(--muted);margin:0;}
+  .modal-close{border:0;background:var(--paper);color:var(--brown);border-radius:50%;width:32px;height:32px;font-size:18px;cursor:pointer;}
+  .invite-row{display:grid;grid-template-columns:minmax(0,1fr) 150px;gap:8px;margin-bottom:20px;}
+  .invite-row input{width:100%;height:42px;border:1.5px solid var(--line);border-radius:10px;padding:0 12px;color:var(--muted);font-family:inherit;font-size:13px;background:#fff;}
+  .copy-link-btn{height:42px;border:1.5px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);cursor:pointer;font:700 12.5px 'Inter',sans-serif;padding:0 12px;}
+  .copy-link-btn:hover{border-color:var(--rose);color:var(--rose-dark);}
+  .member-form{border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:12px;position:relative;}
+  .remove-member-btn{position:absolute;right:12px;top:12px;border:0;background:transparent;color:var(--danger);font-size:20px;line-height:1;cursor:pointer;}
+  .member-form h3{font-size:14px;margin:0 0 14px;}
+  .member-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .member-form label{display:block;font-size:12px;font-weight:700;color:var(--brown);}
+  .member-form input{width:100%;height:38px;margin-top:6px;border:1.5px solid var(--line);border-radius:9px;padding:0 10px;font-family:inherit;font-size:13px;}
+  .member-form input:focus{outline:none;border-color:var(--rose);}
+  .member-form .interest-input{grid-column:1/-1;}
+  .interest-chips{display:flex;gap:7px;flex-wrap:wrap;margin-top:7px;}
+  .interest-option{position:relative;}
+  .interest-option input{position:absolute;opacity:0;pointer-events:none;}
+  .interest-option span{display:block;border:1.5px solid var(--line);border-radius:100px;padding:7px 11px;font-size:11.5px;font-weight:600;cursor:pointer;color:var(--ink);background:#fff;}
+  .interest-option input:checked + span{background:var(--ink);color:#fff;border-color:var(--ink);}
+  .suggestions{display:none;margin-top:24px;border-top:1px solid var(--line);padding-top:18px;}
+  .suggestions-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;}
+  .suggestion-card{display:block;border:1px solid var(--line);border-radius:14px;padding:14px;text-decoration:none;color:var(--ink);cursor:pointer;background:#fff;}
+  .suggestion-card:hover{border-color:var(--rose);}
+  .activity-overlay-card{width:min(560px,100%);}
+  .activity-popup-meta{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px;font-size:13px;}
+  .activity-popup-meta div{background:var(--paper);border-radius:10px;padding:10px;}
+  .group-actions{display:flex;gap:10px;margin-top:18px;}
+  .group-actions .btn{flex:1;}
+  .member-edit-modal{width:min(620px,100%);}
+  .member-edit-heading{display:flex;align-items:center;gap:12px;}
+  .member-edit-heading .member-avatar{width:46px;height:46px;background:var(--cream);font-size:17px;}
+  .member-edit-heading strong{display:block;font-size:20px;line-height:1.2;}
+  .member-edit-heading span{display:block;color:var(--muted);font-size:12px;margin-top:4px;}
+  .member-edit-fields{display:grid;grid-template-columns:1fr 1fr;gap:14px 16px;}
+  .member-edit-field{display:block;font-size:12px;font-weight:700;color:var(--brown);}
+  .member-edit-field input{width:100%;height:42px;margin-top:7px;border:1.5px solid var(--line);border-radius:10px;padding:0 12px;background:#fff;color:var(--ink);font:13px 'Inter',sans-serif;}
+  .member-edit-field input:focus{outline:none;border-color:var(--rose);box-shadow:0 0 0 3px rgba(219,102,128,.12);}
+  .member-edit-interests{grid-column:1/-1;padding-top:2px;}
+  .member-edit-interests > label{display:block;font-size:12px;font-weight:700;color:var(--brown);margin-bottom:8px;}
+  .member-edit-footer{border-top:1px solid var(--line);padding-top:16px;margin-top:22px;}
+  .created-members{display:none;}
+  @media (max-width:600px){.member-form-grid,.member-edit-fields{grid-template-columns:1fr;}.member-form .interest-input,.member-edit-interests{grid-column:auto;}.group-actions{flex-direction:column;}.suggestions-grid{grid-template-columns:1fr;}.activity-popup-meta{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+
+<svg style="display:none" aria-hidden="true">
+  <symbol id="icon-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></symbol>
+  <symbol id="icon-bell" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M10 21a2 2 0 0 0 4 0"/></symbol>
+  <symbol id="icon-chevron-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></symbol>
+  <symbol id="icon-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></symbol>
+  <symbol id="icon-log-out" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></symbol>
+  <symbol id="icon-users" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.5"/><path d="M15.5 14.2c2.3.4 4 2.4 4 5.8"/></symbol>
+  <symbol id="icon-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/></symbol>
+  <symbol id="icon-map-pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.5 7-11a7 7 0 0 0-14 0c0 4.5 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></symbol>
+  <symbol id="icon-wallet" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h13a1 1 0 0 1 1 1v2"/><rect x="3" y="7" width="18" height="12" rx="2"/><circle cx="16" cy="13" r="1.2" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="icon-sparkles" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3z"/><path d="M19 15l.7 2.1L22 18l-2.3.9L19 21l-.7-2.1L16 18l2.3-.9L19 15z"/></symbol>
+  <symbol id="icon-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></symbol>
+</svg>
+
+<div class="navbar">
+  <div class="nav-left">
+    <a href="home.html" class="nav-logo" style="text-decoration:none; color:inherit;"><img src="Logo.svg" alt="logo" style="width:38px;height:auto;">FREE2DO</a>
+    <div class="nav-search"><svg class="icon"><use href="#icon-search"></use></svg><input type="text" placeholder="Tìm hoạt động, địa điểm..."></div>
+  </div>
+  <div class="nav-right">
+    <div class="nav-center"><a href="home.html" class="nav-link">Trang chủ</a><a href="account.html#yeuthich" class="nav-link">Yêu thích</a></div>
+    <div class="nav-icon"><svg class="icon"><use href="#icon-bell"></use></svg><span class="dot-badge"></span></div>
+    <div class="nav-who" onclick="toggleUserMenu(event)"><div class="nav-avatar">M</div><div class="nav-name">Minh</div><svg class="icon icon-sm"><use href="#icon-chevron-down"></use></svg><div class="nav-dropdown" id="user-dropdown"><a href="account.html#hoso"><svg class="icon"><use href="#icon-user"></use></svg>Hồ sơ cá nhân</a><a href="#" class="logout"><svg class="icon"><use href="#icon-log-out"></use></svg>Đăng xuất</a></div></div>
+  </div>
+</div>
+
+<div class="wrap" style="padding-top:32px;padding-bottom:60px;max-width:900px;">
+  <div class="section-title"><svg class="icon icon-lg"><use href="#icon-users"></use></svg> Lên kế hoạch nhóm</div>
+  <div class="section-sub">Mỗi người có thời gian, vị trí, ngân sách và sở thích khác nhau — FREE2DO tìm hoạt động phù hợp nhất cho cả nhóm.</div>
+
+  <div class="tabs">
+    <button class="tab-btn" data-tab="matching" onclick="selectTab('matching')">Ghép lịch nhóm</button>
+    <button class="tab-btn" data-tab="expense" onclick="selectTab('expense')">Chia chi phí</button>
+  </div>
+
+  <!-- ===== TAB 1: GHÉP LỊCH NHÓM ===== -->
+  <div class="tab-pane" id="pane-matching">
+    <div id="groupStart" style="background:#fff;border:1px solid var(--line);border-radius:18px;padding:28px;text-align:center;">
+      <div class="section-title" style="font-size:18px;">Bắt đầu ghép lịch nhóm</div>
+      <p class="section-sub" style="margin-bottom:18px;">Tạo nhóm, thêm thông tin thành viên rồi tìm hoạt động phù hợp cho tất cả.</p>
+      <button class="btn btn-primary" type="button" onclick="openGroupModal()"><svg class="icon icon-white"><use href="#icon-users"></use></svg> Tạo nhóm</button>
+    </div>
+
+    <div class="created-members" id="createdMembers">
+      <div class="section-title" id="memberCountTitle" style="font-size:15px;"></div>
+      <div id="memberCards"></div>
+      <button class="btn btn-primary btn-block" type="button" onclick="showGroupResult()">Tìm hoạt động phù hợp cho cả nhóm</button>
+    </div>
+
+    <div class="group-result" id="group-result" style="display:none;">
+      <div id="bestMatch"></div>
+      <div class="suggestions" id="suggestions">
+        <div class="section-title" style="font-size:15px;">Gợi ý phù hợp khác</div>
+        <div class="suggestions-grid" id="suggestionCards"></div>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:20px;">
+        <button class="btn btn-primary" style="flex:1;" onclick="selectTab('expense')">Chốt hoạt động & Chia chi phí</button>
+        <button class="btn btn-secondary" type="button" id="suggestionsToggle" onclick="toggleSuggestions()">Xem gợi ý khác</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="group-overlay" id="groupOverlay" role="dialog" aria-modal="true" aria-labelledby="groupModalTitle">
+    <div class="group-modal">
+      <div class="group-modal-head">
+        <div><h2 id="groupModalTitle">Tạo nhóm ghép lịch</h2><p>Mời bạn bè hoặc nhập thông tin từng thành viên.</p></div>
+        <button class="modal-close" type="button" onclick="closeGroupModal()" aria-label="Đóng">×</button>
+      </div>
+      <div class="invite-row">
+        <input id="inviteLink" type="text" readonly placeholder="Link mời tham gia nhóm">
+        <button class="copy-link-btn" type="button" id="copyInviteButton" onclick="createInviteLink()">Tạo link nhóm</button>
+      </div>
+      <div id="memberForms"></div>
+      <button class="add-member-btn" type="button" onclick="addMemberForm()"><svg class="icon"><use href="#icon-plus"></use></svg> Thêm thành viên</button>
+      <div class="group-actions">
+        <button class="btn btn-secondary" type="button" onclick="closeGroupModal()">Hủy</button>
+        <button class="btn btn-primary" type="button" onclick="createGroup()">Tạo nhóm</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="group-overlay" id="memberEditOverlay" role="dialog" aria-modal="true" aria-labelledby="memberEditTitle">
+    <div class="group-modal member-edit-modal">
+      <div class="group-modal-head"><div class="member-edit-heading"><div class="member-avatar" id="memberEditAvatar"></div><div><strong id="memberEditTitle"></strong><span>Thông tin thành viên</span></div></div><button class="modal-close" type="button" onclick="closeMemberEdit()">×</button></div>
+      <div class="member-edit-fields" id="memberEditFields"></div>
+      <div class="group-actions member-edit-footer"><button class="btn btn-secondary" type="button" onclick="closeMemberEdit()">Hủy</button><button class="btn btn-primary" type="button" onclick="saveMemberEdit()">Lưu thay đổi</button></div>
+    </div>
+  </div>
+
+  <div class="group-overlay" id="activityOverlay" role="dialog" aria-modal="true" aria-labelledby="activityPopupTitle">
+    <div class="group-modal activity-overlay-card"><div class="group-modal-head"><div><h2 id="activityPopupTitle">Chi tiết hoạt động</h2></div><button class="modal-close" type="button" onclick="closeActivityPopup()">×</button></div><div id="activityPopupBody"></div></div>
+  </div>
+
+  <!-- ===== TAB 2: CHIA CHI PHÍ ===== -->
+  <div class="tab-pane" id="pane-expense">
+    <div id="expenseActivity"></div>
+    <div class="cost-stats">
+      <div class="cost-stat"><div class="num" id="expenseTotal">0 ₫</div><div class="lbl">Tổng chi phí</div></div>
+      <div class="cost-stat"><div class="num" id="expensePerPerson">0 ₫</div><div class="lbl">Chi phí mỗi người</div></div>
+      <div class="cost-stat"><div class="num" id="expensePaid" style="color:var(--success);">0 ₫</div><div class="lbl">Đã thu</div></div>
+      <div class="cost-stat"><div class="num" id="expenseMissing" style="color:var(--warn);">0 ₫</div><div class="lbl">Còn thiếu</div></div>
+    </div>
+
+    <div class="section-title" style="font-size:15px;">Chi tiết thanh toán</div>
+
+    <div id="paymentRows"></div>
+
+  </div>
+
+</div>
+
+<script src="../js/admin-data.js"></script>
+<script>
+let memberFormCount = 0;
+let groupMembers = [];
+let editingMemberIndex = -1;
+let selectedActivity = null;
+let paymentStates = [];
+
+function openGroupModal(){
+  document.getElementById('groupOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  if (!document.getElementById('memberForms').children.length) addMemberForm();
+}
+function closeGroupModal(){
+  document.getElementById('groupOverlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+function addMemberForm(){
+  memberFormCount += 1;
+  const form = document.createElement('div');
+  form.className = 'member-form';
+  form.dataset.memberNumber = memberFormCount;
+  form.innerHTML = `<button class="remove-member-btn" type="button" onclick="removeMemberForm(this)" aria-label="Xóa thành viên">×</button><h3>Thành viên ${memberFormCount}</h3><div class="member-form-grid">
+    <label>Tên<input name="member-name" required placeholder="Nhập tên"></label>
+    <label>Rảnh mấy giờ<input name="member-hours" type="number" min="0" step="0.5" required placeholder="Ví dụ: 2"></label>
+    <label>Địa chỉ<input name="member-address" required placeholder="Nhập khu vực hoặc địa chỉ"></label>
+    <label>Ngân sách tối đa<input name="member-budget" type="number" min="0" step="1000" required placeholder="Ví dụ: 200000"></label>
+    <div class="interest-input"><label>Sở thích</label><div class="interest-chips">${interestOptions('member-interests')}</div></div>
+  </div>`;
+  document.getElementById('memberForms').appendChild(form);
+}
+const INTERESTS = ['Workshop','Thể thao','Nghệ thuật','Ăn uống','Giải trí','Học tập','Cộng đồng','Chill','Outdoor'];
+function interestOptions(name, selected = []) {
+  return INTERESTS.map(interest => `<label class="interest-option"><input type="checkbox" name="${name}" value="${interest}" ${selected.includes(interest) ? 'checked' : ''}><span>${interest}</span></label>`).join('');
+}
+function removeMemberForm(button){
+  const forms = document.querySelectorAll('#memberForms .member-form');
+  if (forms.length === 1) { alert('Nhóm cần ít nhất một thành viên.'); return; }
+  button.closest('.member-form').remove();
+}
+function createInviteLink(){
+  const link = `${window.location.origin}${window.location.pathname}?groupInvite=${Math.random().toString(36).slice(2, 10)}`;
+  const input = document.getElementById('inviteLink');
+  const button = document.getElementById('copyInviteButton');
+  input.value = link;
+  button.textContent = 'Sao chép link';
+  button.onclick = copyInviteLink;
+}
+async function copyInviteLink(){
+  const input = document.getElementById('inviteLink');
+  if (!input.value) {
+    createInviteLink();
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(input.value);
+  } catch (error) {
+    input.select();
+    document.execCommand('copy');
+  }
+  alert('Đã sao chép link nhóm.');
+}
+function createGroup(){
+  const forms = [...document.querySelectorAll('#memberForms .member-form')];
+  const members = forms.map(form => {
+    const value = name => form.querySelector(`[name="${name}"]`).value.trim();
+    const interests = [...form.querySelectorAll('[name="member-interests"]:checked')].map(input => input.value);
+    return { name: value('member-name'), hours: value('member-hours'), address: value('member-address'), budget: value('member-budget'), interests };
+  });
+  if (members.some(member => !member.name || !member.hours || !member.address || !member.budget || !member.interests.length)) {
+    alert('Vui lòng nhập đầy đủ thông tin cho tất cả thành viên.');
+    return;
+  }
+  groupMembers = members;
+  paymentStates = members.map(() => ({ paid: false, reminded: false }));
+  renderCreatedMembers();
+  document.getElementById('groupStart').style.display = 'none';
+  document.getElementById('createdMembers').style.display = 'block';
+  closeGroupModal();
+}
+function escapeGroupValue(value){
+  return String(value).replace(/[&<>"']/g, character => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[character]));
+}
+function renderCreatedMembers(){
+  document.getElementById('memberCountTitle').textContent = `Thành viên trong nhóm (${groupMembers.length})`;
+  document.getElementById('memberCards').innerHTML = groupMembers.map((member, index) => `<button class="member-card" type="button" onclick="openMemberEdit(${index})" style="width:100%;text-align:left;cursor:pointer;"><div class="member-avatar">${escapeGroupValue(member.name.charAt(0).toUpperCase())}</div><div><div class="member-name">${escapeGroupValue(member.name)}</div><div class="member-crit"><span>◷ Rảnh ${escapeGroupValue(member.hours)} giờ</span> · <span>⌖ ${escapeGroupValue(member.address)}</span> · <span>▣ ≤${Number(member.budget).toLocaleString('vi-VN')} ₫</span> · <span>✦ ${escapeGroupValue(member.interests.join(', '))}</span></div></div></button>`).join('');
+}
+function openMemberEdit(index){
+  editingMemberIndex = index;
+  const member = groupMembers[index];
+  document.getElementById('memberEditTitle').textContent = member.name;
+  document.getElementById('memberEditAvatar').textContent = member.name.charAt(0).toUpperCase();
+  document.getElementById('memberEditFields').innerHTML = `<label class="member-edit-field">Tên<input id="edit-name" value="${escapeGroupValue(member.name)}"></label><label class="member-edit-field">Rảnh mấy giờ<input id="edit-hours" type="number" min="0" step="0.5" value="${escapeGroupValue(member.hours)}"></label><label class="member-edit-field">Địa chỉ<input id="edit-address" value="${escapeGroupValue(member.address)}"></label><label class="member-edit-field">Ngân sách tối đa<input id="edit-budget" type="number" min="0" step="1000" value="${escapeGroupValue(member.budget)}"></label><div class="member-edit-interests"><label>Sở thích</label><div class="interest-chips">${interestOptions('edit-interests', member.interests)}</div></div>`;
+  document.getElementById('memberEditOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeMemberEdit(){ document.getElementById('memberEditOverlay').classList.remove('open'); document.body.style.overflow = ''; }
+function saveMemberEdit(){
+  const member = groupMembers[editingMemberIndex];
+  member.name = document.getElementById('edit-name').value.trim(); member.hours = document.getElementById('edit-hours').value.trim(); member.address = document.getElementById('edit-address').value.trim(); member.budget = document.getElementById('edit-budget').value.trim(); member.interests = [...document.querySelectorAll('[name="edit-interests"]:checked')].map(input => input.value);
+  if (!member.name || !member.hours || !member.address || !member.budget || !member.interests.length) { alert('Vui lòng nhập đầy đủ thông tin thành viên.'); return; }
+  renderCreatedMembers();
+  closeMemberEdit();
+  if (document.getElementById('group-result').style.display === 'block') showGroupResult();
+}
+function selectTab(name){
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.toggle('active', p.id==='pane-'+name));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.tab===name));
+  if (name === 'expense') renderExpense();
+}
+function showGroupResult(){
+  if (!groupMembers.length) return;
+  const ranked = rankActivities();
+  const best = ranked[0];
+  if (!best) { alert('Không tìm thấy hoạt động phù hợp cho nhóm.'); return; }
+  renderBestMatch(best);
+  document.getElementById('suggestionCards').innerHTML = ranked.slice(1).map(activity => suggestionCard(activity)).join('');
+  document.getElementById('group-result').style.display = 'block';
+}
+function parseActivityPrice(value){
+  const numbers = String(value).match(/\d[\d.]*/g);
+  return numbers ? Math.max(...numbers.map(number => Number(number.replace(/\./g, '')))) : 0;
+}
+function activityDuration(value){
+  const times = String(value).match(/(\d{1,2}):(\d{2})/g);
+  if (!times || times.length < 2 || value === 'Cả ngày') return 1440;
+  const toMinutes = time => { const [hour, minute] = time.split(':').map(Number); return hour * 60 + minute; };
+  let result = toMinutes(times[1]) - toMinutes(times[0]);
+  if (result < 0) result += 1440;
+  return result;
+}
+function scoreActivity(activity){
+  const scores = groupMembers.map(member => {
+    const interests = member.interests.map(item => item.trim().toLowerCase());
+    const interestScore = interests.some(item => item === String(activity.category).toLowerCase()) ? 35 : 10;
+    const budgetScore = parseActivityPrice(activity.price) <= Number(member.budget) ? 30 : 0;
+    const timeScore = activityDuration(activity.hours) >= Number(member.hours) * 60 ? 25 : 0;
+    const addressScore = String(activity.address).toLowerCase().includes(String(member.address).toLowerCase()) ? 10 : 4;
+    return interestScore + budgetScore + timeScore + addressScore;
+  });
+  return { activity, score: Math.round(scores.reduce((sum, value) => sum + value, 0) / scores.length), scores };
+}
+function rankActivities(){
+  return window.AdminData.activities.filter(activity => activity.status === 'active').map(scoreActivity).sort((a, b) => b.score - a.score).map(item => item.activity);
+}
+function renderBestMatch(activity){
+  selectedActivity = activity;
+  renderExpense();
+  const result = scoreActivity(activity);
+  document.getElementById('bestMatch').innerHTML = `<div class="group-avg"><div class="pct">${result.score}%</div><div class="lbl">Độ phù hợp cao nhất cho cả nhóm</div></div><button class="suggestion-card" type="button" onclick="openActivityPopup('${activity.id}')" style="width:100%;text-align:left;"><div class="activity-title">${escapeGroupValue(activity.icon || '✨')} ${escapeGroupValue(activity.name)}</div><div class="activity-biz">${escapeGroupValue(activity.address)} · ${escapeGroupValue(activity.price)}</div><div class="member-crit">★ ${activity.rating || '—'} · ${escapeGroupValue(activity.hours)} · ${escapeGroupValue(activity.category)}</div></button>`;
+}
+function suggestionCard(activity){
+  return `<button class="suggestion-card" type="button" onclick="openActivityPopup('${activity.id}')"><div class="activity-title">${escapeGroupValue(activity.icon || '✨')} ${escapeGroupValue(activity.name)}</div><div class="activity-biz">${escapeGroupValue(activity.address)}</div><div class="member-crit">${escapeGroupValue(activity.price)} · ★ ${activity.rating || '—'}</div></button>`;
+}
+function toggleSuggestions(){
+  const suggestions = document.getElementById('suggestions');
+  const button = document.getElementById('suggestionsToggle');
+  const isHidden = suggestions.style.display === 'none' || !suggestions.style.display;
+  suggestions.style.display = isHidden ? 'block' : 'none';
+  button.textContent = isHidden ? 'Ẩn gợi ý' : 'Xem gợi ý khác';
+}
+function selectActivity(id){
+  const activity = window.AdminData.activities.find(item => item.id === id);
+  if (!activity) return;
+  renderBestMatch(activity);
+  document.getElementById('suggestions').style.display = 'none';
+  document.getElementById('suggestionsToggle').textContent = 'Xem gợi ý khác';
+  closeActivityPopup();
+}
+function openActivityPopup(id){
+  const activity = window.AdminData.activities.find(item => item.id === id); if (!activity) return;
+  document.getElementById('activityPopupTitle').textContent = activity.name;
+  document.getElementById('activityPopupBody').innerHTML = `<div style="font-size:42px;text-align:center;background:#F3D9A6;border-radius:12px;padding:20px;">${escapeGroupValue(activity.icon || '✨')}</div><div class="activity-popup-meta"><div><b>Địa chỉ</b><br>${escapeGroupValue(activity.address)}</div><div><b>Giá</b><br>${escapeGroupValue(activity.price)}</div><div><b>Thời gian</b><br>${escapeGroupValue(activity.hours)}</div><div><b>Đánh giá</b><br>★ ${activity.rating || '—'}</div></div><p style="line-height:1.6;color:var(--muted);">${escapeGroupValue(activity.description)}</p><div class="group-actions"><a href="activity-detail.html?id=${encodeURIComponent(activity.id)}" class="btn btn-secondary">Chi tiết</a><button type="button" class="btn btn-primary" onclick="selectActivity('${activity.id}')">Chọn hoạt động</button></div>`;
+  document.getElementById('activityOverlay').classList.add('open'); document.body.style.overflow = 'hidden';
+}
+function closeActivityPopup(){ document.getElementById('activityOverlay').classList.remove('open'); document.body.style.overflow = ''; }
+function money(value){ return `${Number(value || 0).toLocaleString('vi-VN')} ₫`; }
+function getExpenseActivity(){ return selectedActivity || rankActivities()[0] || null; }
+function renderExpense(){
+  const activity = getExpenseActivity();
+  if (!activity || !groupMembers.length) return;
+  const price = parseActivityPrice(activity.price);
+  const total = price * groupMembers.length;
+  const paidTotal = paymentStates.reduce((sum, state) => sum + (state.paid ? price : 0), 0);
+  document.getElementById('expenseActivity').innerHTML = `<div style="background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:20px;display:flex;align-items:center;gap:12px;"><div class="result-thumb" style="background:#DDE3CB;">${escapeGroupValue(activity.icon || '✨')}</div><div><div class="member-name">${escapeGroupValue(activity.name)}</div><div class="member-crit">${escapeGroupValue(activity.hours)} · ${groupMembers.length} người tham gia</div></div></div>`;
+  document.getElementById('expenseTotal').textContent = money(total);
+  document.getElementById('expensePerPerson').textContent = money(price);
+  document.getElementById('expensePaid').textContent = money(paidTotal);
+  document.getElementById('expenseMissing').textContent = money(total - paidTotal);
+  document.getElementById('paymentRows').innerHTML = groupMembers.map((member, index) => {
+    const state = paymentStates[index] || { paid: false, reminded: false };
+    const status = state.paid ? '<span class="pay-badge paid">Đã trả</span>' : state.reminded ? '<span class="pay-badge unpaid">Chưa trả</span>' : '<span class="pay-badge unpaid">Chưa trả</span>';
+    const actions = state.paid ? '' : `<div class="payment-actions"><button class="btn btn-secondary" type="button" onclick="markMemberPaid(${index})">Đã trả</button><button class="btn btn-secondary" type="button" onclick="remindMember(${index})">${state.reminded ? 'Đã nhắc' : 'Nhắc thanh toán'}</button></div>`;
+    return `<div class="split-row"><div class="member-avatar">${escapeGroupValue(member.name.charAt(0).toUpperCase())}</div><div><div class="member-name">${escapeGroupValue(member.name)} ${status}</div><div class="member-crit">${money(price)}</div></div><div class="split-amount">${money(price)}</div>${actions}</div>`;
+  }).join('');
+}
+function markMemberPaid(index){
+  paymentStates[index] = { paid: true, reminded: paymentStates[index]?.reminded || false };
+  renderExpense();
+}
+function remindMember(index){
+  paymentStates[index] = { paid: false, reminded: true };
+  renderExpense();
+}
+function toggleUserMenu(e){
+  e.stopPropagation();
+  document.getElementById('user-dropdown').classList.toggle('open');
+}
+document.addEventListener('click', function(){
+  const dd = document.getElementById('user-dropdown');
+  if(dd) dd.classList.remove('open');
+});
+document.getElementById('groupOverlay').addEventListener('click', function(event){
+  if (event.target === this) closeGroupModal();
+});
+document.getElementById('memberEditOverlay').addEventListener('click', function(event){
+  if (event.target === this) closeMemberEdit();
+});
+document.getElementById('activityOverlay').addEventListener('click', function(event){
+  if (event.target === this) closeActivityPopup();
+});
+selectTab('matching');
+</script>
+</body>
+</html>

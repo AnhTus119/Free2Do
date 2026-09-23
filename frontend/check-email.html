@@ -68,6 +68,7 @@
   </div>
 </div>
 
+<script src="js/config.js"></script>
 <script>
   const params = new URLSearchParams(window.location.search);
   const email = params.get('email'); // lấy email từ trang trước truyền sang
@@ -77,7 +78,7 @@
   const codeField = codeInput.closest('.check-email__field');
   const codeError = document.getElementById('check-email-code-error');
 
-  form.addEventListener('submit', function (e) {
+  form.addEventListener('submit', async function (e) {
     e.preventDefault();
 
     const code = codeInput.value.trim();
@@ -88,25 +89,14 @@
       return;
     }
 
-    // TODO: thay đoạn dưới bằng gọi API thật để verify mã
-    // fetch('/api/verify-code', {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify({ email, code })
-    // })
-    //   .then(res => res.json())
-    //   .then(data => {
-    //     if (!data.success) {
-    //       codeError.textContent = 'Mã xác nhận không đúng. Vui lòng thử lại.';
-    //       codeField.classList.add('check-email__field--error');
-    //       return;
-    //     }
-    //     window.location.href = 'reset-password.html?token=' + encodeURIComponent(data.resetToken);
-    //   });
-
-    // Bản tạm thời (chưa nối API): chuyển trang luôn
-    codeField.classList.remove('check-email__field--error');
-    window.location.href = 'reset-password.html?email=' + encodeURIComponent(email);
+    try {
+      if (!email) throw new Error('Thiếu email. Vui lòng gửi lại yêu cầu.');
+      const response = await fetch(`${window.FREE2DO_CONFIG.API_BASE_URL}/auth/verify-reset-otp`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email, code}) });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.detail || 'Mã xác nhận không đúng.');
+      sessionStorage.setItem('free2do-reset-token', result.reset_token);
+      window.location.href = 'reset-password.html';
+    } catch (error) { codeError.textContent = error.message; codeField.classList.add('check-email__field--error'); }
   });
 </script>
 </body>

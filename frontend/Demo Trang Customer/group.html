@@ -196,6 +196,9 @@
 
 </div>
 
+<script src="../js/config.js"></script>
+<script src="../js/api.js"></script>
+<script src="../js/user-nav.js"></script>
 <script src="../js/admin-data.js"></script>
 <script>
 let memberFormCount = 0;
@@ -237,27 +240,9 @@ function removeMemberForm(button){
   button.closest('.member-form').remove();
 }
 function createInviteLink(){
-  const link = `${window.location.origin}${window.location.pathname}?groupInvite=${Math.random().toString(36).slice(2, 10)}`;
-  const input = document.getElementById('inviteLink');
-  const button = document.getElementById('copyInviteButton');
-  input.value = link;
-  button.textContent = 'Sao chép link';
-  button.onclick = copyInviteLink;
+  alert('Backend chưa có API nhóm và lời mời. Liên kết chưa thể chia sẻ.');
 }
-async function copyInviteLink(){
-  const input = document.getElementById('inviteLink');
-  if (!input.value) {
-    createInviteLink();
-    return;
-  }
-  try {
-    await navigator.clipboard.writeText(input.value);
-  } catch (error) {
-    input.select();
-    document.execCommand('copy');
-  }
-  alert('Đã sao chép link nhóm.');
-}
+async function copyInviteLink(){ createInviteLink(); }
 function createGroup(){
   const forms = [...document.querySelectorAll('#memberForms .member-form')];
   const members = forms.map(form => {

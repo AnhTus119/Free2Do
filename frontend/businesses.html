@@ -43,10 +43,10 @@
       </div>
 
       <div class="stats-grid business-stats" style="grid-template-columns:repeat(4,1fr);">
-        <div class="stat-card stat-filter selected" data-status="all"><div class="stat-icon" style="background:#FDEDEF;">🏬</div><div class="stat-num" id="totalBusinesses">15</div><div class="stat-label">Tổng Doanh nghiệp</div></div>
-        <div class="stat-card stat-filter" data-status="active"><div class="stat-icon" style="background:var(--success-bg);">✅</div><div class="stat-num" id="activeBusinesses">10</div><div class="stat-label">Đang hoạt động</div></div>
-        <div class="stat-card stat-filter" data-status="pending"><div class="stat-icon" style="background:var(--warn-bg);">⚠️</div><div class="stat-num" id="pendingBusinesses">5</div><div class="stat-label">Đang chờ duyệt</div></div>
-        <div class="stat-card stat-filter" data-status="locked"><div class="stat-icon" style="background:var(--danger-bg);">🔒</div><div class="stat-num" id="lockedBusinesses">0</div><div class="stat-label">Đã khóa</div></div>
+        <div class="stat-card stat-filter selected" data-status="all"><div class="stat-icon" style="background:#FDEDEF;">🏬</div><div class="stat-num" id="totalBusinesses">—</div><div class="stat-label">Hồ sơ và yêu cầu</div></div>
+        <div class="stat-card stat-filter" data-status="active"><div class="stat-icon" style="background:var(--success-bg);">✅</div><div class="stat-num" id="activeBusinesses">—</div><div class="stat-label">Đang hoạt động</div></div>
+        <div class="stat-card stat-filter" data-status="pending"><div class="stat-icon" style="background:var(--warn-bg);">⚠️</div><div class="stat-num" id="pendingBusinesses">—</div><div class="stat-label">Đang chờ duyệt</div></div>
+        <div class="stat-card stat-filter" data-status="locked"><div class="stat-icon" style="background:var(--danger-bg);">🔒</div><div class="stat-num" id="lockedBusinesses">—</div><div class="stat-label">Đã khóa</div></div>
       </div>
 
       <div class="filter-bar">
@@ -69,7 +69,7 @@
           <tbody id="businessRows"></tbody>
         </table>
         <div class="pagination">
-          <span id="businessCount">Hiển thị 1–10 trong tổng số 15 Doanh nghiệp</span>
+          <span id="businessCount">Đang tải...</span>
           <div class="page-btns" id="businessPagination"></div>
         </div>
       </div>
@@ -77,6 +77,9 @@
     </div>
   </div>
 </div>
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/admin-auth.js"></script>
 <script src="js/admin-data.js"></script>
 <script src="js/businesses.js"></script>
 </body>

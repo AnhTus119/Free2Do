@@ -41,6 +41,20 @@ def _set_categories(db: Session, activity_id: str, category_ids: list[str]) -> N
 # ---------------------------------------------------------------------------
 # Customer -- xem chi tiết hoạt động (chỉ thấy pending/active, không thấy hidden/cancelled)
 # ---------------------------------------------------------------------------
+@router.get("", response_model=list[schemas.ActivityPublicOut])
+def list_public_activities(db: Session = Depends(get_db)):
+    """Danh sách hoạt động đã duyệt cho trang tìm kiếm, không yêu cầu đăng nhập."""
+    activities = (db.query(models.Activity)
+                  .filter(models.Activity.status == "active")
+                  .order_by(models.Activity.created_at.desc()).all())
+    return [schemas.ActivityPublicOut(
+        **schemas.Activity.model_validate(item).model_dump(),
+        business_name=item.business.business_name,
+        category_ids=[category.category_id for category in item.categories],
+        avg_rating=db.query(func.avg(models.Review.rating)).filter(models.Review.activity_id == item.activity_id).scalar(),
+    ) for item in activities]
+
+
 @router.get("/{activity_id}", response_model=schemas.ActivityDetail)
 def get_activity(activity_id: str, db: Session = Depends(get_db)):
     activity = db.query(models.Activity).filter(models.Activity.activity_id == activity_id).first()
@@ -194,6 +208,7 @@ def list_activities_for_review(
             business_name=a.business.business_name,
             verified_by=a.verified_by,
             verified_at=a.verified_at,
+            category_ids=[category.category_id for category in a.categories],
         )
         for a in activities
     ]

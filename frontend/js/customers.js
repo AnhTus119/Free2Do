@@ -104,14 +104,14 @@
     render();
   }));
 
-  tableBody.addEventListener('click', event => {
+  tableBody.addEventListener('click', async event => {
     const button = event.target.closest('[data-action="toggle-status"]');
     if (!button) return;
     const id = button.closest('tr').dataset.id;
     const customer = getCustomers().find(item => item.id === id);
-    setStatus('customer', id, customer.status === 'locked' ? 'active' : 'locked');
-    render();
+    try { await setStatus('customer', id, customer.status === 'locked' ? 'active' : 'locked'); render(); }
+    catch (error) { window.AdminData.error(error); }
   });
 
-  render();
+  window.AdminData.ready.then(render).catch(() => {});
 })();

@@ -87,14 +87,14 @@
 
   [searchInput, statusFilter, activityFilter].forEach(control => control.addEventListener(control.tagName === 'INPUT' ? 'input' : 'change', () => { currentPage = 1; render(); }));
   statFilters.forEach(card => card.addEventListener('click', () => { statusFilter.value = card.dataset.status; currentPage = 1; render(); }));
-  tableBody.addEventListener('click', event => {
+  tableBody.addEventListener('click', async event => {
     const button = event.target.closest('button[data-action]');
     if (!button) return;
     const id = button.closest('tr').dataset.id;
     const nextStatus = button.dataset.action === 'approve' || button.dataset.action === 'unlock' ? 'active' : 'locked';
-    data.setStatus('business', id, nextStatus);
-    render();
+    try { await data.setStatus('business', id, nextStatus); render(); }
+    catch (error) { data.error(error); }
   });
 
-  render();
+  data.ready.then(render).catch(() => {});
 })();

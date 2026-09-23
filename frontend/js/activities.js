@@ -86,11 +86,12 @@
     selectedStatus = tab.dataset.status; currentPage = 1;
     statusTabs.forEach(item => item.classList.toggle('active', item === tab)); render();
   }));
-  tableBody.addEventListener('click', event => {
+  tableBody.addEventListener('click', async event => {
     const button = event.target.closest('[data-action="approve"]');
     if (!button) return;
-    data.setStatus('activity', button.closest('tr').dataset.id, 'active'); render();
+    try { await data.setStatus('activity', button.closest('tr').dataset.id, 'active'); render(); }
+    catch (error) { data.error(error); }
   });
 
-  render();
+  data.ready.then(render).catch(() => {});
 })();

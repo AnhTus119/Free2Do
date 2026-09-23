@@ -11,6 +11,7 @@ router = APIRouter(prefix="/operator", tags=["operator-users"])
 
 def _to_user_admin_out(user: models.User) -> schemas.UserAdminOut:
     return schemas.UserAdminOut(
+        created_at=user.account.created_at,
         user_id=user.user_id,
         account_id=user.account_id,
         email=user.account.email,

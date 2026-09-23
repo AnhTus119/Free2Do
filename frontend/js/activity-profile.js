@@ -2,7 +2,7 @@
   'use strict';
 
   const data = window.AdminData;
-  const id = new URLSearchParams(window.location.search).get('id') || data.activities[0]?.id;
+  const id = new URLSearchParams(window.location.search).get('id') || data.activities[0].id;
   let activity = data.activities.find(item => item.id === id);
 
   function badge(status) {
@@ -17,7 +17,7 @@
   }
 
   function showNotFound() {
-    document.querySelector('.content').innerHTML = `<a href="activities.html" class="back-link">← Quay lại danh sách Hoạt động</a><div class="card" style="padding:24px;margin-top:20px;"><h3>Không tìm thấy hoạt động</h3><p>Mã “${data.escapeHTML(id)}” không tồn tại trong dữ liệu backend.</p></div>`;
+    document.querySelector('.content').innerHTML = `<a href="activities.html" class="back-link">← Quay lại danh sách Hoạt động</a><div class="card" style="padding:24px;margin-top:20px;"><h3>Không tìm thấy hoạt động</h3><p>Mã “${data.escapeHTML(id)}” không tồn tại trong admin-data.js.</p></div>`;
   }
 
   function renderParticipants() {
@@ -28,7 +28,7 @@
       if (!customer) return '';
       const stars = item.rating ? '★'.repeat(item.rating) + '☆'.repeat(5 - item.rating) : '—';
       return `<tr><td class="cell-title"><a href="customer-profile.html?id=${encodeURIComponent(customer.id)}" style="color:inherit;text-decoration:none;">${data.escapeHTML(customer.name)}</a></td><td>${data.escapeHTML(item.date)}</td><td>${badge(item.status)}</td><td>${stars}</td></tr>`;
-    }).join('') : '<tr><td colspan="4" style="text-align:center;">Backend chưa cung cấp dữ liệu tham gia.</td></tr>';
+    }).join('') : '<tr><td colspan="4" style="text-align:center;">Chưa có khách hàng tham gia.</td></tr>';
   }
 
   function render() {
@@ -55,7 +55,7 @@
       'Hạn hoạt động (expire_at)': data.escapeHTML(activity.expireAt || 'Chưa thiết lập')
     });
     setInfoRows(cards[1], {
-      'Lượt xem': activity.views == null ? 'Chưa có dữ liệu' : String(activity.views), 'Lượt tham gia': activity.participants == null ? 'Chưa có dữ liệu' : String(activity.participants),
+      'Lượt xem': String(activity.views), 'Lượt tham gia': String(activity.participants),
       'Đánh giá trung bình': activity.rating ? `${activity.rating.toFixed(1)} ★` : 'Chưa có đánh giá',
       'Ngày tạo': data.escapeHTML(activity.createdAt)
     });
@@ -64,11 +64,10 @@
     document.getElementById('approveActivity').hidden = activity.status === 'active';
   }
 
-  document.getElementById('toggleActivityVisibility').addEventListener('click', async () => {
-    try { await data.setStatus('activity', activity.id, activity.status === 'hidden' ? 'active' : 'hidden'); render(); }
-    catch (error) { data.error(error); }
+  document.getElementById('toggleActivityVisibility').addEventListener('click', () => {
+    data.setStatus('activity', activity.id, activity.status === 'hidden' ? 'active' : 'hidden'); render();
   });
-  document.getElementById('approveActivity').addEventListener('click', async () => { try { await data.setStatus('activity', activity.id, 'active'); render(); } catch (error) { data.error(error); } });
+  document.getElementById('approveActivity').addEventListener('click', () => { data.setStatus('activity', activity.id, 'active'); render(); });
 
-  data.ready.then(render).catch(() => {});
+  render();
 })();

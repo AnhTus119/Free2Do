@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -26,19 +26,3 @@ def update_my_categories(
     db.commit()
     db.refresh(user)
     return [uc.category for uc in user.categories]
-
-
-@router.get("", response_model=schemas.UserSelf)
-def get_my_profile(user: models.User = Depends(get_current_user)):
-    return schemas.UserSelf(user_id=user.user_id, name=user.name, phone=user.phone, email=user.account.email)
-
-
-@router.patch("", response_model=schemas.UserSelf)
-def update_my_profile(payload: schemas.UserSelfUpdate, db: Session = Depends(get_db), user: models.User = Depends(get_current_user)):
-    name = payload.name.strip()
-    if not name:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Tên không được để trống")
-    user.name = name
-    user.phone = payload.phone
-    db.commit()
-    return get_my_profile(user)

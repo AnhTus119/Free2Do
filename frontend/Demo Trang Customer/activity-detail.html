@@ -104,16 +104,21 @@
   </div>
 </div>
 
-<script src="../js/config.js"></script>
-<script src="../js/api.js"></script>
-<script src="../js/user-nav.js"></script>
 <script src="../js/admin-data.js"></script>
 <script>
-const activityId = new URLSearchParams(window.location.search).get('id');
-let activityData;
-let favoriteIds = [];
+const activityId = new URLSearchParams(window.location.search).get('id') || 'A001';
+const activityData = window.AdminData.activities.find(item => item.id === activityId);
+const FAVORITES_KEY = 'free2do-favorites';
 
-function getFavorites() { return favoriteIds; }
+function getFavorites() {
+  try {
+    const stored = localStorage.getItem(FAVORITES_KEY);
+    if (stored === null) return ['A001', 'A013'];
+    return JSON.parse(stored);
+  } catch (error) {
+    return [];
+  }
+}
 
 function setFavoriteState(isFavorite) {
   const button = document.getElementById('favoriteButton');
@@ -123,14 +128,12 @@ function setFavoriteState(isFavorite) {
   label.textContent = isFavorite ? 'Đã yêu thích' : 'Lưu vào yêu thích';
 }
 
-async function toggleFavorite() {
-  if (!localStorage.getItem('token')) { location.href = '../log-in.html'; return; }
-  try {
-    const saved = favoriteIds.includes(activityId);
-    await window.Free2DoAPI.request(`/bookmarks/${encodeURIComponent(activityId)}`, { method: saved ? 'DELETE' : 'POST', auth: true });
-    favoriteIds = saved ? favoriteIds.filter(id => id !== activityId) : [...favoriteIds, activityId];
-    setFavoriteState(!saved);
-  } catch (error) { window.AdminData.error(error); }
+function toggleFavorite() {
+  const favorites = new Set(getFavorites());
+  if (favorites.has(activityId)) favorites.delete(activityId);
+  else favorites.add(activityId);
+  localStorage.setItem(FAVORITES_KEY, JSON.stringify([...favorites]));
+  setFavoriteState(favorites.has(activityId));
 }
 
 function escape(value) {
@@ -159,18 +162,13 @@ function renderNotFound() {
   document.querySelector('.wrap').innerHTML = '<div class="card" style="padding:24px;margin-top:20px;"><h2>Không tìm thấy hoạt động</h2><p>Hoạt động này không tồn tại trong dữ liệu chung.</p><a href="search.html" class="btn btn-secondary">Quay lại tìm kiếm</a></div>';
 }
 
-async function renderActivityDetail() {
-  await window.AdminData.ready;
-  activityData = window.AdminData.activities.find(item => item.id === activityId);
-  if (!activityData) { renderNotFound(); return; }
-  const reviews = await window.Free2DoAPI.request(`/activities/${encodeURIComponent(activityId)}/reviews`);
-  if (localStorage.getItem('token')) {
-    try { favoriteIds = (await window.Free2DoAPI.request('/bookmarks/me', { auth: true })).map(item => item.activity_id); }
-    catch (error) { window.AdminData.error(error); }
-  }
+if (!activityData) {
+  renderNotFound();
+} else {
   const businessName = window.AdminData.businessName(activityData);
   const distance = distanceFromUser(activityData.location);
-  const ratedParticipants = reviews;
+  const participants = window.AdminData.participations.filter(item => item.activityId === activityData.id);
+  const ratedParticipants = participants.filter(item => item.rating > 0);
   document.title = `FREE2DO — ${activityData.name}`;
   document.getElementById('galleryIcon').textContent = activityData.icon || '✨';
   document.getElementById('activityName').textContent = activityData.name;
@@ -184,14 +182,14 @@ async function renderActivityDetail() {
   document.getElementById('activityMapPin').textContent = `${activityData.icon || '✨'} ${activityData.name}`;
   document.getElementById('reviewsTitle').textContent = `Đánh giá (${ratedParticipants.length})`;
   document.getElementById('sideActivityPrice').textContent = activityData.price;
-  document.getElementById('sideActivityMeta').textContent = `${activityData.hours}`;
+  document.getElementById('sideActivityMeta').textContent = `${activityData.hours} · ${participants.length} lượt đăng ký`;
   setFavoriteState(getFavorites().includes(activityId));
   document.getElementById('favoriteButton').addEventListener('click', toggleFavorite);
   document.getElementById('activityReviews').innerHTML = ratedParticipants.length ? ratedParticipants.map(item => {
-    return `<div class="review-card"><div class="review-top"><div class="review-name">Khách hàng</div><div class="review-stars">${'★'.repeat(item.rating)}${'☆'.repeat(5 - item.rating)}</div><div class="review-date">${escape(new Date(item.created_at).toLocaleDateString('vi-VN'))}</div></div><div class="review-text">${escape(item.content || 'Không có nội dung đánh giá.')}</div></div>`;
+    const customer = window.AdminData.customers.find(entry => entry.id === item.customerId);
+    return `<div class="review-card"><div class="review-top"><div class="nav-avatar" style="width:28px;height:28px;font-size:11px;">${escape((customer?.name || '?')[0])}</div><div class="review-name">${escape(customer?.name || 'Khách hàng')}</div><div class="review-stars">${'★'.repeat(item.rating)}${'☆'.repeat(5 - item.rating)}</div><div class="review-date">${escape(item.date)}</div></div><div class="review-text">Đã tham gia hoạt động này.</div></div>`;
   }).join('') : '<p style="padding:16px 0;color:var(--muted);">Chưa có đánh giá cho hoạt động này.</p>';
 }
-renderActivityDetail().catch(error => window.AdminData.error(error));
 
 function toggleUserMenu(e){
   e.stopPropagation();

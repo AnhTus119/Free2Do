@@ -2,7 +2,7 @@
   'use strict';
 
   const data = window.AdminData;
-  const id = new URLSearchParams(window.location.search).get('id') || data.businesses[0]?.id;
+  const id = new URLSearchParams(window.location.search).get('id') || data.businesses[0].id;
   let business = data.businesses.find(item => item.id === id);
 
   function badge(status) {
@@ -17,7 +17,7 @@
   }
 
   function showNotFound() {
-    document.querySelector('.content').innerHTML = `<a href="businesses.html" class="back-link">← Quay lại danh sách Doanh nghiệp</a><div class="card" style="padding:24px;margin-top:20px;"><h3>Không tìm thấy doanh nghiệp</h3><p>Mã “${data.escapeHTML(id)}” không tồn tại trong dữ liệu backend.</p></div>`;
+    document.querySelector('.content').innerHTML = `<a href="businesses.html" class="back-link">← Quay lại danh sách Doanh nghiệp</a><div class="card" style="padding:24px;margin-top:20px;"><h3>Không tìm thấy doanh nghiệp</h3><p>Mã “${data.escapeHTML(id)}” không tồn tại trong admin-data.js.</p></div>`;
   }
 
   function render() {
@@ -57,10 +57,10 @@
     toggleButton.textContent = business.status === 'locked' ? '🔓 Mở khóa Doanh nghiệp' : '🔒 Khóa Doanh nghiệp';
   }
 
-  document.getElementById('toggleBusinessStatus').addEventListener('click', async () => {
-    try { await data.setStatus('business', business.id, business.status === 'locked' ? 'active' : 'locked');
-    render(); } catch (error) { data.error(error); }
+  document.getElementById('toggleBusinessStatus').addEventListener('click', () => {
+    data.setStatus('business', business.id, business.status === 'locked' ? 'active' : 'locked');
+    render();
   });
 
-  data.ready.then(render).catch(() => {});
+  render();
 })();

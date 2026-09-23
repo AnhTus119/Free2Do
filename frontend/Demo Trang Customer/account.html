@@ -61,8 +61,8 @@
     <div style="display:flex;align-items:center;gap:18px;margin-bottom:28px;">
       <div class="nav-avatar" style="width:64px;height:64px;font-size:22px;">M</div>
       <div>
-        <div style="font-size:19px;font-weight:800;">Đang tải...</div>
-        <div style="color:var(--muted);font-size:13px;">Đang tải...</div>
+        <div style="font-size:19px;font-weight:800;">Nguyễn Đăng Minh</div>
+        <div style="color:var(--muted);font-size:13px;">minh.nguyen@gmail.com · 0987 654 321</div>
       </div>
       <button class="btn btn-secondary" style="margin-left:auto;" onclick="toggleEdit()"><svg class="icon"><use href="#icon-edit"></use></svg> Chỉnh sửa thông tin</button>
     </div>
@@ -70,18 +70,18 @@
     <div id="view-mode" style="background:#fff;border:1px solid var(--line);border-radius:16px;padding:22px;margin-bottom:20px;">
       <div class="section-title" style="font-size:15px;margin-bottom:14px;">Sở thích của tôi</div>
       <div class="chip-row">
-        <span>Đang tải sở thích...</span>
+        <div class="chip active">Workshop</div><div class="chip active">Ăn uống</div><div class="chip active">Nghệ thuật</div><div class="chip">Thể thao</div><div class="chip">Du lịch</div>
       </div>
     </div>
 
     <div id="edit-mode" style="display:none;background:#fff;border:1px solid var(--line);border-radius:16px;padding:22px;margin-bottom:20px;">
-      <div class="field"><label>Họ và tên</label><input type="text" value=""></div>
-      <div class="field"><label>Email</label><input type="text" value="" readonly></div>
-      <div class="field"><label>Số điện thoại</label><input type="text" value=""></div>
+      <div class="field"><label>Họ và tên</label><input type="text" value="Nguyễn Đăng Minh"></div>
+      <div class="field"><label>Email</label><input type="text" value="minh.nguyen@gmail.com"></div>
+      <div class="field"><label>Số điện thoại</label><input type="text" value="0987 654 321"></div>
       <div class="field">
         <label>Sở thích</label>
         <div class="chip-row">
-          <span>Đang tải sở thích...</span>
+          <div class="chip active">Workshop</div><div class="chip active">Ăn uống</div><div class="chip active">Nghệ thuật</div><div class="chip">Thể thao</div><div class="chip">Âm nhạc</div><div class="chip">Du lịch</div><div class="chip">Học tập</div><div class="chip">Giải trí</div>
         </div>
       </div>
       <button class="btn btn-primary" onclick="saveProfile()">Lưu thay đổi</button>
@@ -99,41 +99,84 @@
       <p>Bạn chưa lưu hoạt động nào.</p>
       <a href="search.html" class="btn btn-primary">Khám phá hoạt động phù hợp với bạn →</a>
     </div>
+    <!-- Danh sách mẫu được render từ dữ liệu và localStorage -->
+    <div style="display:none;">
+      <div class="activity-card">
+        <div class="activity-img" style="background:#F3D9A6;">🏺</div>
+        <div class="activity-body">
+          <div class="activity-title">Whimsical Crown</div>
+          <div class="activity-meta"><svg class="icon icon-sm"><use href="#icon-star"></use></svg> 4.8 · <span class="activity-price">200.000 ₫</span> · 1.2 km · Thứ 7, 14:00</div>
+          <div style="display:flex;gap:8px;margin-top:10px;">
+            <a href="activity-detail.html?id=A001" class="btn btn-secondary" style="height:36px;padding:0 14px;font-size:12.5px;">Xem chi tiết</a>
+            <button class="btn btn-ghost" style="height:36px;padding:0 10px;font-size:12.5px;">Xóa khỏi yêu thích</button>
+          </div>
+        </div>
+      </div>
+      <div class="activity-card">
+        <div class="activity-img" style="background:#DDE3CB;">🎱</div>
+        <div class="activity-body">
+          <div class="activity-title">Bi-a Batuna Billiards</div>
+          <div class="activity-meta"><svg class="icon icon-sm"><use href="#icon-star"></use></svg> 4.6 · <span class="activity-price">100.000 ₫</span> · 0.8 km · Cả ngày</div>
+          <div style="display:flex;gap:8px;margin-top:10px;">
+            <a href="activity-detail.html?id=A013" class="btn btn-secondary" style="height:36px;padding:0 14px;font-size:12.5px;">Xem chi tiết</a>
+            <button class="btn btn-ghost" style="height:36px;padding:0 10px;font-size:12.5px;">Xóa khỏi yêu thích</button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- ===== LỊCH SỬ TÌM KIẾM ===== -->
-  <div class="tab-pane" id="pane-lichsu"><p>Backend hiện chưa có API lịch sử tìm kiếm.</p></div>
+  <div class="tab-pane" id="pane-lichsu">
+    <div style="display:flex;justify-content:flex-end;margin-bottom:14px;">
+      <button class="btn btn-ghost" style="height:auto;padding:0;">Xóa lịch sử</button>
+    </div>
+
+    <div class="history-row">
+      <div>
+        <div style="font-weight:700;font-size:14px;">"Workshop"</div>
+        <div class="history-tags">
+          <span><svg class="icon icon-sm"><use href="#icon-calendar"></use></svg> 16/09/2026</span><span><svg class="icon icon-sm"><use href="#icon-clock"></use></svg> Rảnh 2 giờ</span><span><svg class="icon icon-sm"><use href="#icon-wallet"></use></svg> ≤ 200.000 ₫</span><span><svg class="icon icon-sm"><use href="#icon-map-pin"></use></svg> Cầu Giấy, 5 km</span>
+        </div>
+      </div>
+      <a href="activity-detail.html?id=A001" class="btn btn-secondary">Tìm lại</a>
+    </div>
+    <div class="history-row">
+      <div>
+        <div style="font-weight:700;font-size:14px;">"Bida"</div>
+        <div class="history-tags">
+          <span><svg class="icon icon-sm"><use href="#icon-calendar"></use></svg> 12/09/2026</span><span><svg class="icon icon-sm"><use href="#icon-clock"></use></svg> Rảnh 3+ giờ</span><span><svg class="icon icon-sm"><use href="#icon-wallet"></use></svg> ≤ 150.000 ₫</span><span><svg class="icon icon-sm"><use href="#icon-map-pin"></use></svg> Bạch Mai, 3 km</span>
+        </div>
+      </div>
+      <a href="activity-detail.html?id=A013" class="btn btn-secondary">Tìm lại</a>
+    </div>
+    <div class="history-row">
+      <div>
+        <div style="font-weight:700;font-size:14px;">"Cà phê học bài"</div>
+        <div class="history-tags">
+          <span><svg class="icon icon-sm"><use href="#icon-calendar"></use></svg> 08/09/2026</span><span><svg class="icon icon-sm"><use href="#icon-clock"></use></svg> Rảnh 3+ giờ</span><span><svg class="icon icon-sm"><use href="#icon-wallet"></use></svg> Dưới 100.000 ₫</span><span><svg class="icon icon-sm"><use href="#icon-map-pin"></use></svg> Hai Bà Trưng, 2 km</span>
+        </div>
+      </div>
+      <a href="activity-detail.html?id=A025" class="btn btn-secondary">Tìm lại</a>
+    </div>
+  </div>
 
 </div>
 
-<script src="../js/config.js"></script>
-<script src="../js/api.js"></script>
-<script src="../js/user-nav.js"></script>
 <script src="../js/admin-data.js"></script>
 <script>
-let favoriteIds = [];
-async function loadAccount() {
-  await window.AdminData.ready;
-  if (!localStorage.getItem('token')) { location.href = '../log-in.html'; return; }
-  const [user, selected, categories, bookmarks] = await Promise.all([
-    window.Free2DoAPI.request('/users/me', { auth: true }),
-    window.Free2DoAPI.request('/users/me/categories', { auth: true }),
-    window.Free2DoAPI.request('/categories'),
-    window.Free2DoAPI.request('/bookmarks/me', { auth: true })
-  ]);
-  favoriteIds = bookmarks.map(item => item.activity_id);
-  const title = document.querySelector('#pane-hoso > div:first-child');
-  title.querySelector('.nav-avatar').textContent = user.name.charAt(0).toUpperCase();
-  title.querySelector('div > div:nth-child(1)').textContent = user.name;
-  title.querySelector('div > div:nth-child(2)').textContent = `${user.email} · ${user.phone || 'Chưa có số điện thoại'}`;
-  const inputs = document.querySelectorAll('#edit-mode input');
-  inputs[0].value = user.name; inputs[1].value = user.email; inputs[2].value = user.phone || '';
-  document.querySelector('#view-mode .chip-row').textContent = selected.length ? selected.map(c => c.name).join(', ') : 'Chưa chọn sở thích';
-  const selectedIds = new Set(selected.map(c => c.category_id));
-  document.querySelector('#edit-mode .chip-row').innerHTML = categories.map(c => `<label class="chip"><input type="checkbox" value="${window.AdminData.escapeHTML(c.category_id)}" ${selectedIds.has(c.category_id) ? 'checked' : ''}> ${window.AdminData.escapeHTML(c.name)}</label>`).join('');
-  renderFavorites();
+const FAVORITES_KEY = 'free2do-favorites';
+
+function getFavorites() {
+  try {
+    const stored = localStorage.getItem(FAVORITES_KEY);
+    if (stored === null) return ['A001', 'A013'];
+    return JSON.parse(stored);
+  } catch (error) {
+    return [];
+  }
 }
-function getFavorites() { return favoriteIds; }
+
 function renderFavorites() {
   const container = document.getElementById('favoriteActivities');
   const emptyState = document.getElementById('favoriteEmptyState');
@@ -154,12 +197,12 @@ function renderFavorites() {
   emptyState.style.display = activities.length ? 'none' : 'block';
 }
 
-document.getElementById('favoriteActivities').addEventListener('click', async function (event) {
+document.getElementById('favoriteActivities').addEventListener('click', function (event) {
   const button = event.target.closest('.remove-favorite');
   if (!button) return;
-  try { await window.Free2DoAPI.request(`/bookmarks/${encodeURIComponent(button.dataset.activityId)}`, { method: 'DELETE', auth: true });
-    favoriteIds = favoriteIds.filter(id => id !== button.dataset.activityId); renderFavorites();
-  } catch (error) { window.AdminData.error(error); }
+  const favorites = getFavorites().filter(id => id !== button.dataset.activityId);
+  localStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites));
+  renderFavorites();
 });
 
 function selectTab(name){
@@ -171,16 +214,11 @@ function toggleEdit(){
   document.getElementById('edit-mode').style.display = editing ? 'none':'block';
   document.getElementById('view-mode').style.display = editing ? 'block':'none';
 }
-async function saveProfile(){
-  try {
-    const inputs = document.querySelectorAll('#edit-mode input[type="text"]');
-    await window.Free2DoAPI.json('PATCH', '/users/me', { name: inputs[0].value, phone: inputs[2].value });
-    const category_ids = [...document.querySelectorAll('#edit-mode input[type="checkbox"]:checked')].map(input => input.value);
-    await window.Free2DoAPI.json('PUT', '/users/me/categories', { category_ids });
-    toggleEdit(); await loadAccount();
-    const toast = document.getElementById('save-toast'); toast.style.display='block';
-    setTimeout(() => toast.style.display='none', 2500);
-  } catch (error) { window.AdminData.error(error); }
+function saveProfile(){
+  toggleEdit();
+  const toast = document.getElementById('save-toast');
+  toast.style.display='block';
+  setTimeout(()=>toast.style.display='none', 2500);
 }
 function toggleUserMenu(e){
   e.stopPropagation();
@@ -211,7 +249,7 @@ function handleHashChange() {
 }
 window.addEventListener('hashchange', handleHashChange);
 handleHashChange();
-loadAccount().catch(error => window.AdminData.error(error));
+renderFavorites();
 </script>
 </body>
 </html>

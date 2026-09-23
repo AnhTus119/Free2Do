@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+</div><!DOCTYPE html>
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
@@ -42,9 +42,9 @@
       </div>
 
       <div class="stats-grid customer-stats" style="grid-template-columns:repeat(3,1fr);">
-        <div class="stat-card stat-filter selected" data-status="all"><div class="stat-icon" style="background:#EFF1E7;">👤</div><div class="stat-num" id="totalCustomers">—</div><div class="stat-label">Tổng Khách hàng</div></div>
-        <div class="stat-card stat-filter" data-status="active"><div class="stat-icon" style="background:var(--success-bg);">✅</div><div class="stat-num" id="activeCustomers">—</div><div class="stat-label">Đang hoạt động</div></div>
-        <div class="stat-card stat-filter" data-status="locked"><div class="stat-icon" style="background:var(--danger-bg);">🔒</div><div class="stat-num" id="lockedCustomers">—</div><div class="stat-label">Đã khóa</div></div>
+        <div class="stat-card stat-filter selected" data-status="all"><div class="stat-icon" style="background:#EFF1E7;">👤</div><div class="stat-num" id="totalCustomers">7</div><div class="stat-label">Tổng Khách hàng</div></div>
+        <div class="stat-card stat-filter" data-status="active"><div class="stat-icon" style="background:var(--success-bg);">✅</div><div class="stat-num" id="activeCustomers">5</div><div class="stat-label">Đang hoạt động</div></div>
+        <div class="stat-card stat-filter" data-status="locked"><div class="stat-icon" style="background:var(--danger-bg);">🔒</div><div class="stat-num" id="lockedCustomers">2</div><div class="stat-label">Đã khóa</div></div>
       </div>
 
       <div class="filter-bar">
@@ -66,7 +66,7 @@
           <tbody id="customerRows"></tbody>
         </table>
         <div class="pagination">
-          <span id="customerCount">Đang tải...</span>
+          <span id="customerCount">Hiển thị 1–10 trong tổng số 22 Khách hàng</span>
           <div class="page-btns" id="customerPagination"></div>
         </div>
       </div>
@@ -74,9 +74,6 @@
     </div>
   </div>
 </div>
-<script src="js/config.js"></script>
-<script src="js/api.js"></script>
-<script src="js/admin-auth.js"></script>
 <script src="js/admin-data.js"></script>
 <script src="js/customers.js"></script>
 </body>

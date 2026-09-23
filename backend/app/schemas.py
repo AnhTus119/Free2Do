@@ -150,12 +150,6 @@ class Activity(BaseModel):
     status: str
     created_at: datetime
 
-class ActivityPublicOut(Activity):
-    business_name: str
-    category_ids: list[str] = []
-    avg_rating: Optional[float] = None
-
-
 class ActivityWithScore(Activity):
     """Dùng cho kết quả tìm kiếm kèm % phù hợp"""
     match_score: float
@@ -334,7 +328,6 @@ class ActivityDetail(Activity):
 
 class ActivityAdminOut(Activity):
     """Dùng cho danh sách Operator duyệt -- kèm tên doanh nghiệp và thông tin xác minh"""
-    category_ids: list[str] = []
     business_name: str
     verified_by: Optional[str] = None
     verified_at: Optional[datetime] = None
@@ -367,7 +360,6 @@ class ComplaintResolveRequest(BaseModel):
 # Operator -- quản lý Customer/Business, xem/sửa Business Profile, dashboard
 # ---------------------------------------------------------------------------
 class UserAdminOut(BaseModel):
-    created_at: datetime
     user_id: str
     account_id: str
     email: str
@@ -400,13 +392,3 @@ class DashboardOut(BaseModel):
     pending_request_count: int
     pending_report_count: int
     pending_complaint_count: int
-
-class UserSelf(BaseModel):
-    user_id: str
-    name: str
-    phone: Optional[str] = None
-    email: str
-
-class UserSelfUpdate(BaseModel):
-    name: str
-    phone: Optional[str] = None

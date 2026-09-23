@@ -119,9 +119,27 @@
         <div class="field"><label>Tên doanh nghiệp</label><input type="text" placeholder="VD: She.slays"></div>
         <div class="field"><label>Số điện thoại</label><input type="text" placeholder="VD: 0934 802 345"></div>
         <div class="field"><label>Địa chỉ</label><input type="text" placeholder="Số nhà, đường, quận, thành phố"></div>
-
+        <div class="field"><label>Email liên hệ</label><input type="text" placeholder="contact@doanhnghiep.vn"></div>
         <div class="field"><label>Mô tả doanh nghiệp</label><textarea
             placeholder="Giới thiệu ngắn về doanh nghiệp và hoạt động bạn muốn đăng..."></textarea></div>
+        <div class="field">
+          <label>Logo</label>
+          <div
+            style="border:1.5px dashed var(--line);border-radius:12px;padding:20px;text-align:center;font-size:13px;color:var(--muted);cursor:pointer;">
+            <svg class="icon">
+              <use href="#icon-image"></use>
+            </svg> Kéo thả hoặc bấm để tải logo lên
+          </div>
+        </div>
+        <div class="field">
+          <label>Giấy tờ / minh chứng (nếu có)</label>
+          <div
+            style="border:1.5px dashed var(--line);border-radius:12px;padding:20px;text-align:center;font-size:13px;color:var(--muted);cursor:pointer;">
+            <svg class="icon">
+              <use href="#icon-paperclip"></use>
+            </svg> Kéo thả hoặc bấm để tải file lên
+          </div>
+        </div>
         <button class="btn btn-primary btn-block" onclick="submitForm()">Gửi yêu cầu</button>
       </div>
     </div>
@@ -141,22 +159,10 @@
 
   </div>
 
-  <script src="../js/config.js"></script>
-<script src="../js/api.js"></script>
-<script src="../js/user-nav.js"></script>
   <script>
-    async function submitForm() {
-      const fields = document.querySelectorAll('#form-view .field input, #form-view .field textarea');
-      const business_name = fields[0].value.trim();
-      const phone = fields[1].value.trim();
-      const business_address = fields[2].value.trim();
-      const description = fields[3].value.trim();
-      if (!business_name || !business_address) { alert('Vui lòng nhập tên và địa chỉ doanh nghiệp.'); return; }
-      try {
-        await window.Free2DoAPI.json('POST', '/business-requests', { business_name, phone, business_address, description });
-        document.getElementById('form-view').style.display = 'none';
-        document.getElementById('success-view').style.display = 'block';
-      } catch (error) { alert(error.message); }
+    function submitForm() {
+      document.getElementById('form-view').style.display = 'none';
+      document.getElementById('success-view').style.display = 'block';
     }
     function toggleUserMenu(e) {
       e.stopPropagation();

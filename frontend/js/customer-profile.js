@@ -2,7 +2,7 @@
   'use strict';
 
   const data = window.AdminData;
-  const id = new URLSearchParams(window.location.search).get('id') || data.customers[0]?.id;
+  const id = new URLSearchParams(window.location.search).get('id') || data.customers[0].id;
   let customer = data.customers.find(item => item.id === id);
 
   function badge(status) {
@@ -14,7 +14,7 @@
       <a href="customers.html" class="back-link">← Quay lại danh sách Khách hàng</a>
       <div class="card" style="padding:24px;margin-top:20px;">
         <h3>Không tìm thấy khách hàng</h3>
-        <p>Mã khách hàng “${data.escapeHTML(id)}” không tồn tại trong dữ liệu backend.</p>
+        <p>Mã khách hàng “${data.escapeHTML(id)}” không tồn tại trong admin-data.js.</p>
       </div>`;
   }
 
@@ -54,10 +54,10 @@
       'Trạng thái tài khoản': badge(customer.status)
     });
     setInfoRows(cards[1], {
-      'Hoạt động đã tham gia': 'Chưa có API',
-      'Đánh giá đã viết': 'Chưa có API',
-      'Hoạt động gần nhất': 'Chưa có API',
-      'Sở thích đã chọn': 'Chưa có API quản trị'
+      'Hoạt động đã tham gia': String(participationRows.length),
+      'Đánh giá đã viết': String(writtenReviews),
+      'Hoạt động gần nhất': latest ? data.escapeHTML(latest.date) : 'Chưa có',
+      'Sở thích đã chọn': data.escapeHTML(customer.interests.join(', '))
     });
 
     const tbody = document.getElementById('customerActivityRows');
@@ -76,10 +76,10 @@
     toggleButton.textContent = customer.status === 'locked' ? '🔓 Mở khóa tài khoản' : '🔒 Khóa tài khoản';
   }
 
-  document.getElementById('toggleCustomerStatus').addEventListener('click', async () => {
-    try { await data.setStatus('customer', customer.id, customer.status === 'locked' ? 'active' : 'locked');
-    render(); } catch (error) { data.error(error); }
+  document.getElementById('toggleCustomerStatus').addEventListener('click', () => {
+    data.setStatus('customer', customer.id, customer.status === 'locked' ? 'active' : 'locked');
+    render();
   });
 
-  data.ready.then(render).catch(() => {});
+  render();
 })();

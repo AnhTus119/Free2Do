@@ -18,10 +18,14 @@
   }
 
   function updateCounts() {
-    const activities = data.activities;
+    const summary = data.activitySummary;
+    const counts = {
+      all: summary.total_count, active: summary.active_count, pending: summary.pending_count,
+      hidden: summary.hidden_count, rejected: summary.rejected_count, expired: summary.expired_count,
+    };
     ['all', 'active', 'pending', 'hidden', 'rejected', 'expired'].forEach(status => {
       const element = document.querySelector(`[data-count="${status}"]`);
-      if (element) element.textContent = status === 'all' ? activities.length : activities.filter(item => item.status === status).length;
+      if (element) element.textContent = counts[status];
     });
   }
 

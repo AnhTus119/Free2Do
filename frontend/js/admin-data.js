@@ -7,7 +7,10 @@
   'use strict';
 
   const auth = window.AdminAuth;
-  const state = { customers: [], businesses: [], activities: [], participations: [], categories: [] };
+  const state = {
+    customers: [], businesses: [], activities: [], participations: [], categories: [],
+    dashboard: null, customerSummary: null, businessSummary: null, activitySummary: null,
+  };
 
   const statusLabels = {
     active: 'Hoạt động', pending: 'Chờ duyệt', hidden: 'Đã ẩn', cancelled: 'Đã hủy',
@@ -41,6 +44,8 @@
       id: user.user_id, name: user.name, email: user.email, phone: user.phone || '',
       area: 'Chưa có dữ liệu', registeredAt: viDate(user.created_at), lastLogin: 'Chưa có dữ liệu',
       status: mapStatus(user.status), interests: categories.map(item => item.name),
+      participationCount: user.participation_count, reviewCount: user.review_count,
+      lastActivityAt: user.last_activity_at ? viDate(user.last_activity_at) : null,
     };
   }
 
@@ -50,23 +55,31 @@
     return {
       id: activity.activity_id, name: activity.name, businessId: activity.business_id,
       businessName: activity.business_name, type: activityType(category), category,
-      price: auth.formatPrice(activity.price), rawPrice: activity.price,
+      price: activity.price_text || auth.formatPrice(activity.price), rawPrice: activity.price,
       hours: auth.formatHours(activity.time_open, activity.time_close), address: activity.address,
-      location: `${activity.latitude}, ${activity.longitude}`, latitude: activity.latitude,
+      location: activity.latitude == null || activity.longitude == null
+        ? '' : `${activity.latitude}, ${activity.longitude}`, latitude: activity.latitude,
       longitude: activity.longitude, status: activity.status,
       description: activity.description || 'Chưa có mô tả.', verifiedBy: activity.verified_by || '',
-      expireAt: viDate(activity.expire_at), views: null, participants: reviews.length,
+      expireAt: viDate(activity.expire_at), views: null, participants: source.review_count || 0,
       rating: source.avg_rating, createdAt: viDate(activity.created_at), media: source.media || [], icon: '✨',
     };
   }
 
   async function load() {
     await auth.requireOperatorAuth();
-    const [categories, customers, businessUsers, activities, requests] = await Promise.all([
+    const [categories, customers, businessUsers, activities, requests, dashboard,
+      customerSummary, businessSummary, activitySummary] = await Promise.all([
       auth.authFetch('/categories'), auth.authFetch('/operator/users?role=customer'),
       auth.authFetch('/operator/users?role=business'), auth.authFetch('/operator/activities'),
       auth.authFetch('/operator/business-requests?status=pending'),
+      auth.authFetch('/operator/dashboard'), auth.authFetch('/operator/summaries/customers'),
+      auth.authFetch('/operator/summaries/businesses'), auth.authFetch('/operator/activities/summary/counts'),
     ]);
+    state.dashboard = dashboard;
+    state.customerSummary = customerSummary;
+    state.businessSummary = businessSummary;
+    state.activitySummary = activitySummary;
     state.categories = categories;
     const customerCategories = await Promise.all(customers.map(user =>
       auth.authFetch(`/operator/users/${encodeURIComponent(user.user_id)}/categories`).catch(() => [])));
@@ -87,14 +100,14 @@
 
     state.businesses = businessUsers.map((user, index) => {
       const profile = profiles[index];
-      const ownActivities = state.activities.filter(activity => activity.businessId === user.user_id);
-      const types = [...new Set(ownActivities.map(activity => activity.category).filter(Boolean))];
       return {
         id: user.user_id, name: profile?.business_name || user.name,
-        address: profile?.business_address || 'Chưa có dữ liệu', type: types.join(', ') || 'Chưa phân loại',
+        address: profile?.business_address || 'Chưa có dữ liệu', type: 'Xem danh sách hoạt động',
         phone: profile?.phone || user.phone || '', hours: 'Xem từng hoạt động', priceRange: 'Xem từng hoạt động',
         status: mapStatus(user.status), verifiedBy: profile?.verified_by || '',
         verifiedAt: profile?.verified_at || null, description: profile?.description || 'Chưa có mô tả.',
+        activityCount: user.activity_count, activeActivityCount: user.active_activity_count,
+        pendingActivityCount: user.pending_activity_count, averageRating: user.average_rating,
       };
     });
 
@@ -106,6 +119,17 @@
     }));
   }
 
+  async function refreshSummaries() {
+    const [dashboard, customerSummary, businessSummary, activitySummary] = await Promise.all([
+      auth.authFetch('/operator/dashboard'), auth.authFetch('/operator/summaries/customers'),
+      auth.authFetch('/operator/summaries/businesses'), auth.authFetch('/operator/activities/summary/counts'),
+    ]);
+    state.dashboard = dashboard;
+    state.customerSummary = customerSummary;
+    state.businessSummary = businessSummary;
+    state.activitySummary = activitySummary;
+  }
+
   async function setStatus(kind, id, status) {
     if (kind === 'activity') {
       const next = status === 'rejected' ? 'hidden' : status;
@@ -114,6 +138,7 @@
       });
       const item = state.activities.find(entry => entry.id === id);
       if (item) item.status = next;
+      await refreshSummaries();
       return;
     }
     const collection = kind === 'customer' ? state.customers : state.businesses;
@@ -123,6 +148,7 @@
       const action = status === 'active' ? 'approve' : 'reject';
       await auth.authFetch(`/operator/business-requests/${encodeURIComponent(item.requestId)}/${action}`, { method: 'PATCH' });
       state.businesses = state.businesses.filter(entry => entry.id !== id);
+      await refreshSummaries();
       return;
     }
     const backendStatus = status === 'locked' ? 'blocked' : status;
@@ -130,6 +156,7 @@
       method: 'PATCH', body: JSON.stringify({ status: backendStatus }),
     });
     item.status = mapStatus(backendStatus);
+    await refreshSummaries();
   }
 
   const data = {
@@ -138,6 +165,10 @@
     get activities() { return state.activities; },
     get participations() { return state.participations; },
     get categories() { return state.categories; },
+    get dashboard() { return state.dashboard; },
+    get customerSummary() { return state.customerSummary; },
+    get businessSummary() { return state.businessSummary; },
+    get activitySummary() { return state.activitySummary; },
     statusLabels, setStatus, parseViDate, normalize, escapeHTML: auth.escapeHTML,
     businessName(activity) {
       return state.businesses.find(item => item.id === activity.businessId)?.name

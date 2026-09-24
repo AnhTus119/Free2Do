@@ -29,24 +29,15 @@
       '.stats-grid .stat-num'
     );
 
-    const activities = data.activities;
-    const customers = data.customers;
-
-    const pendingTotal =
-      currentPendingActivities().length +
-      currentPendingBusinesses().length;
+    const summary = data.dashboard;
 
     const values = [
-      customers.length,
-      data.businesses.length,
-      activities.length,
-      activities.filter(
-        item => item.status === 'active'
-      ).length,
-      pendingTotal,
-      customers.filter(
-        item => item.status === 'locked'
-      ).length
+      summary.customer_count,
+      summary.business_count,
+      summary.activity_count,
+      summary.active_activity_count,
+      summary.pending_total_count,
+      summary.locked_customer_count
     ];
 
     values.forEach((value, index) => {
@@ -57,23 +48,19 @@
 
     document.getElementById(
       'pendingActivityAlert'
-    ).textContent = currentPendingActivities().length;
+    ).textContent = summary.pending_activity_count;
 
     document.getElementById(
       'pendingBusinessAlert'
-    ).textContent = currentPendingBusinesses().length;
+    ).textContent = summary.pending_request_count;
 
     document.getElementById(
       'missingPhoneAlert'
-    ).textContent = data.businesses.filter(
-      item => !item.phone
-    ).length;
+    ).textContent = summary.missing_business_phone_count;
 
     document.getElementById(
       'lockedCustomerAlert'
-    ).textContent = customers.filter(
-      item => item.status === 'locked'
-    ).length;
+    ).textContent = summary.locked_customer_count;
   }
 
   function renderPageButtons(

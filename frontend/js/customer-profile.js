@@ -41,8 +41,6 @@
 
     const cards = document.querySelectorAll('.profile-grid .card');
     const participationRows = data.participations.filter(item => item.customerId === customer.id);
-    const writtenReviews = participationRows.filter(item => item.rating > 0).length;
-    const latest = participationRows[0];
 
     setInfoRows(cards[0], {
       'Họ và tên': data.escapeHTML(customer.name),
@@ -54,9 +52,9 @@
       'Trạng thái tài khoản': badge(customer.status)
     });
     setInfoRows(cards[1], {
-      'Hoạt động đã tham gia': String(participationRows.length),
-      'Đánh giá đã viết': String(writtenReviews),
-      'Hoạt động gần nhất': latest ? data.escapeHTML(latest.date) : 'Chưa có',
+      'Hoạt động đã tham gia': String(customer.participationCount),
+      'Đánh giá đã viết': String(customer.reviewCount),
+      'Hoạt động gần nhất': customer.lastActivityAt ? data.escapeHTML(customer.lastActivityAt) : 'Chưa có',
       'Sở thích đã chọn': data.escapeHTML(customer.interests.join(', '))
     });
 

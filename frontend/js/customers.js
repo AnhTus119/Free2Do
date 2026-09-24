@@ -17,10 +17,10 @@
   }
 
   function updateStats() {
-    const customers = getCustomers();
-    document.getElementById('totalCustomers').textContent = customers.length;
-    document.getElementById('activeCustomers').textContent = customers.filter(item => item.status === 'active').length;
-    document.getElementById('lockedCustomers').textContent = customers.filter(item => item.status === 'locked').length;
+    const summary = window.AdminData.customerSummary;
+    document.getElementById('totalCustomers').textContent = summary.total_count;
+    document.getElementById('activeCustomers').textContent = summary.active_count;
+    document.getElementById('lockedCustomers').textContent = summary.locked_count;
   }
 
   function filteredCustomers() {

@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Literal, Optional
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 # Account
 class AccountCreate(BaseModel):
@@ -128,12 +128,14 @@ class ActivityCreate(BaseModel):
     name: str
     description: Optional[str] = None
     price: Optional[float] = None
+    price_text: Optional[str] = None
     address: str
-    latitude: float
-    longitude: float
+    latitude: Optional[float] = Field(None, ge=-90, le=90)
+    longitude: Optional[float] = Field(None, ge=-180, le=180)
     time_open: Optional[datetime] = None
     time_close: Optional[datetime] = None
-    category_ids: list[str] = []
+    category_ids: list[str] = Field(default_factory=list)
+    source_url: Optional[str] = None
 
 class Activity(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -142,18 +144,24 @@ class Activity(BaseModel):
     name: str
     description: Optional[str] = None
     price: Optional[float] = None
+    price_text: Optional[str] = None
     address: str
-    latitude: float
-    longitude: float
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
     time_open: Optional[datetime] = None
     time_close: Optional[datetime] = None
     status: str
     created_at: datetime
+    source_url: Optional[str] = None
 
 class ActivityWithScore(Activity):
     """Dùng cho kết quả tìm kiếm kèm % phù hợp"""
     match_score: float
     distance_km: Optional[float] = None
+    business_name: str
+    category_ids: list[str] = Field(default_factory=list)
+    avg_rating: Optional[float] = None
+    review_count: int = 0
 
 # ActivityMedia
 class ActivityMedia(BaseModel):
@@ -236,12 +244,13 @@ class Report(BaseModel):
 class SearchParams(BaseModel):
     """Query params cho endpoint tìm kiếm chính (gộp 6 tiêu chí)"""
     keyword: Optional[str] = None
-    latitude: float
-    longitude: float
-    radius: float = 5.0
-    budget: Optional[float] = None
-    free_time: Optional[int] = None
-    category_ids: list[str] = []
+    latitude: float = Field(ge=-90, le=90)
+    longitude: float = Field(ge=-180, le=180)
+    radius: float = Field(5.0, gt=0)
+    budget: Optional[float] = Field(None, ge=0)
+    free_time: Optional[int] = Field(None, ge=30)
+    category_ids: list[str] = Field(default_factory=list)
+    sort_by: Literal["match", "distance", "price", "rating"] = "match"
 
 class SearchHistory(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -320,17 +329,19 @@ class ActivityUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
     price: Optional[float] = None
+    price_text: Optional[str] = None
     address: Optional[str] = None
     latitude: Optional[float] = None
     longitude: Optional[float] = None
     time_open: Optional[datetime] = None
     time_close: Optional[datetime] = None
     category_ids: Optional[list[str]] = None
+    source_url: Optional[str] = None
 
 class ActivityDetail(Activity):
     """Chi tiết hoạt động: kèm danh mục, media, rating trung bình -- dùng cho trang chi tiết"""
-    category_ids: list[str] = []
-    media: list[ActivityMedia] = []
+    category_ids: list[str] = Field(default_factory=list)
+    media: list[ActivityMedia] = Field(default_factory=list)
     avg_rating: Optional[float] = None
     review_count: int = 0
 
@@ -338,11 +349,12 @@ class ActivityPublicOut(ActivityDetail):
     """Hoạt động công khai kèm tên doanh nghiệp để frontend không phải dùng dữ liệu mẫu."""
     business_name: str
 
-class ActivityAdminOut(Activity):
+class ActivityAdminOut(ActivityPublicOut):
     """Dùng cho danh sách Operator duyệt -- kèm tên doanh nghiệp và thông tin xác minh"""
     business_name: str
     verified_by: Optional[str] = None
     verified_at: Optional[datetime] = None
+    expire_at: Optional[datetime] = None
 
 class ActivityMediaCreate(BaseModel):
     media_url: str
@@ -380,6 +392,13 @@ class UserAdminOut(BaseModel):
     phone: Optional[str] = None
     status: str  # accounts.status: active | blocked | suspended
     created_at: datetime
+    participation_count: int = 0
+    review_count: int = 0
+    last_activity_at: Optional[datetime] = None
+    activity_count: int = 0
+    active_activity_count: int = 0
+    pending_activity_count: int = 0
+    average_rating: Optional[float] = None
 
 class UserAdminUpdate(BaseModel):
     name: Optional[str] = None
@@ -405,3 +424,29 @@ class DashboardOut(BaseModel):
     pending_request_count: int
     pending_report_count: int
     pending_complaint_count: int
+    customer_count: int
+    active_activity_count: int
+    pending_activity_count: int
+    locked_customer_count: int
+    missing_business_phone_count: int
+    pending_total_count: int
+
+class CustomerSummaryOut(BaseModel):
+    total_count: int
+    active_count: int
+    locked_count: int
+
+class BusinessSummaryOut(BaseModel):
+    total_count: int
+    active_count: int
+    pending_count: int
+    locked_count: int
+
+class ActivitySummaryOut(BaseModel):
+    total_count: int
+    active_count: int
+    pending_count: int
+    hidden_count: int
+    cancelled_count: int
+    expired_count: int
+    rejected_count: int

@@ -25,8 +25,9 @@
     const categoryMap = new Map(categories.map(item => [item.category_id, item.name]));
     state.activities = activities.map((item, index) => ({
       id: item.activity_id, businessId: item.business_id, businessName: item.business_name,
-      name: item.name, description: item.description || 'Chưa có mô tả.', price: price(item.price),
-      rawPrice: item.price, address: item.address, location: `${item.latitude}, ${item.longitude}`,
+      name: item.name, description: item.description || 'Chưa có mô tả.', price: item.price_text || price(item.price),
+      rawPrice: item.price, address: item.address,
+      location: item.latitude == null || item.longitude == null ? '' : `${item.latitude}, ${item.longitude}`,
       latitude: item.latitude, longitude: item.longitude, hours: hours(item.time_open, item.time_close),
       status: item.status, category: item.category_ids.map(id => categoryMap.get(id)).filter(Boolean).join(', ') || 'Chưa phân loại',
       categoryIds: item.category_ids, rating: item.avg_rating, reviewCount: item.review_count,

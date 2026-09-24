@@ -13,16 +13,15 @@
   let currentPage = 1;
 
   function activityCount(id) {
-    return data.activities.filter(activity => activity.businessId === id).length;
+    return data.businesses.find(business => business.id === id)?.activityCount || 0;
   }
 
   function updateStats() {
-    const businesses = data.businesses;
-    document.getElementById('totalBusinesses').textContent = businesses.length;
-    ['active', 'pending', 'locked'].forEach(status => {
-      const element = document.getElementById(`${status}Businesses`);
-      element.textContent = businesses.filter(item => item.status === status).length;
-    });
+    const summary = data.businessSummary;
+    document.getElementById('totalBusinesses').textContent = summary.total_count;
+    document.getElementById('activeBusinesses').textContent = summary.active_count;
+    document.getElementById('pendingBusinesses').textContent = summary.pending_count;
+    document.getElementById('lockedBusinesses').textContent = summary.locked_count;
   }
 
   function filteredBusinesses() {

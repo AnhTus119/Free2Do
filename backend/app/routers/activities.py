@@ -83,6 +83,7 @@ def create_activity(
         name=payload.name,
         description=payload.description,
         price=payload.price,
+        price_text=payload.price_text,
         address=payload.address,
         latitude=payload.latitude,
         longitude=payload.longitude,
@@ -90,6 +91,7 @@ def create_activity(
         time_close=payload.time_close,
         status="pending",
         created_at=now,
+        source_url=payload.source_url,
     )
     db.add(activity)
     db.flush()
@@ -209,13 +211,35 @@ def list_activities_for_review(
 
     return [
         schemas.ActivityAdminOut(
-            **schemas.Activity.model_validate(a).model_dump(),
-            business_name=a.business.business_name,
-            verified_by=a.verified_by,
-            verified_at=a.verified_at,
+            **_to_detail(db, activity).model_dump(),
+            verified_by=activity.verified_by,
+            verified_at=activity.verified_at,
+            expire_at=activity.expire_at,
         )
-        for a in activities
+        for activity in activities
     ]
+
+
+@operator_router.get("/summary/counts", response_model=schemas.ActivitySummaryOut)
+def get_activity_summary(
+    db: Session = Depends(get_db),
+    _operator: models.Operator = Depends(get_current_operator),
+):
+    """Các bộ đếm của trang Hoạt động được tính trực tiếp trong database."""
+    grouped = dict(
+        db.query(models.Activity.status, func.count(models.Activity.activity_id))
+        .group_by(models.Activity.status)
+        .all()
+    )
+    return schemas.ActivitySummaryOut(
+        total_count=sum(grouped.values()),
+        active_count=grouped.get("active", 0),
+        pending_count=grouped.get("pending", 0),
+        hidden_count=grouped.get("hidden", 0),
+        cancelled_count=grouped.get("cancelled", 0),
+        expired_count=grouped.get("expired", 0),
+        rejected_count=grouped.get("rejected", 0),
+    )
 
 
 @operator_router.get("/{activity_id}", response_model=schemas.ActivityDetail)

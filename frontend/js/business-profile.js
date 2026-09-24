@@ -39,15 +39,13 @@
       'Mô tả': data.escapeHTML(business.description)
     });
     setInfoRows(cards[1], {
-      'Tổng Hoạt động': String(activities.length),
-      'Đang hoạt động': String(activities.filter(item => item.status === 'active').length),
-      'Chờ duyệt': String(activities.filter(item => item.status === 'pending').length),
-      'Đánh giá trung bình': activities.some(item => item.rating > 0)
-        ? `${(activities.filter(item => item.rating > 0).reduce((sum, item) => sum + item.rating, 0) / activities.filter(item => item.rating > 0).length).toFixed(1)} ★`
-        : 'Chưa có dữ liệu'
+      'Tổng Hoạt động': String(business.activityCount),
+      'Đang hoạt động': String(business.activeActivityCount),
+      'Chờ duyệt': String(business.pendingActivityCount),
+      'Đánh giá trung bình': business.averageRating == null ? 'Chưa có dữ liệu' : `${business.averageRating.toFixed(1)} ★`
     });
 
-    document.getElementById('businessActivityTitle').textContent = `Hoạt động của Doanh nghiệp này (${activities.length})`;
+    document.getElementById('businessActivityTitle').textContent = `Hoạt động của Doanh nghiệp này (${business.activityCount})`;
     document.getElementById('businessActivityRows').innerHTML = activities.length ? activities.map(activity => `<tr>
       <td>${data.escapeHTML(activity.id)}</td><td>${data.escapeHTML(activity.address)}</td><td>${data.escapeHTML(activity.hours)}</td>
       <td>${badge(activity.status)}</td><td><a class="row-btn" href="activity-profile.html?id=${encodeURIComponent(activity.id)}">Xem</a></td>

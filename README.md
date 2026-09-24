@@ -172,3 +172,28 @@ Các trang phải nạp `js/config.js` trước file JavaScript gọi API. Khôn
 ## 13. Phạm vi MVP
 
 Tìm kiếm + Bản đồ + Matching + Recommendation + Đánh giá + Quản trị hoạt động.
+# Backend người dùng và dữ liệu hoạt động
+
+Các phép tính tổng quan của Dashboard, Customer, Business và Activity được thực hiện tại backend qua các endpoint:
+
+- `GET /operator/dashboard`
+- `GET /operator/summaries/customers`
+- `GET /operator/summaries/businesses`
+- `GET /operator/activities/summary/counts`
+- `POST /search` để lọc, tính khoảng cách và xếp hạng hoạt động cho người dùng.
+
+Dữ liệu từ sheet `DỮ LIỆU` trong `QUẢN LÝ DỰ ÁN CNTT.xlsx` được đóng gói trong script seed idempotent. Chạy từ thư mục `backend`:
+
+```powershell
+python init_db.py
+python migrate_db.py
+python seed_activities.py
+```
+
+`seed_activities.py` tạo/cập nhật 28 doanh nghiệp, 30 hoạt động và 9 danh mục theo mã nguồn. Tọa độ còn thiếu được giữ là `NULL`; `price_text` giữ nguyên chuỗi giá trong Excel, còn `price` dùng mức trần của khoảng giá để lọc ngân sách.
+
+Chạy kiểm thử backend:
+
+```powershell
+python -m unittest discover -s tests -v
+```

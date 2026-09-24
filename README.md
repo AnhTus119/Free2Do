@@ -197,3 +197,71 @@ Chạy kiểm thử backend:
 ```powershell
 python -m unittest discover -s tests -v
 ```
+
+## 14. API dành cho Business
+
+Toàn bộ số liệu tổng quan được tính trong backend; frontend chỉ hiển thị response:
+
+| Nhóm | Endpoint chính |
+|---|---|
+| Hồ sơ | `GET/PATCH /business/me` |
+| Dashboard | `GET /business/dashboard` |
+| Hoạt động | `GET /business/activities`, `POST/PATCH/DELETE /activities...` |
+| Ảnh/video hoạt động | `POST /activities/{id}/media/upload` |
+| Đánh giá | `GET /business/reviews` |
+| Phản hồi đánh giá | `POST /business/reviews/{id}/reply`, `PATCH/DELETE /business/review-replies/{id}` |
+| Media phản hồi | `POST /business/review-replies/{id}/media/upload` |
+| Khiếu nại | `POST /complaints`, `GET /business/complaints` |
+| Menu/gallery/logo | `GET/POST /business/media`, `DELETE /business/media/{id}` |
+
+Các endpoint Business đều dùng Bearer token và kiểm tra quyền sở hữu ở backend. Hoạt
+động mới hoặc hoạt động đang active được Business chỉnh sửa sẽ về trạng thái `pending`
+để Operator duyệt lại.
+
+## 15. Lưu ảnh bằng Cloudinary
+
+1. Tạo tài khoản Cloudinary và mở Dashboard để lấy `cloud name`, `API key`, `API secret`.
+2. Điền các biến sau vào `backend/.env` (không đưa file này lên Git):
+
+```env
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
+CLOUDINARY_FOLDER=free2do
+MAX_IMAGE_UPLOAD_MB=5
+MAX_VIDEO_UPLOAD_MB=25
+```
+
+3. Chạy migration rồi khởi động API:
+
+```powershell
+cd backend
+python migrate_db.py
+uvicorn app.main:app --reload
+```
+
+Frontend gửi `multipart/form-data`, field tên `file`, tới endpoint upload. File đi qua
+backend để API secret không bao giờ xuất hiện ở trình duyệt. Backend giới hạn MIME và
+kích thước, tối ưu ảnh khi upload, lưu cả URL lẫn `public_id`, và xóa asset cũ khi người
+dùng thay avatar/logo.
+
+### Avatar mẫu dùng chung
+
+Upload 5-10 ảnh mẫu đúng một lần; mọi người dùng sau đó chỉ lưu chung URL của ảnh, nên
+không phát sinh thêm bản sao trong Cloudinary:
+
+```powershell
+cd backend
+python seed_avatar_presets.py `
+  --avatar "Mèo xanh=C:\images\cat-blue.png" `
+  --avatar "Phi hành gia=C:\images\astronaut.png"
+```
+
+- `GET /media/avatar-presets`: lấy danh sách avatar mẫu.
+- `PUT /media/avatar/preset/{preset_id}`: chọn một avatar mẫu.
+- `POST /media/avatar`: upload avatar riêng.
+- `DELETE /media/avatar`: xóa avatar riêng.
+
+Nên theo dõi Usage trên Cloudinary, đặt giới hạn file hợp lý, ưu tiên WebP/JPEG cho ảnh,
+và xóa ảnh cũ bằng các API đã có. Menu, gallery, ảnh/video hoạt động và phản hồi đều do
+Business tự upload; Operator không cần đưa ảnh lên Cloudinary thủ công.

@@ -20,6 +20,72 @@ CREATE INDEX IF NOT EXISTS idx_activities_business_id ON activities(business_id)
 CREATE INDEX IF NOT EXISTS idx_reviews_activity_id ON reviews(activity_id);
 CREATE INDEX IF NOT EXISTS idx_reviews_user_id ON reviews(user_id);
 
+-- Hồ sơ và metadata Cloudinary. public_id được lưu để backend có thể xóa tài sản
+-- khi người dùng thay ảnh, tránh file mồ côi làm tăng dung lượng.
+ALTER TABLE business_profiles
+  ADD COLUMN IF NOT EXISTS avatar_url VARCHAR,
+  ADD COLUMN IF NOT EXISTS avatar_public_id VARCHAR;
+
+ALTER TABLE customer_profiles
+  ADD COLUMN IF NOT EXISTS avatar_public_id VARCHAR;
+
+ALTER TABLE activities_media
+  ADD COLUMN IF NOT EXISTS public_id VARCHAR,
+  ADD COLUMN IF NOT EXISTS bytes INTEGER,
+  ADD COLUMN IF NOT EXISTS width INTEGER,
+  ADD COLUMN IF NOT EXISTS height INTEGER;
+
+ALTER TABLE review_media
+  ADD COLUMN IF NOT EXISTS public_id VARCHAR,
+  ADD COLUMN IF NOT EXISTS bytes INTEGER;
+
+CREATE TABLE IF NOT EXISTS business_media (
+  media_id VARCHAR PRIMARY KEY,
+  business_id VARCHAR NOT NULL REFERENCES business_profiles(user_id) ON DELETE CASCADE,
+  media_url VARCHAR NOT NULL,
+  public_id VARCHAR NOT NULL,
+  media_type VARCHAR NOT NULL DEFAULT 'image',
+  media_kind VARCHAR NOT NULL,
+  bytes INTEGER,
+  width INTEGER,
+  height INTEGER,
+  created_at TIMESTAMP NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS review_replies (
+  reply_id VARCHAR PRIMARY KEY,
+  review_id VARCHAR NOT NULL UNIQUE REFERENCES reviews(review_id) ON DELETE CASCADE,
+  business_id VARCHAR NOT NULL REFERENCES business_profiles(user_id) ON DELETE CASCADE,
+  content TEXT NOT NULL,
+  created_at TIMESTAMP NOT NULL,
+  updated_at TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS review_reply_media (
+  media_id VARCHAR PRIMARY KEY,
+  reply_id VARCHAR NOT NULL REFERENCES review_replies(reply_id) ON DELETE CASCADE,
+  media_url VARCHAR NOT NULL,
+  public_id VARCHAR NOT NULL,
+  media_type VARCHAR NOT NULL,
+  bytes INTEGER,
+  created_at TIMESTAMP NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS avatar_presets (
+  preset_id VARCHAR PRIMARY KEY,
+  name VARCHAR NOT NULL,
+  media_url VARCHAR NOT NULL,
+  public_id VARCHAR NOT NULL UNIQUE,
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMP NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_business_media_business_kind
+  ON business_media(business_id, media_kind);
+CREATE INDEX IF NOT EXISTS idx_review_replies_business_id
+  ON review_replies(business_id);
+
 -- Nếu bạn đã seed sẵn 1 operator mẫu qua seed_db.py và muốn operator đó là admin cấp cao,
 -- chạy thêm (thay email cho đúng):
 -- UPDATE operators SET level = 'admin'

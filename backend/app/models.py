@@ -84,10 +84,14 @@ class BusinessProfile(Base):
     phone = Column(String)
     description = Column(Text)
     business_address = Column(String, nullable=False)
+    avatar_url = Column(String)
+    avatar_public_id = Column(String)
     verified_by = Column(String, ForeignKey("operators.operator_id"))
     verified_at = Column(DateTime)
     user = relationship("User", back_populates="business_profile")
     activities = relationship("Activity", back_populates="business")
+    media = relationship("BusinessMedia", back_populates="business", cascade="all, delete-orphan")
+    review_replies = relationship("ReviewReply", back_populates="business", cascade="all, delete-orphan")
 
 class BusinessRequest(Base):
     __tablename__ = "business_requests"
@@ -110,6 +114,7 @@ class CustomerProfile(Base):
 
     user_id = Column(String, ForeignKey("users.user_id"), primary_key=True)
     avatar_url = Column(String)
+    avatar_public_id = Column(String)
     user = relationship("User", back_populates="customer_profile")
 
 class Activity(Base):
@@ -155,6 +160,10 @@ class ActivityMedia(Base):
     activity_id = Column(String, ForeignKey("activities.activity_id"), nullable=False)
     media_url = Column(String, nullable=False)
     media_type = Column(String, nullable=False)
+    public_id = Column(String)
+    bytes = Column(Integer)
+    width = Column(Integer)
+    height = Column(Integer)
     activity = relationship("Activity", back_populates="media")
 
 class Bookmark(Base):
@@ -180,6 +189,7 @@ class Review(Base):
     activity = relationship("Activity", back_populates="reviews")
     media = relationship("ReviewMedia", back_populates="review")
     complaints = relationship("Complaint", back_populates="review")
+    reply = relationship("ReviewReply", back_populates="review", uselist=False, cascade="all, delete-orphan")
 
 class ReviewMedia(Base):
     __tablename__ = "review_media"
@@ -188,7 +198,60 @@ class ReviewMedia(Base):
     review_id = Column(String, ForeignKey("reviews.review_id"), nullable=False)
     media_url = Column(String, nullable=False)
     media_type = Column(String, nullable=False)
+    public_id = Column(String)
+    bytes = Column(Integer)
     review = relationship("Review", back_populates="media")
+
+class BusinessMedia(Base):
+    __tablename__ = "business_media"
+
+    media_id = Column(String, primary_key=True, default=gen_id)
+    business_id = Column(String, ForeignKey("business_profiles.user_id"), nullable=False)
+    media_url = Column(String, nullable=False)
+    public_id = Column(String, nullable=False)
+    media_type = Column(String, nullable=False, default="image")
+    media_kind = Column(String, nullable=False)  # menu | gallery | logo
+    bytes = Column(Integer)
+    width = Column(Integer)
+    height = Column(Integer)
+    created_at = Column(DateTime, nullable=False)
+    business = relationship("BusinessProfile", back_populates="media")
+
+class ReviewReply(Base):
+    __tablename__ = "review_replies"
+
+    reply_id = Column(String, primary_key=True, default=gen_id)
+    review_id = Column(String, ForeignKey("reviews.review_id"), nullable=False, unique=True)
+    business_id = Column(String, ForeignKey("business_profiles.user_id"), nullable=False)
+    content = Column(Text, nullable=False)
+    created_at = Column(DateTime, nullable=False)
+    updated_at = Column(DateTime)
+    review = relationship("Review", back_populates="reply")
+    business = relationship("BusinessProfile", back_populates="review_replies")
+    media = relationship("ReviewReplyMedia", back_populates="reply", cascade="all, delete-orphan")
+
+class ReviewReplyMedia(Base):
+    __tablename__ = "review_reply_media"
+
+    media_id = Column(String, primary_key=True, default=gen_id)
+    reply_id = Column(String, ForeignKey("review_replies.reply_id"), nullable=False)
+    media_url = Column(String, nullable=False)
+    public_id = Column(String, nullable=False)
+    media_type = Column(String, nullable=False)
+    bytes = Column(Integer)
+    created_at = Column(DateTime, nullable=False)
+    reply = relationship("ReviewReply", back_populates="media")
+
+class AvatarPreset(Base):
+    __tablename__ = "avatar_presets"
+
+    preset_id = Column(String, primary_key=True, default=gen_id)
+    name = Column(String, nullable=False)
+    media_url = Column(String, nullable=False)
+    public_id = Column(String, nullable=False, unique=True)
+    is_active = Column(Boolean, nullable=False, default=True)
+    sort_order = Column(Integer, nullable=False, default=0)
+    created_at = Column(DateTime, nullable=False)
 
 class Complaint(Base):
     __tablename__ = "complaints"

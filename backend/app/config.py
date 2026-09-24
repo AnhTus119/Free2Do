@@ -19,6 +19,13 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_ID: str
     OTP_EXPIRE_MINUTES: int = 10
     RESET_TOKEN_EXPIRE_MINUTES: int = 10
+    # Cloudinary (để trống thì API upload trả 503, phần còn lại vẫn chạy)
+    CLOUDINARY_CLOUD_NAME: str = ""
+    CLOUDINARY_API_KEY: str = ""
+    CLOUDINARY_API_SECRET: str = ""
+    CLOUDINARY_FOLDER: str = "free2do"
+    MAX_IMAGE_UPLOAD_MB: int = 5
+    MAX_VIDEO_UPLOAD_MB: int = 25
     model_config = SettingsConfigDict(env_file=ENV_PATH, extra="ignore")
 
 settings = Settings()

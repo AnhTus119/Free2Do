@@ -8,6 +8,7 @@ from app.database import get_db
 from app import models, schemas
 from app.auth import get_current_business_user, get_current_operator
 from app.utils.email import send_activity_approved_email, send_activity_hidden_email
+from app.services.cloudinary_storage import delete_asset
 
 router = APIRouter(prefix="/activities", tags=["activities"])
 
@@ -187,6 +188,11 @@ def delete_activity_media(
     if not media or media.activity.business_id != business.user_id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Không tìm thấy media")
 
+    if media.public_id:
+        try:
+            delete_asset(media.public_id, media.media_type)
+        except Exception as exc:
+            raise HTTPException(status.HTTP_502_BAD_GATEWAY, "Không thể xóa file trên Cloudinary") from exc
     db.delete(media)
     db.commit()
     return {"message": "Đã xóa media"}

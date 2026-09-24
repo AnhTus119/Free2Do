@@ -162,6 +162,10 @@ def read_me(account: models.Account = Depends(get_current_account), db: Session 
 
     user = db.query(models.User).filter(models.User.account_id == account.account_id).first()
     role_name = user.role.role_name if user and user.role else None
+    avatar_url = None
+    if user:
+        profile = user.business_profile or user.customer_profile
+        avatar_url = profile.avatar_url if profile else None
     return schemas.MeResponse(
         account_id=account.account_id,
         email=account.email,
@@ -170,6 +174,7 @@ def read_me(account: models.Account = Depends(get_current_account), db: Session 
         name=user.name if user else "",
         user_id=user.user_id if user else None,
         phone=user.phone if user else None,
+        avatar_url=avatar_url,
         redirect="index.html",
     )
 

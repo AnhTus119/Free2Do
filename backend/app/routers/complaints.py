@@ -1,11 +1,11 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app import models, schemas
-from app.auth import get_current_user, get_current_operator
+from app.auth import get_current_business_user, get_current_operator
 
 router = APIRouter(tags=["complaints"])
 
@@ -14,24 +14,57 @@ router = APIRouter(tags=["complaints"])
 def create_complaint(
     payload: schemas.ComplaintCreate,
     db: Session = Depends(get_db),
-    user: models.User = Depends(get_current_user),
+    business: models.BusinessProfile = Depends(get_current_business_user),
 ):
-    review = db.query(models.Review).filter(models.Review.review_id == payload.review_id).first()
+    review = (
+        db.query(models.Review)
+        .join(models.Activity, models.Activity.activity_id == models.Review.activity_id)
+        .filter(
+            models.Review.review_id == payload.review_id,
+            models.Activity.business_id == business.user_id,
+        )
+        .first()
+    )
     if not review:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Không tìm thấy đánh giá")
 
+    existing = (
+        db.query(models.Complaint)
+        .filter(
+            models.Complaint.user_id == business.user_id,
+            models.Complaint.review_id == payload.review_id,
+            models.Complaint.status == "pending",
+        )
+        .first()
+    )
+    if existing:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Đánh giá đã có khiếu nại đang chờ xử lý")
+
     complaint = models.Complaint(
-        user_id=user.user_id,
+        user_id=business.user_id,
         review_id=payload.review_id,
         reason=payload.reason,
         description=payload.description,
         status="pending",
-        created_at=datetime.utcnow(),
+        created_at=datetime.now(UTC).replace(tzinfo=None),
     )
     db.add(complaint)
     db.commit()
     db.refresh(complaint)
     return complaint
+
+
+@router.get("/business/complaints", response_model=list[schemas.Complaint])
+def list_business_complaints(
+    db: Session = Depends(get_db),
+    business: models.BusinessProfile = Depends(get_current_business_user),
+):
+    return (
+        db.query(models.Complaint)
+        .filter(models.Complaint.user_id == business.user_id)
+        .order_by(models.Complaint.created_at.desc())
+        .all()
+    )
 
 
 # ---------------------------------------------------------------------------

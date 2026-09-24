@@ -93,6 +93,7 @@ class BusinessProfile(BaseModel):
     phone: Optional[str] = None
     description: Optional[str] = None
     business_address: str
+    avatar_url: Optional[str] = None
     verified_by: Optional[str] = None
     verified_at: Optional[datetime] = None
 
@@ -170,6 +171,10 @@ class ActivityMedia(BaseModel):
     activity_id: str
     media_url: str
     media_type: str
+    public_id: Optional[str] = None
+    bytes: Optional[int] = None
+    width: Optional[int] = None
+    height: Optional[int] = None
 
 # Bookmark
 class Bookmark(BaseModel):
@@ -181,7 +186,7 @@ class Bookmark(BaseModel):
 # Review 
 class ReviewCreate(BaseModel):
     activity_id: str
-    rating: int
+    rating: int = Field(ge=1, le=5)
     content: Optional[str] = None
 
 class Review(BaseModel):
@@ -205,6 +210,8 @@ class ReviewMedia(BaseModel):
     review_id: str
     media_url: str
     media_type: str
+    public_id: Optional[str] = None
+    bytes: Optional[int] = None
 
 # Complaint
 class ComplaintCreate(BaseModel):
@@ -313,6 +320,7 @@ class MeResponse(BaseModel):
     user_id: Optional[str] = None
     operator_id: Optional[str] = None
     phone: Optional[str] = None
+    avatar_url: Optional[str] = None
     level: Optional[str] = None
     redirect: str                # "admin.html" | "index.html"
 
@@ -364,7 +372,7 @@ class ActivityMediaCreate(BaseModel):
 # Review -- cập nhật
 # ---------------------------------------------------------------------------
 class ReviewUpdate(BaseModel):
-    rating: Optional[int] = None
+    rating: Optional[int] = Field(None, ge=1, le=5)
     content: Optional[str] = None
 
 class ReviewMediaCreate(BaseModel):
@@ -412,6 +420,90 @@ class BusinessProfileAdminUpdate(BaseModel):
     phone: Optional[str] = None
     description: Optional[str] = None
     business_address: Optional[str] = None
+
+class BusinessProfileUpdate(BaseModel):
+    business_name: Optional[str] = Field(None, min_length=1, max_length=200)
+    phone: Optional[str] = Field(None, max_length=30)
+    description: Optional[str] = Field(None, max_length=5000)
+    business_address: Optional[str] = Field(None, min_length=1, max_length=500)
+
+class BusinessDashboardOut(BaseModel):
+    activity_count: int
+    active_activity_count: int
+    pending_activity_count: int
+    hidden_activity_count: int
+    cancelled_activity_count: int
+    review_count: int
+    unanswered_review_count: int
+    average_rating: Optional[float] = None
+    pending_complaint_count: int
+    bookmark_count: int
+
+class BusinessMediaOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    media_id: str
+    business_id: str
+    media_url: str
+    public_id: str
+    media_type: str
+    media_kind: str
+    bytes: Optional[int] = None
+    width: Optional[int] = None
+    height: Optional[int] = None
+    created_at: datetime
+
+class ReviewReplyCreate(BaseModel):
+    content: str = Field(min_length=1, max_length=5000)
+
+class ReviewReplyUpdate(BaseModel):
+    content: str = Field(min_length=1, max_length=5000)
+
+class ReviewReplyMediaOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    media_id: str
+    reply_id: str
+    media_url: str
+    public_id: str
+    media_type: str
+    bytes: Optional[int] = None
+    created_at: datetime
+
+class ReviewReplyOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    reply_id: str
+    review_id: str
+    business_id: str
+    content: str
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    media: list[ReviewReplyMediaOut] = Field(default_factory=list)
+
+class BusinessReviewOut(BaseModel):
+    review_id: str
+    user_id: str
+    activity_id: str
+    activity_name: str
+    reviewer_name: str
+    rating: int
+    content: Optional[str] = None
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    reply: Optional[ReviewReplyOut] = None
+
+class AvatarPresetOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    preset_id: str
+    name: str
+    media_url: str
+    sort_order: int
+
+class MediaUploadOut(BaseModel):
+    media_url: str
+    public_id: str
+    media_type: str
+    bytes: Optional[int] = None
+    width: Optional[int] = None
+    height: Optional[int] = None
 
 class ActivityStatusUpdate(BaseModel):
     status: Literal["pending", "active", "cancelled", "hidden"]

@@ -1,6 +1,6 @@
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, timedelta
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -12,6 +12,23 @@ from app.services.cloudinary_storage import delete_asset
 
 
 router = APIRouter(prefix="/business", tags=["business"])
+
+
+def _bucket_date(value: datetime, granularity: str) -> date:
+    current = value.date()
+    if granularity == "week":
+        return current - timedelta(days=current.weekday())
+    if granularity == "month":
+        return current.replace(day=1)
+    return current
+
+
+def _next_bucket(current: date, granularity: str) -> date:
+    if granularity == "week":
+        return current + timedelta(days=7)
+    if granularity == "month":
+        return (current.replace(day=28) + timedelta(days=4)).replace(day=1)
+    return current + timedelta(days=1)
 
 
 def _owned_review(db: Session, review_id: str, business_id: str) -> models.Review:
@@ -122,6 +139,175 @@ def get_business_dashboard(
     )
 
 
+@router.get("/analytics", response_model=schemas.BusinessAnalyticsOut)
+def get_business_analytics(
+    days: int = Query(30, ge=7, le=365),
+    activity_id: str | None = Query(None),
+    db: Session = Depends(get_db),
+    business: models.BusinessProfile = Depends(get_current_business_user),
+):
+    """Dữ liệu biểu đồ đã tổng hợp ở backend từ Review và Bookmark thật."""
+    activities_query = db.query(models.Activity).filter(models.Activity.business_id == business.user_id)
+    if activity_id:
+        activities_query = activities_query.filter(models.Activity.activity_id == activity_id)
+    activities = activities_query.order_by(models.Activity.created_at.desc()).all()
+    if activity_id and not activities:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Không tìm thấy hoạt động")
+
+    activity_ids = [activity.activity_id for activity in activities]
+    now = datetime.now(UTC).replace(tzinfo=None)
+    start = datetime.combine((now - timedelta(days=days - 1)).date(), datetime.min.time())
+    granularity = "day" if days <= 31 else "week" if days <= 120 else "month"
+
+    if activity_ids:
+        period_reviews = (
+            db.query(models.Review)
+            .filter(models.Review.activity_id.in_(activity_ids), models.Review.created_at >= start)
+            .all()
+        )
+        period_bookmarks = (
+            db.query(models.Bookmark)
+            .filter(models.Bookmark.activity_id.in_(activity_ids), models.Bookmark.created_at >= start)
+            .all()
+        )
+    else:
+        period_reviews, period_bookmarks = [], []
+
+    first_bucket = _bucket_date(start, granularity)
+    last_bucket = _bucket_date(now, granularity)
+    trend = {}
+    cursor = first_bucket
+    while cursor <= last_bucket:
+        trend[cursor] = {"reviews": 0, "bookmarks": 0, "ratings": []}
+        cursor = _next_bucket(cursor, granularity)
+    for review in period_reviews:
+        bucket = _bucket_date(review.created_at, granularity)
+        trend[bucket]["reviews"] += 1
+        trend[bucket]["ratings"].append(review.rating)
+    for bookmark in period_bookmarks:
+        bucket = _bucket_date(bookmark.created_at, granularity)
+        trend[bucket]["bookmarks"] += 1
+
+    engagement_trend = [
+        schemas.BusinessTrendPoint(
+            label=bucket.isoformat(),
+            review_count=value["reviews"],
+            bookmark_count=value["bookmarks"],
+            interaction_count=value["reviews"] + value["bookmarks"],
+            average_rating=(
+                round(sum(value["ratings"]) / len(value["ratings"]), 2)
+                if value["ratings"] else None
+            ),
+        )
+        for bucket, value in sorted(trend.items())
+    ]
+
+    rating_counts = {rating: 0 for rating in range(1, 6)}
+    for review in period_reviews:
+        rating_counts[review.rating] = rating_counts.get(review.rating, 0) + 1
+    total_ratings = len(period_reviews)
+    rating_distribution = [
+        schemas.BusinessRatingPoint(
+            rating=rating,
+            count=rating_counts[rating],
+            percentage=round(rating_counts[rating] * 100 / total_ratings, 1) if total_ratings else 0,
+        )
+        for rating in range(1, 6)
+    ]
+
+    status_counts: dict[str, int] = {}
+    for activity in activities:
+        status_counts[activity.status] = status_counts.get(activity.status, 0) + 1
+    activity_status_distribution = [
+        schemas.BusinessStatusPoint(status=name, count=count)
+        for name, count in sorted(status_counts.items())
+    ]
+
+    category_rows = []
+    if activity_ids:
+        category_rows = (
+            db.query(models.Category.category_id, models.Category.name, func.count(models.ActivityCategory.activity_id))
+            .join(models.ActivityCategory, models.ActivityCategory.category_id == models.Category.category_id)
+            .filter(models.ActivityCategory.activity_id.in_(activity_ids))
+            .group_by(models.Category.category_id, models.Category.name)
+            .order_by(func.count(models.ActivityCategory.activity_id).desc(), models.Category.name)
+            .all()
+        )
+    category_distribution = [
+        schemas.BusinessCategoryPoint(category_id=row[0], category_name=row[1], activity_count=row[2])
+        for row in category_rows
+    ]
+
+    review_metrics = {}
+    bookmark_metrics = {}
+    unanswered_metrics = {}
+    if activity_ids:
+        review_metrics = {
+            row[0]: (row[1], row[2])
+            for row in (
+                db.query(
+                    models.Review.activity_id,
+                    func.count(models.Review.review_id),
+                    func.avg(models.Review.rating),
+                )
+                .filter(models.Review.activity_id.in_(activity_ids))
+                .group_by(models.Review.activity_id)
+                .all()
+            )
+        }
+        bookmark_metrics = dict(
+            db.query(models.Bookmark.activity_id, func.count(models.Bookmark.user_id))
+            .filter(models.Bookmark.activity_id.in_(activity_ids))
+            .group_by(models.Bookmark.activity_id)
+            .all()
+        )
+        unanswered_metrics = dict(
+            db.query(models.Review.activity_id, func.count(models.Review.review_id))
+            .outerjoin(models.ReviewReply, models.ReviewReply.review_id == models.Review.review_id)
+            .filter(models.Review.activity_id.in_(activity_ids), models.ReviewReply.reply_id.is_(None))
+            .group_by(models.Review.activity_id)
+            .all()
+        )
+
+    performance = []
+    for activity in activities:
+        review_count, average_rating = review_metrics.get(activity.activity_id, (0, None))
+        bookmark_count = bookmark_metrics.get(activity.activity_id, 0)
+        performance.append(
+            schemas.BusinessActivityPerformance(
+                activity_id=activity.activity_id,
+                activity_name=activity.name,
+                status=activity.status,
+                review_count=review_count,
+                bookmark_count=bookmark_count,
+                unanswered_review_count=unanswered_metrics.get(activity.activity_id, 0),
+                average_rating=round(float(average_rating), 2) if average_rating is not None else None,
+                interaction_count=review_count + bookmark_count,
+            )
+        )
+    performance.sort(key=lambda item: (item.interaction_count, item.review_count), reverse=True)
+    period_average = (
+        round(sum(review.rating for review in period_reviews) / total_ratings, 2)
+        if total_ratings else None
+    )
+    return schemas.BusinessAnalyticsOut(
+        generated_at=now,
+        period_days=days,
+        granularity=granularity,
+        activity_id=activity_id,
+        summary=schemas.BusinessAnalyticsSummary(
+            period_review_count=total_ratings,
+            period_bookmark_count=len(period_bookmarks),
+            period_interaction_count=total_ratings + len(period_bookmarks),
+            period_average_rating=period_average,
+            total_activity_count=len(activities),
+        ),
+        engagement_trend=engagement_trend,
+        rating_distribution=rating_distribution,
+        activity_status_distribution=activity_status_distribution,
+        category_distribution=category_distribution,
+        activity_performance=performance,
+    )
 @router.get("/activities", response_model=list[schemas.ActivityPublicOut])
 def list_business_activities(
     db: Session = Depends(get_db),

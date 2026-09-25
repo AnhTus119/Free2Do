@@ -8,7 +8,12 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app import models, schemas
-from app.routers.businesses import create_review_reply, get_business_dashboard, update_business_profile
+from app.routers.businesses import (
+    create_review_reply,
+    get_business_analytics,
+    get_business_dashboard,
+    update_business_profile,
+)
 from app.routers.complaints import create_complaint
 from app.services.cloudinary_storage import InvalidMedia, upload_asset, validate_upload
 
@@ -125,6 +130,23 @@ class BusinessFeatureTests(unittest.TestCase):
                 business=self.business,
             )
         self.assertEqual(context.exception.status_code, 409)
+
+    def test_analytics_is_aggregated_from_database(self):
+        analytics = get_business_analytics(
+            days=30,
+            activity_id=None,
+            db=self.db,
+            business=self.business,
+        )
+        self.assertEqual(analytics.summary.period_review_count, 1)
+        self.assertEqual(analytics.summary.period_bookmark_count, 1)
+        self.assertEqual(analytics.summary.period_interaction_count, 2)
+        self.assertEqual(analytics.summary.period_average_rating, 4.0)
+        self.assertEqual(sum(point.review_count for point in analytics.engagement_trend), 1)
+        self.assertEqual(sum(point.bookmark_count for point in analytics.engagement_trend), 1)
+        self.assertEqual(analytics.rating_distribution[3].count, 1)
+        self.assertEqual(analytics.activity_performance[0].activity_id, "A1")
+        self.assertEqual(analytics.activity_performance[0].interaction_count, 2)
 
     def test_cloudinary_validation_and_metadata(self):
         self.assertEqual(validate_upload(b"image", "image/png", False), "image")

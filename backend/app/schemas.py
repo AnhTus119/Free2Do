@@ -439,6 +439,56 @@ class BusinessDashboardOut(BaseModel):
     pending_complaint_count: int
     bookmark_count: int
 
+class BusinessAnalyticsSummary(BaseModel):
+    period_review_count: int
+    period_bookmark_count: int
+    period_interaction_count: int
+    period_average_rating: Optional[float] = None
+    total_activity_count: int
+
+class BusinessTrendPoint(BaseModel):
+    label: str
+    review_count: int
+    bookmark_count: int
+    interaction_count: int
+    average_rating: Optional[float] = None
+
+class BusinessRatingPoint(BaseModel):
+    rating: int
+    count: int
+    percentage: float
+
+class BusinessStatusPoint(BaseModel):
+    status: str
+    count: int
+
+class BusinessCategoryPoint(BaseModel):
+    category_id: str
+    category_name: str
+    activity_count: int
+
+class BusinessActivityPerformance(BaseModel):
+    activity_id: str
+    activity_name: str
+    status: str
+    review_count: int
+    bookmark_count: int
+    unanswered_review_count: int
+    average_rating: Optional[float] = None
+    interaction_count: int
+
+class BusinessAnalyticsOut(BaseModel):
+    generated_at: datetime
+    period_days: int
+    granularity: Literal["day", "week", "month"]
+    activity_id: Optional[str] = None
+    summary: BusinessAnalyticsSummary
+    engagement_trend: list[BusinessTrendPoint]
+    rating_distribution: list[BusinessRatingPoint]
+    activity_status_distribution: list[BusinessStatusPoint]
+    category_distribution: list[BusinessCategoryPoint]
+    activity_performance: list[BusinessActivityPerformance]
+
 class BusinessMediaOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     media_id: str

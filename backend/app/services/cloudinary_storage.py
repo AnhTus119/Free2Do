@@ -139,6 +139,42 @@ def upload_source(*, source: str, name: str) -> UploadedAsset:
     )
 
 
+def upload_seed_image(
+    *,
+    source: str,
+    folder: str,
+    public_id: str,
+    owner_id: str,
+    kind: str,
+) -> UploadedAsset:
+    """Upload ảnh seed với public_id ổn định để có thể chạy script nhiều lần."""
+    _configure()
+    root = settings.CLOUDINARY_FOLDER.strip("/") or "free2do"
+    full_public_id = f"{root}/{folder.strip('/')}/{public_id}"
+    result = cloudinary.uploader.upload(
+        source,
+        resource_type="image",
+        public_id=full_public_id,
+        overwrite=True,
+        invalidate=True,
+        tags=["free2do", "seed", kind, f"owner:{owner_id}"],
+        transformation={
+            "width": 2000,
+            "height": 2000,
+            "crop": "limit",
+            "quality": "auto",
+        },
+    )
+    return UploadedAsset(
+        media_url=result["secure_url"],
+        public_id=result["public_id"],
+        media_type="image",
+        bytes=result.get("bytes"),
+        width=result.get("width"),
+        height=result.get("height"),
+    )
+
+
 def delete_asset(public_id: str, media_type: str = "image") -> None:
     if not public_id:
         return

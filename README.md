@@ -265,3 +265,64 @@ python seed_avatar_presets.py `
 Nên theo dõi Usage trên Cloudinary, đặt giới hạn file hợp lý, ưu tiên WebP/JPEG cho ảnh,
 và xóa ảnh cũ bằng các API đã có. Menu, gallery, ảnh/video hoạt động và phản hồi đều do
 Business tự upload; Operator không cần đưa ảnh lên Cloudinary thủ công.
+
+## 16. Biểu đồ Business từ dữ liệu thật
+
+Frontend lấy toàn bộ dataset đã tính sẵn qua:
+
+```http
+GET /business/analytics?days=30
+GET /business/analytics?days=90&activity_id=A001
+```
+
+`days` nhận giá trị từ 7 đến 365. Backend tự trả bucket theo ngày (tối đa 31
+ngày), tuần (tối đa 120 ngày), hoặc tháng. Response có:
+
+- `summary`: tổng review, bookmark, tương tác và rating trong kỳ.
+- `engagement_trend`: chuỗi thời gian dùng cho line/bar chart.
+- `rating_distribution`: phân bố 1-5 sao dùng cho bar/donut chart.
+- `activity_status_distribution`: phân bố trạng thái hoạt động.
+- `category_distribution`: số hoạt động theo danh mục.
+- `activity_performance`: review, bookmark, rating và phản hồi còn thiếu của
+  từng hoạt động.
+
+Các con số được truy vấn từ `reviews`, `bookmarks`, `activities`,
+`activities_categories` và `review_replies`; frontend không cần tự tổng hợp.
+
+## 17. Seed logo và gallery từ thư mục business_id
+
+Cấu trúc đầu vào:
+
+```text
+QLDACNTT/
+├── B001/
+│   ├── Logo.jpg
+│   ├── IMG_1152.PNG
+│   └── ...
+├── B002/
+└── ...
+```
+
+Kiểm tra ánh xạ trước, chưa upload:
+
+```powershell
+cd backend
+python seed_business_media.py --root "C:\duong-dan\QLDACNTT" --dry-run
+```
+
+Upload lên Cloudinary và ghi `business_media`:
+
+```powershell
+python seed_business_media.py --root "C:\duong-dan\QLDACNTT"
+```
+
+`Logo.*` được gắn `media_kind=logo`; ảnh còn lại là `gallery`. Muốn coi ảnh
+còn lại là menu, thêm `--image-kind menu`. Script tạo `public_id` ổn định từ
+hash nội dung, nên chạy lại sẽ bỏ qua bản ghi đã seed thay vì nhân đôi. Mặc
+định script không ghi đè logo mà doanh nghiệp đã tự thay; chỉ dùng
+`--replace-existing-logo` khi thực sự muốn thay.
+
+Seed chỉ dành cho bộ dữ liệu ban đầu. Sau đó doanh nghiệp vẫn tự upload bằng
+`POST /business/media?kind=logo|gallery|menu` và
+`POST /activities/{activity_id}/media/upload`; Operator không tham gia luồng
+này.

@@ -15,7 +15,9 @@ from app.routers.businesses import (
     update_business_profile,
 )
 from app.routers.complaints import create_complaint
-from app.services.cloudinary_storage import InvalidMedia, upload_asset, validate_upload
+from app.routers.public_businesses import get_public_business
+from app.routers.reviews import _to_review_out
+from app.services.cloudinary_storage import InvalidMedia, set_asset_folder, upload_asset, validate_upload
 
 
 class BusinessFeatureTests(unittest.TestCase):
@@ -148,6 +150,29 @@ class BusinessFeatureTests(unittest.TestCase):
         self.assertEqual(analytics.activity_performance[0].activity_id, "A1")
         self.assertEqual(analytics.activity_performance[0].interaction_count, 2)
 
+    def test_public_business_media_and_review_reply_are_exposed(self):
+        media = models.BusinessMedia(
+            media_id="M1",
+            business_id="B1",
+            media_url="https://res.cloudinary.com/demo/image/upload/gallery.jpg",
+            public_id="free2do/businesses/B1/gallery/gallery-1",
+            media_type="image",
+            media_kind="gallery",
+            created_at=datetime.now(UTC).replace(tzinfo=None),
+        )
+        self.db.add(media)
+        create_review_reply(
+            "R1",
+            schemas.ReviewReplyCreate(content="Cảm ơn bạn"),
+            db=self.db,
+            business=self.business,
+        )
+        public_business = get_public_business("B1", db=self.db)
+        public_review = _to_review_out(self.db.query(models.Review).filter_by(review_id="R1").one())
+        self.assertEqual(public_business.activity_count, 1)
+        self.assertEqual(public_business.media[0].media_kind, "gallery")
+        self.assertEqual(public_review.reply.content, "Cảm ơn bạn")
+
     def test_cloudinary_validation_and_metadata(self):
         self.assertEqual(validate_upload(b"image", "image/png", False), "image")
         with self.assertRaises(InvalidMedia):
@@ -165,7 +190,8 @@ class BusinessFeatureTests(unittest.TestCase):
             patch("app.services.cloudinary_storage.settings.CLOUDINARY_CLOUD_NAME", "demo"),
             patch("app.services.cloudinary_storage.settings.CLOUDINARY_API_KEY", "key"),
             patch("app.services.cloudinary_storage.settings.CLOUDINARY_API_SECRET", "secret"),
-            patch("app.services.cloudinary_storage.cloudinary.uploader.upload", return_value=fake_result),
+            patch("app.services.cloudinary_storage.cloudinary.uploader.upload", return_value=fake_result) as upload_mock,
+            patch("app.services.cloudinary_storage.cloudinary.uploader.explicit") as explicit_mock,
         ):
             asset = upload_asset(
                 content=b"image",
@@ -174,8 +200,16 @@ class BusinessFeatureTests(unittest.TestCase):
                 owner_id="B1",
                 kind="avatar",
             )
+            set_asset_folder(
+                public_id=fake_result["public_id"],
+                asset_folder="free2do/users/B1/avatar",
+            )
         self.assertEqual(asset.public_id, fake_result["public_id"])
         self.assertEqual(asset.width, 512)
+        upload_options = upload_mock.call_args.kwargs
+        self.assertEqual(upload_options["asset_folder"], "free2do/users/B1/avatar")
+        self.assertEqual(upload_options["public_id_prefix"], "free2do/users/B1/avatar")
+        self.assertEqual(explicit_mock.call_args.kwargs["asset_folder"], "free2do/users/B1/avatar")
 
 
 if __name__ == "__main__":

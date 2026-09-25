@@ -326,3 +326,41 @@ Seed chỉ dành cho bộ dữ liệu ban đầu. Sau đó doanh nghiệp vẫn 
 `POST /business/media?kind=logo|gallery|menu` và
 `POST /activities/{activity_id}/media/upload`; Operator không tham gia luồng
 này.
+
+Với tài khoản Cloudinary dùng **Dynamic Folders**, backend truyền cả
+`asset_folder` (thư mục hiển thị trong Media Library) và `public_id_prefix`
+(đường dẫn phân phối). Nếu dữ liệu đã seed bằng bản cũ, chạy một lần:
+
+```powershell
+cd backend
+python organize_cloudinary_media.py --dry-run
+python organize_cloudinary_media.py
+```
+
+Script chỉ sắp xếp asset vào thư mục `free2do/businesses/{business_id}/{kind}`;
+không đổi `public_id` và không làm hỏng URL đang lưu trong database.
+
+## 18. Deploy backend lên Render
+
+Repository có sẵn `render.yaml` và đã khóa phiên bản dependency để build có thể
+lặp lại. Khi cấu hình Web Service thủ công, dùng đúng các giá trị:
+
+```text
+Root Directory: backend
+Build Command: pip install --upgrade pip && pip install -r requirements.txt
+Start Command: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+Health Check Path: /health/live
+PYTHON_VERSION: 3.13.5
+```
+
+Các biến bắt buộc trên Render: `DATABASE_URL`, `JWT_SECRET_KEY`,
+`CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`.
+Đặt `CORS_ORIGINS` thành danh sách domain frontend, phân tách bằng dấu phẩy.
+Backend cũng cho phép HTTPS từ các deployment `*.vercel.app` để dùng được với
+preview của Vercel.
+
+- `GET /health/live`: kiểm tra tiến trình FastAPI, không phụ thuộc dịch vụ ngoài.
+- `GET /health/ready`: kiểm tra kết nối database và trạng thái cấu hình
+  Cloudinary, không trả secret.
+- `GET /businesses` và `GET /businesses/{business_id}`: dữ liệu public của doanh
+  nghiệp, gồm logo/gallery/menu và tổng số hoạt động active để frontend hiển thị.

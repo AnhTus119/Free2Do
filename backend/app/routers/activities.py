@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import Literal, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -27,6 +27,7 @@ def _to_detail(db: Session, activity: models.Activity) -> schemas.ActivityPublic
     return schemas.ActivityPublicOut(
         **schemas.Activity.model_validate(activity).model_dump(),
         business_name=activity.business.business_name,
+        business_avatar_url=activity.business.avatar_url,
         category_ids=[c.category_id for c in activity.categories],
         media=[schemas.ActivityMedia.model_validate(m) for m in activity.media],
         avg_rating=round(avg_rating, 1) if avg_rating else None,
@@ -45,7 +46,7 @@ def _set_categories(db: Session, activity_id: str, category_ids: list[str]) -> N
 # ---------------------------------------------------------------------------
 @router.get("", response_model=list[schemas.ActivityPublicOut])
 def list_public_activities(
-    status_filter: Optional[str] = Query("active", alias="status"),
+    status_filter: Literal["active", "pending", "all"] = Query("active", alias="status"),
     db: Session = Depends(get_db),
 ):
     """Danh sách hoạt động lấy từ DB cho trang chủ/tìm kiếm của frontend.

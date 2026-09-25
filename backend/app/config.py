@@ -12,11 +12,11 @@ class Settings(BaseSettings):
     # Gửi email OTP
     SMTP_HOST: str = "smtp.gmail.com"
     SMTP_PORT: int = 587
-    SMTP_USER: str
-    SMTP_PASSWORD: str
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
 
     # Sign in with Google
-    GOOGLE_CLIENT_ID: str
+    GOOGLE_CLIENT_ID: str = ""
     OTP_EXPIRE_MINUTES: int = 10
     RESET_TOKEN_EXPIRE_MINUTES: int = 10
     # Cloudinary (để trống thì API upload trả 503, phần còn lại vẫn chạy)
@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     CLOUDINARY_FOLDER: str = "free2do"
     MAX_IMAGE_UPLOAD_MB: int = 5
     MAX_VIDEO_UPLOAD_MB: int = 25
+    CORS_ORIGINS: str = "http://127.0.0.1:5500,http://localhost:5500,https://free2-do.vercel.app"
     model_config = SettingsConfigDict(env_file=ENV_PATH, extra="ignore")
 
 settings = Settings()

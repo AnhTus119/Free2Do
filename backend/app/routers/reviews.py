@@ -10,9 +10,19 @@ router = APIRouter(tags=["reviews"])
 
 
 def _to_review_out(review: models.Review) -> schemas.ReviewOut:
+    reply = None
+    if review.reply:
+        reply = schemas.ReviewReplyPublicOut(
+            reply_id=review.reply.reply_id,
+            content=review.reply.content,
+            created_at=review.reply.created_at,
+            updated_at=review.reply.updated_at,
+            media=[schemas.ReviewReplyMediaPublicOut.model_validate(item) for item in review.reply.media],
+        )
     return schemas.ReviewOut(
         **schemas.Review.model_validate(review).model_dump(),
         reviewer_name=review.user.name,
+        reply=reply,
     )
 
 

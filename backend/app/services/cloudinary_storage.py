@@ -78,7 +78,10 @@ def upload_asset(
     target_folder = f"{root}/{folder.strip('/')}"
     options = {
         "resource_type": media_type,
-        "folder": target_folder,
+        # Tài khoản Cloudinary mới dùng Dynamic Folders: asset_folder quyết định
+        # cây thư mục trong Media Library, public_id_prefix quyết định đường dẫn URL.
+        "asset_folder": target_folder,
+        "public_id_prefix": target_folder,
         "public_id": f"{kind}-{uuid.uuid4().hex}",
         "overwrite": False,
         "tags": ["free2do", kind, f"owner:{owner_id}"],
@@ -114,10 +117,12 @@ def upload_source(*, source: str, name: str) -> UploadedAsset:
     """Upload URL hoặc đường dẫn file khi seed thư viện avatar mẫu."""
     _configure()
     root = settings.CLOUDINARY_FOLDER.strip("/") or "free2do"
+    target_folder = f"{root}/default-avatars"
     result = cloudinary.uploader.upload(
         source,
         resource_type="image",
-        folder=f"{root}/default-avatars",
+        asset_folder=target_folder,
+        public_id_prefix=target_folder,
         public_id=name,
         overwrite=False,
         tags=["free2do", "default-avatar"],
@@ -150,10 +155,12 @@ def upload_seed_image(
     """Upload ảnh seed với public_id ổn định để có thể chạy script nhiều lần."""
     _configure()
     root = settings.CLOUDINARY_FOLDER.strip("/") or "free2do"
-    full_public_id = f"{root}/{folder.strip('/')}/{public_id}"
+    asset_folder = f"{root}/{folder.strip('/')}"
+    full_public_id = f"{asset_folder}/{public_id}"
     result = cloudinary.uploader.upload(
         source,
         resource_type="image",
+        asset_folder=asset_folder,
         public_id=full_public_id,
         overwrite=True,
         invalidate=True,
@@ -173,6 +180,25 @@ def upload_seed_image(
         width=result.get("width"),
         height=result.get("height"),
     )
+
+
+def set_asset_folder(
+    *,
+    public_id: str,
+    asset_folder: str,
+    media_type: str = "image",
+    display_name: str | None = None,
+) -> None:
+    """Đưa asset có sẵn vào đúng Dynamic Folder mà không đổi delivery URL."""
+    _configure()
+    options = {
+        "resource_type": media_type,
+        "type": "upload",
+        "asset_folder": asset_folder.strip("/"),
+    }
+    if display_name:
+        options["display_name"] = display_name.replace("/", "-")
+    cloudinary.uploader.explicit(public_id, **options)
 
 
 def delete_asset(public_id: str, media_type: str = "image") -> None:

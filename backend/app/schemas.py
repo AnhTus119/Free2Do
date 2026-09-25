@@ -199,9 +199,23 @@ class Review(BaseModel):
     created_at: datetime
     updated_at: Optional[datetime] = None
 
+class ReviewReplyMediaPublicOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    media_url: str
+    media_type: str
+
+class ReviewReplyPublicOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    reply_id: str
+    content: str
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    media: list[ReviewReplyMediaPublicOut] = Field(default_factory=list)
+
 class ReviewOut(Review):
     """Review trả về frontend kèm tên thật của người đánh giá."""
     reviewer_name: str
+    reply: Optional[ReviewReplyPublicOut] = None
 
 # ReviewMedia
 class ReviewMedia(BaseModel):
@@ -356,6 +370,7 @@ class ActivityDetail(Activity):
 class ActivityPublicOut(ActivityDetail):
     """Hoạt động công khai kèm tên doanh nghiệp để frontend không phải dùng dữ liệu mẫu."""
     business_name: str
+    business_avatar_url: Optional[str] = None
 
 class ActivityAdminOut(ActivityPublicOut):
     """Dùng cho danh sách Operator duyệt -- kèm tên doanh nghiệp và thông tin xác minh"""
@@ -501,6 +516,16 @@ class BusinessMediaOut(BaseModel):
     width: Optional[int] = None
     height: Optional[int] = None
     created_at: datetime
+
+class BusinessPublicOut(BaseModel):
+    user_id: str
+    business_name: str
+    phone: Optional[str] = None
+    description: Optional[str] = None
+    business_address: str
+    avatar_url: Optional[str] = None
+    activity_count: int = 0
+    media: list[BusinessMediaOut] = Field(default_factory=list)
 
 class ReviewReplyCreate(BaseModel):
     content: str = Field(min_length=1, max_length=5000)

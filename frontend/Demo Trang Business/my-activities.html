@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>FREE2DO Business — Hoạt động của tôi</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app-style.css">
+</head>
+<body>
+
+<div class="navbar">
+  <div class="nav-left" style="display:flex;align-items:center;gap:12px;">
+    <button class="mobile-menu-btn" onclick="toggleMobileMenu()"><svg class="icon icon-lg" viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+    <a href="business-home.html" class="nav-logo"><img src="Logo.svg" alt="Logo" style="width:38px;">FREE2DO <span style="color:var(--muted);font-weight:600;">Business</span></a>
+  </div>
+  <div class="nav-center">
+    <a href="business-home.html" class="nav-link">Tổng quan</a>
+    <a href="my-activities.html" class="nav-link active">Hoạt động của tôi</a>
+    <a href="reviews.html" class="nav-link">Đánh giá</a>
+  </div>
+  <div class="nav-right">
+    <div class="nav-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="dot-badge"></span></div>
+    <div class="nav-who dropdown-wrap" onclick="toggleMenu(event)">
+      <div class="nav-avatar">S</div><div class="nav-name">She.slays</div><svg class="icon icon-sm icon-muted" viewBox="0 0 24 24" style="margin-left:-4px;"><polyline points="6 9 12 15 18 9"/></svg>
+      <div class="dropdown-menu" id="nav-user-menu">
+        <a href="business-profile.html">Hồ sơ Doanh nghiệp</a>
+        <a href="upgrade-plan.html">Gói dịch vụ</a>
+        <a href="#">Đăng xuất</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="wrap" style="padding-top:32px;padding-bottom:60px;">
+
+  <div class="welcome" style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:24px;">
+    <div>
+      <h2 style="font-size:22px;font-weight:800;margin:0 0 6px;">Hoạt động của tôi</h2>
+      <p style="color:var(--muted);font-size:14px;margin:0;">Quản lý toàn bộ hoạt động bạn đã đăng trên FREE2DO.</p>
+    </div>
+    <button class="btn btn-primary" onclick="openForm('create')"><svg class="icon icon-sm icon-white" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Tạo hoạt động</button>
+  </div>
+
+<div class="table-responsive">
+    <table class="biz-table">
+    <thead><tr><th>Activity</th><th>Thời gian</th><th>Địa điểm</th><th>Giá</th><th>Rating</th><th>Trạng thái</th><th>Hành động</th></tr></thead>
+    <tbody>
+      <tr>
+        <td style="font-weight:700;">Whimsical Crown</td><td>14:00–20:00</td><td>Bạch Mai</td><td>200.000 ₫</td><td><svg class="icon icon-sm icon-fill icon-rose" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> 4.8</td>
+        <td><span class="b-badge active">Đang hiển thị</span></td>
+        <td><div class="row-actions">
+          <button class="row-btn" onclick="openDetail('whimsical')"><svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> Xem</button>
+          <button class="row-btn" onclick="openForm('edit','whimsical')"><svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Chỉnh sửa</button>
+          <button class="row-btn danger" onclick="toggleStatus(this,'hidden')"><svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a21.62 21.62 0 0 1 5.06-6.06M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 8 11 8a21.6 21.6 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg> Ẩn</button>
+        </div></td>
+      </tr>
+      <tr>
+        <td style="font-weight:700;">Vintage Flower Crown</td><td>14:00–20:00</td><td>Bạch Mai</td><td>220.000 ₫</td><td><svg class="icon icon-sm icon-fill icon-rose" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> 4.6</td>
+        <td><span class="b-badge pending">Chờ duyệt</span></td>
+        <td><div class="row-actions">
+          <button class="row-btn" onclick="openDetail('vintage')"><svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> Xem</button>
+          <button class="row-btn" onclick="openForm('edit','vintage')"><svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Chỉnh sửa</button>
+        </div></td>
+      </tr>
+      <tr>
+        <td style="font-weight:700;">Resin Charm Making</td><td>10:00–18:00</td><td>Bạch Mai</td><td>180.000 ₫</td><td><svg class="icon icon-sm icon-fill icon-rose" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> 4.9</td>
+        <td><span class="b-badge active">Đang hiển thị</span></td>
+        <td><div class="row-actions">
+          <button class="row-btn" onclick="openDetail('resin')"><svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> Xem</button>
+          <button class="row-btn" onclick="openForm('edit','resin')"><svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Chỉnh sửa</button>
+          <button class="row-btn danger" onclick="toggleStatus(this,'hidden')"><svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a21.62 21.62 0 0 1 5.06-6.06M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 8 11 8a21.6 21.6 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg> Ẩn</button>
+        </div></td>
+      </tr>
+      <tr id="row-old">
+        <td style="font-weight:700;">Mini Pottery Class</td><td>09:00–11:00</td><td>Bạch Mai</td><td>150.000 ₫</td><td>—</td>
+        <td><span class="b-badge hidden" id="old-badge">Hết hạn</span></td>
+        <td><div class="row-actions">
+          <button class="row-btn" onclick="openDetail('pottery')"><svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> Xem</button>
+          <button class="row-btn" onclick="openForm('edit','pottery')"><svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Chỉnh sửa</button>
+        </div></td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+
+</div>
+
+<!-- ===== SLIDE PANEL: CREATE/EDIT ACTIVITY ===== -->
+<div class="panel-overlay" id="form-overlay" onclick="closeForm()"></div>
+<div class="slide-panel" id="form-panel">
+  <button class="panel-close" onclick="closeForm()"><svg class="icon" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+  <h2 id="form-title" style="font-size:20px;font-weight:800;margin:0 0 20px;">Tạo hoạt động mới</h2>
+
+  <div class="field"><label>Tên hoạt động</label><input type="text" id="f-name" placeholder="VD: Whimsical Crown"></div>
+  <div class="field"><label>Mô tả</label><textarea placeholder="Mô tả ngắn về hoạt động..."></textarea></div>
+  <div class="field">
+    <label>Ảnh / Video</label>
+    <div style="border:1.5px dashed var(--line);border-radius:12px;padding:18px;text-align:center;font-size:13px;color:var(--muted);cursor:pointer;"><svg class="icon icon-muted" viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg> Kéo thả hoặc bấm để tải ảnh/video lên</div>
+  </div>
+  <div class="field">
+    <label>Danh mục</label>
+    <div class="chip-row"><div class="chip active">Workshop</div><div class="chip">Giải trí</div><div class="chip">Ăn uống</div><div class="chip">Làm đẹp</div></div>
+  </div>
+  <div class="field">
+    <label>Tag sở thích</label>
+    <div class="chip-row"><div class="chip active">Sáng tạo</div><div class="chip">Chill</div><div class="chip">Nghệ thuật</div></div>
+  </div>
+  <div class="field"><label>Giá</label><input type="text" id="f-price" placeholder="VD: 200.000 ₫"></div>
+  <div class="field"><label>Địa chỉ</label><input type="text" placeholder="Số nhà, đường, quận, thành phố"></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+    <div class="field"><label>Thời gian bắt đầu</label><input type="text" placeholder="14:00"></div>
+    <div class="field"><label>Thời gian kết thúc</label><input type="text" placeholder="20:00"></div>
+  </div>
+  <div class="field">
+    <label>Vị trí trên bản đồ</label>
+    <div class="map-box" style="height:140px;">
+      <div class="map-grid-bg"></div>
+      <div class="map-pin" style="left:50%;top:50%;"><svg class="icon icon-sm icon-white" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> Chọn vị trí</div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:10px;margin-top:8px;">
+    <button class="btn btn-secondary" style="flex:1;" onclick="closeForm()">Lưu nháp</button>
+    <button class="btn btn-primary" style="flex:1;" onclick="submitActivity()">Đăng hoạt động</button>
+  </div>
+</div>
+
+<!-- ===== SLIDE PANEL: ACTIVITY DETAIL/STATS ===== -->
+<div class="panel-overlay" id="detail-overlay" onclick="closeDetail()"></div>
+<div class="slide-panel" id="detail-panel">
+  <button class="panel-close" onclick="closeDetail()"><svg class="icon" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+  <div class="biz-stat-icon icon-rose" style="width:56px;height:56px;background:#FDEDEF;margin-bottom:10px;"><svg class="icon icon-lg" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></div>
+  <h2 id="detail-title" style="font-size:20px;font-weight:800;margin:0 0 4px;">Whimsical Crown</h2>
+  <div style="color:var(--muted);font-size:13px;margin-bottom:20px;">200.000 ₫ · 14:00–20:00 · Bạch Mai</div>
+
+  <div class="biz-stats" style="grid-template-columns:repeat(2,1fr);margin-bottom:24px;">
+    <div class="biz-stat-card"><div class="biz-stat-num">312</div><div class="biz-stat-label">Lượt xem</div></div>
+    <div class="biz-stat-card"><div class="biz-stat-num">47</div><div class="biz-stat-label">Lượt yêu thích</div></div>
+    <div class="biz-stat-card"><div class="biz-stat-num">4.8 <svg class="icon icon-sm icon-fill icon-rose" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div><div class="biz-stat-label">Rating</div></div>
+    <div class="biz-stat-card"><div class="biz-stat-num">32</div><div class="biz-stat-label">Số review</div></div>
+  </div>
+
+  <div style="display:flex;gap:10px;">
+    <button class="btn btn-secondary" style="flex:1;" onclick="closeDetail();openForm('edit')"><svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Chỉnh sửa</button>
+    <button class="btn btn-secondary" style="flex:1;"><svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a21.62 21.62 0 0 1 5.06-6.06M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 8 11 8a21.6 21.6 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg> Ẩn hoạt động</button>
+  </div>
+</div>
+
+<script>
+function toggleMenu(e) {
+  e.stopPropagation();
+  const menu = document.getElementById('nav-user-menu');
+  if(menu) menu.classList.toggle('show');
+}
+window.addEventListener('click', function() {
+  const menu = document.getElementById('nav-user-menu');
+  if(menu && menu.classList.contains('show')) menu.classList.remove('show');
+});
+function openForm(mode, id){
+  document.getElementById('form-title').textContent = mode === 'create' ? 'Tạo hoạt động mới' : 'Chỉnh sửa hoạt động';
+  document.getElementById('form-overlay').classList.add('show');
+  document.getElementById('form-panel').classList.add('show');
+}
+function closeForm(){
+  document.getElementById('form-overlay').classList.remove('show');
+  document.getElementById('form-panel').classList.remove('show');
+}
+function submitActivity(){
+  alert('Tạo hoạt động thành công.');
+  closeForm();
+}
+function openDetail(id){
+  document.getElementById('detail-overlay').classList.add('show');
+  document.getElementById('detail-panel').classList.add('show');
+}
+function closeDetail(){
+  document.getElementById('detail-overlay').classList.remove('show');
+  document.getElementById('detail-panel').classList.remove('show');
+}
+function toggleStatus(btn, status){
+  const row = btn.closest('tr');
+  const badge = row.querySelector('.b-badge');
+  const hiding = badge.textContent.trim() === 'Đang hiển thị';
+  badge.textContent = hiding ? 'Đã ẩn' : 'Đang hiển thị';
+  badge.className = 'b-badge ' + (hiding ? 'hidden' : 'active');
+  btn.textContent = hiding ? 'Hiện' : 'Ẩn';
+}
+</script>
+</body>
+</html>

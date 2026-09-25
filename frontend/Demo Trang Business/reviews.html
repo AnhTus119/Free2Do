@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FREE2DO Business — Đánh giá</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app-style.css">
+<style>
+  /* ===== Tabs: Đánh giá hoạt động / Đánh giá shop ===== */
+  .rv-tabs{display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid var(--line);margin-bottom:20px;}
+  .rv-tab{background:none;border:none;padding:14px 8px;font-family:inherit;font-size:15px;font-weight:700;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-1px;}
+  .rv-tab:hover{color:var(--ink);}
+  .rv-tab.active{color:var(--rose-dark);border-bottom-color:var(--rose);}
+
+  /* ===== Bộ lọc ===== */
+  .rv-filters{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;}
+  .rv-filters > *{min-width:0;}
+  .rv-filter{width:100%;height:100%;background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:10px 8px;text-align:center;cursor:pointer;font-family:inherit;font-size:13.5px;font-weight:500;color:var(--ink);line-height:1.35;}
+  .rv-filter:hover{border-color:var(--brown);}
+  .rv-filter small{display:block;font-size:12.5px;color:var(--muted);margin-top:2px;}
+  .rv-filter.active{border-color:var(--rose);color:var(--rose-dark);}
+  .rv-filter.active small{color:var(--rose-dark);}
+  .star-filter .dropdown-menu{min-width:170px;}
+  .star-filter .dropdown-menu a{display:flex;align-items:center;gap:6px;}
+  .star-filter .dropdown-menu a.sel{color:var(--rose-dark);background:var(--paper);}
+  .star-filter .dropdown-menu a span{margin-left:auto;font-weight:500;color:var(--muted);font-size:12.5px;}
+
+  /* ===== Card đánh giá ===== */
+  .rv-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:16px;}
+  .rv-top{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap;}
+  .rv-name{font-weight:700;font-size:14px;}
+  .rv-date{margin-left:auto;font-size:12px;color:var(--muted);}
+  .rv-meta{font-size:12.5px;color:var(--muted);margin-bottom:6px;}
+  .rv-meta b{color:var(--ink);font-weight:600;}
+  .rv-text{font-size:13.5px;line-height:1.6;color:var(--ink);margin-bottom:12px;}
+  .rv-actions{display:flex;gap:10px;}
+
+  /* Ảnh / video kèm đánh giá */
+  .rv-media{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
+  .rv-thumb{width:96px;height:96px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:34px;position:relative;overflow:hidden;}
+  .rv-thumb .dur{position:absolute;left:0;right:0;bottom:0;background:rgba(43,36,32,.6);color:#fff;font-size:11px;font-weight:600;padding:3px 8px;text-align:right;}
+  .rv-thumb .play{position:absolute;top:50%;left:50%;transform:translate(-50%,-60%);width:30px;height:30px;border-radius:50%;background:rgba(43,36,32,.55);display:flex;align-items:center;justify-content:center;}
+  .rv-thumb .play svg{width:13px;height:13px;fill:#fff;stroke:none;margin-left:2px;}
+
+  /* Phản hồi / khiếu nại */
+  .reply-box{display:none;background:var(--paper);border-radius:12px;padding:16px;margin-top:14px;}
+  .reply-box.show{display:block;}
+  .biz-reply{background:#F3EFE4;border-left:3px solid var(--rose);border-radius:0 10px 10px 0;padding:12px 14px;margin-top:12px;font-size:13px;line-height:1.55;}
+  .biz-reply b{color:var(--rose-dark);}
+  .complaint-box{display:none;background:var(--danger-bg);border-radius:12px;padding:16px;margin-top:14px;}
+  .complaint-box.show{display:block;}
+  .reason-row{display:flex;flex-direction:column;gap:8px;font-size:13px;margin-bottom:12px;}
+  .reason-row label{display:flex;align-items:center;gap:8px;cursor:pointer;}
+  .form-error{display:none;color:var(--danger);font-size:12.5px;font-weight:600;margin-bottom:10px;}
+  .form-error.show{display:block;}
+  .field textarea.invalid{border-color:var(--danger);}
+  .file-drop{display:block;border:1.5px dashed var(--line);border-radius:10px;padding:12px;text-align:center;font-size:12.5px;color:var(--muted);margin-bottom:12px;cursor:pointer;background:#fff;}
+
+  /* Đánh giá đã bị khiếu nại: đánh dấu khác biệt */
+  .rv-card.complained{border:1.5px dashed var(--warn);background:#FFFCF6;}
+  .rv-card.complained .rv-body{opacity:.55;}
+  .rv-complaint-note{display:flex;gap:10px;align-items:flex-start;background:var(--warn-bg);color:var(--warn);border-radius:12px;padding:12px 14px;margin-top:12px;font-size:13px;line-height:1.55;}
+  .rv-complaint-note .icon{margin-top:2px;}
+
+  @media (max-width:600px){
+    .rv-tab{font-size:14px;}
+    .rv-filter{font-size:12.5px;padding:10px 4px;}
+    .rv-thumb{width:80px;height:80px;}
+  }
+</style>
+</head>
+<body>
+
+<div class="navbar">
+  <div class="nav-left" style="display:flex;align-items:center;gap:12px;">
+    <button class="mobile-menu-btn" onclick="toggleMobileMenu()"><svg class="icon icon-lg" viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+    <a href="business-home.html" class="nav-logo"><img src="Logo.svg" alt="Logo" style="width:38px;">FREE2DO <span style="color:var(--muted);font-weight:600;">Business</span></a>
+  </div>
+  <div class="nav-center">
+    <a href="business-home.html" class="nav-link">Tổng quan</a>
+    <a href="my-activities.html" class="nav-link">Hoạt động của tôi</a>
+    <a href="reviews.html" class="nav-link active">Đánh giá</a>
+  </div>
+  <div class="nav-right">
+    <div class="nav-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="dot-badge"></span></div>
+    <div class="nav-who dropdown-wrap" onclick="toggleMenu(event)">
+      <div class="nav-avatar">S</div><div class="nav-name">She.slays</div><svg class="icon icon-sm icon-muted" viewBox="0 0 24 24" style="margin-left:-4px;"><polyline points="6 9 12 15 18 9"/></svg>
+      <div class="dropdown-menu" id="nav-user-menu">
+        <a href="business-profile.html">Hồ sơ Doanh nghiệp</a>
+        <a href="upgrade-plan.html">Gói dịch vụ</a>
+        <a href="#">Đăng xuất</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="wrap" style="padding-top:32px;padding-bottom:60px;max-width:800px;">
+
+  <div class="section-title">Đánh giá của khách hàng</div>
+  <div class="section-sub"><svg class="icon icon-sm icon-fill" viewBox="0 0 24 24" style="color:#F5B921;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> 4.8 trung bình · 32 đánh giá trên tất cả hoạt động</div>
+
+  <div class="rv-tabs">
+    <button class="rv-tab active" data-tab="activity">Đánh giá hoạt động</button>
+    <button class="rv-tab" data-tab="shop">Đánh giá shop</button>
+  </div>
+
+  <div class="rv-filters">
+    <button class="rv-filter active" id="f-all">Tất cả<small id="c-all"></small></button>
+    <button class="rv-filter" id="f-media">Có hình ảnh / video<small id="c-media"></small></button>
+    <div class="dropdown-wrap star-filter">
+      <button class="rv-filter" id="f-star">Sao <svg class="icon icon-sm icon-fill" viewBox="0 0 24 24" style="color:#F5B921;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> <svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg><small id="c-star">Tất cả</small></button>
+      <div class="dropdown-menu" id="star-menu"></div>
+    </div>
+  </div>
+
+  <div id="rv-list"></div>
+
+</div>
+
+<div class="mobile-nav-panel" id="mobile-nav">
+  <div class="mobile-nav-content">
+    <button class="mobile-nav-close" onclick="toggleMobileMenu()">&times;</button>
+    <a href="business-home.html" class="mobile-nav-link">Tổng quan</a>
+    <a href="my-activities.html" class="mobile-nav-link">Hoạt động của tôi</a>
+    <a href="reviews.html" class="mobile-nav-link active">Đánh giá</a>
+  </div>
+</div>
+
+<script>
+/* ===== Dữ liệu mẫu ===== */
+// media: t = 'img' | 'vid', e = emoji thay ảnh, d = thời lượng video
+const REVIEWS = [
+  { id:1, tab:'activity', name:'Lê Thu', stars:5, date:'05/09/2026', activity:'Workshop làm vương miện hoa',
+    text:'Không gian dễ thương, chị hướng dẫn nhiệt tình, làm xong mang về được ngay một chiếc vương niệm xinh xỉu 🌸',
+    media:[{t:'img',e:'👑'},{t:'vid',e:'🌸',d:'0:09'}],
+    reply:'Cảm ơn Thu rất nhiều, hẹn gặp lại bạn ở workshop tiếp theo nha! 💛', complaint:null },
+  { id:2, tab:'activity', name:'Đỗ Khánh Linh', stars:4, date:'02/09/2026', activity:'Workshop làm vương miện hoa',
+    text:'Hoạt động vui, hơi đông vào cuối tuần nên phải đợi một chút, nhưng chất lượng ổn.',
+    media:[], reply:null, complaint:null },
+  { id:3, tab:'activity', name:'Hoàng Minh', stars:5, date:'28/08/2026', activity:'Workshop nến thơm',
+    text:'Trải nghiệm tuyệt vời, nguyên liệu chất lượng, sẽ quay lại thử hoạt động khác của shop.',
+    media:[], reply:null, complaint:null },
+  { id:4, tab:'activity', name:'Nguyễn Bảo Châu', stars:5, date:'25/08/2026', activity:'Workshop nến thơm',
+    text:'Mọi thứ đều rất xinh, mình chụp được nhiều ảnh đẹp và mang về được cây nến siêu thơm.',
+    media:[{t:'img',e:'🕯️'},{t:'img',e:'✨'}], reply:null, complaint:null },
+  { id:5, tab:'activity', name:'Phạm Ngọc Anh', stars:3, date:'20/08/2026', activity:'Workshop làm vương miện hoa',
+    text:'Hoạt động ổn nhưng hướng dẫn hơi nhanh, mình theo không kịp phần cuối.',
+    media:[{t:'img',e:'🌼'}], reply:null, complaint:null },
+  { id:6, tab:'activity', name:'Trần Minh Khang', stars:4, date:'15/08/2026', activity:'Workshop nến thơm',
+    text:'Nguyên liệu tốt, giá hợp lý. Mong shop có thêm nhiều mùi hương để chọn.',
+    media:[], reply:'Cảm ơn Khang đã góp ý, bên mình sẽ bổ sung thêm mùi hương mới trong tháng tới nhé!', complaint:null },
+  { id:7, tab:'activity', name:'Vũ Thảo', stars:1, date:'10/08/2026', activity:'Workshop làm vương miện hoa',
+    text:'Đến nơi thì bị đổi giờ mà không báo trước, mất công chờ gần một tiếng.',
+    media:[], reply:null, complaint:null },
+
+  { id:8, tab:'shop', name:'Ngô Hà My', stars:5, date:'03/09/2026', activity:null,
+    text:'Shop tư vấn nhanh, trả lời tin nhắn rất dễ thương, đặt lịch cũng dễ.',
+    media:[], reply:null, complaint:null },
+  { id:9, tab:'shop', name:'Bùi Quốc Bảo', stars:4, date:'27/08/2026', activity:null,
+    text:'Đặt lịch dễ, nhưng hoàn tiền hơi lâu so với mình nghĩ.',
+    media:[], reply:null, complaint:null },
+  { id:10, tab:'shop', name:'Đặng Thùy Dương', stars:2, date:'18/08/2026', activity:null,
+    text:'Hỏi về lịch mà đợi shop trả lời cả ngày, mình phải nhắn lại nhiều lần.',
+    media:[{t:'img',e:'💬'}], reply:null, complaint:null }
+];
+
+const REASONS = ['Thông tin sai sự thật','Nội dung không phù hợp','Spam','Vi phạm quy định','Khác'];
+const TINTS = ['#FFEBC6','#FFE1E4','#E9F0DF'];
+const STAR_PTS = '12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2';
+const state = { tab:'activity', media:false, star:0 };
+
+/* ===== Helpers ===== */
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const $ = id => document.getElementById(id);
+const starIcon = color => `<svg class="icon icon-sm icon-fill" viewBox="0 0 24 24" style="color:${color};"><polygon points="${STAR_PTS}"/></svg>`;
+const starRow = n => `<div class="star-row">${[1,2,3,4,5].map(i => starIcon(i <= n ? '#F5B921' : '#E4DDCF')).join('')}</div>`;
+const tabReviews = () => REVIEWS.filter(r => r.tab === state.tab);
+
+function thumb(m, i){
+  const bg = TINTS[i % TINTS.length];
+  if (m.t === 'vid') {
+    return `<div class="rv-thumb" style="background:${bg};">${m.e}<span class="play"><svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21"/></svg></span><span class="dur">${esc(m.d)}</span></div>`;
+  }
+  return `<div class="rv-thumb" style="background:${bg};">${m.e}</div>`;
+}
+
+function cardHTML(r){
+  const c = r.complaint;
+  const media = r.media.length ? `<div class="rv-media">${r.media.map(thumb).join('')}</div>` : '';
+  const meta = r.activity ? `<div class="rv-meta">Hoạt động: <b>${esc(r.activity)}</b></div>` : '';
+  const badge = c ? `<span class="b-badge pending">Đang khiếu nại</span>` : '';
+  let foot = '';
+
+  if (r.reply) {
+    foot += `<div class="biz-reply"><b>She.slays phản hồi:</b> ${esc(r.reply)}</div>`;
+  }
+  if (c) {
+    foot += `<div class="rv-complaint-note">
+      <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+      <div><b>Khiếu nại đã được gửi và đang được xem xét.</b><br>Lý do: ${esc(c.reason)}${c.note ? `<br>Mô tả: ${esc(c.note)}` : ''}${c.file ? `<br>Minh chứng: ${esc(c.file)}` : ''}</div>
+    </div>`;
+  }
+  if (!r.reply && !c) {
+    foot += `
+    <div class="rv-actions">
+      <button class="btn btn-secondary" style="height:36px;padding:0 14px;font-size:12.5px;" data-act="toggle-reply"><svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg> Phản hồi</button>
+      <button class="btn btn-ghost" style="height:36px;padding:0 10px;font-size:12.5px;" data-act="toggle-complaint"><svg class="icon icon-sm icon-danger" viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg> Khiếu nại</button>
+    </div>
+    <div class="reply-box">
+      <div class="field" style="margin-bottom:10px;"><textarea placeholder="Nhập phản hồi của bạn..."></textarea></div>
+      <button class="btn btn-primary" style="height:38px;padding:0 16px;font-size:13px;" data-act="submit-reply">Phản hồi</button>
+    </div>
+    <div class="complaint-box">
+      <div class="section-title" style="font-size:13.5px;margin-bottom:10px;">Khiếu nại đánh giá</div>
+      <div class="reason-row">
+        ${REASONS.map(t => `<label><input type="radio" name="reason-${r.id}" value="${esc(t)}"> ${esc(t)}</label>`).join('')}
+      </div>
+      <div class="form-error">Vui lòng chọn lý do khiếu nại.</div>
+      <div class="field" style="margin-bottom:10px;"><textarea class="c-note" placeholder="Mô tả chi tiết..."></textarea></div>
+      <label class="file-drop"><input type="file" hidden><svg class="icon icon-sm icon-muted" viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg> <span class="file-name">Thêm file minh chứng</span></label>
+      <button class="btn btn-primary" style="height:38px;padding:0 16px;font-size:13px;" data-act="submit-complaint">Gửi khiếu nại</button>
+    </div>`;
+  }
+
+  return `<div class="rv-card${c ? ' complained' : ''}" data-id="${r.id}">
+    <div class="rv-top">
+      <div class="nav-avatar" style="width:32px;height:32px;font-size:12px;">${esc(r.name.charAt(0))}</div>
+      <div class="rv-name">${esc(r.name)}</div>
+      ${badge}
+      ${starRow(r.stars)}
+      <div class="rv-date">${esc(r.date)}</div>
+    </div>
+    <div class="rv-body">
+      ${meta}
+      <div class="rv-text">${esc(r.text)}</div>
+      ${media}
+    </div>
+    ${foot}
+  </div>`;
+}
+
+/* ===== Render ===== */
+function render(){
+  const all = tabReviews();
+  const withMedia = all.filter(r => r.media.length);
+
+  document.querySelectorAll('.rv-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === state.tab));
+
+  $('c-all').textContent = `(${all.length})`;
+  $('c-media').textContent = `(${withMedia.length})`;
+  $('f-all').classList.toggle('active', !state.media);
+  $('f-media').classList.toggle('active', state.media);
+  $('f-star').classList.toggle('active', state.star !== 0);
+  $('c-star').textContent = state.star ? `${state.star} sao` : 'Tất cả';
+
+  $('star-menu').innerHTML =
+    `<a href="#" data-star="0" class="${state.star === 0 ? 'sel' : ''}">Tất cả</a>` +
+    [5,4,3,2,1].map(n => {
+      const cnt = all.filter(r => r.stars === n).length;
+      return `<a href="#" data-star="${n}" class="${state.star === n ? 'sel' : ''}">${n} ${starIcon('#F5B921')}<span>${cnt}</span></a>`;
+    }).join('');
+
+  const list = all.filter(r => (!state.media || r.media.length) && (!state.star || r.stars === state.star));
+  $('rv-list').innerHTML = list.length
+    ? list.map(cardHTML).join('')
+    : `<div class="empty-state"><div class="emoji">🔍</div><p>Không có đánh giá nào phù hợp với bộ lọc.</p><button class="btn btn-secondary" data-act="clear">Xóa bộ lọc</button></div>`;
+}
+
+/* ===== Sự kiện ===== */
+document.querySelectorAll('.rv-tab').forEach(b => b.addEventListener('click', () => {
+  state.tab = b.dataset.tab; state.media = false; state.star = 0; render();
+}));
+$('f-all').addEventListener('click', () => { state.media = false; render(); });
+$('f-media').addEventListener('click', () => { state.media = true; render(); });
+$('f-star').addEventListener('click', e => { e.stopPropagation(); $('star-menu').classList.toggle('show'); });
+$('star-menu').addEventListener('click', e => {
+  const a = e.target.closest('a[data-star]');
+  if (!a) return;
+  e.preventDefault();
+  state.star = Number(a.dataset.star);
+  $('star-menu').classList.remove('show');
+  render();
+});
+
+$('rv-list').addEventListener('click', e => {
+  const btn = e.target.closest('[data-act]');
+  if (!btn) return;
+  const act = btn.dataset.act;
+  if (act === 'clear') { state.media = false; state.star = 0; render(); return; }
+
+  const card = btn.closest('.rv-card');
+  const r = REVIEWS.find(x => x.id === Number(card.dataset.id));
+  const replyBox = card.querySelector('.reply-box');
+  const complaintBox = card.querySelector('.complaint-box');
+
+  if (act === 'toggle-reply') {
+    complaintBox.classList.remove('show');
+    replyBox.classList.toggle('show');
+  }
+  if (act === 'toggle-complaint') {
+    replyBox.classList.remove('show');
+    complaintBox.classList.toggle('show');
+  }
+  if (act === 'submit-reply') {
+    const ta = replyBox.querySelector('textarea');
+    const text = ta.value.trim();
+    if (!text) { ta.classList.add('invalid'); ta.focus(); return; }
+    r.reply = text;
+    render();
+  }
+  if (act === 'submit-complaint') {
+    const checked = complaintBox.querySelector('input[type=radio]:checked');
+    if (!checked) { complaintBox.querySelector('.form-error').classList.add('show'); return; }
+    const fileInput = complaintBox.querySelector('input[type=file]');
+    r.complaint = {
+      reason: checked.value,
+      note: complaintBox.querySelector('.c-note').value.trim(),
+      file: fileInput.files[0] ? fileInput.files[0].name : ''
+    };
+    render();
+  }
+});
+$('rv-list').addEventListener('input', e => {
+  if (e.target.matches('textarea')) e.target.classList.remove('invalid');
+});
+$('rv-list').addEventListener('change', e => {
+  if (e.target.matches('input[type=radio]')) e.target.closest('.complaint-box').querySelector('.form-error').classList.remove('show');
+  if (e.target.matches('input[type=file]')) {
+    e.target.closest('.file-drop').querySelector('.file-name').textContent = e.target.files[0] ? e.target.files[0].name : 'Thêm file minh chứng';
+  }
+});
+
+/* ===== Menu chung ===== */
+function toggleMenu(e) {
+  e.stopPropagation();
+  const menu = document.getElementById('nav-user-menu');
+  if (menu) menu.classList.toggle('show');
+}
+function toggleMobileMenu() {
+  const panel = document.getElementById('mobile-nav');
+  if (panel) panel.classList.toggle('show');
+}
+window.addEventListener('click', function (e) {
+  const menu = document.getElementById('nav-user-menu');
+  if (menu && menu.classList.contains('show')) menu.classList.remove('show');
+  if (!e.target.closest('.star-filter')) $('star-menu').classList.remove('show');
+});
+
+render();
+</script>
+</body>
+</html>

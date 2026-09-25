@@ -22,6 +22,7 @@ def _to_review_out(review: models.Review) -> schemas.ReviewOut:
     return schemas.ReviewOut(
         **schemas.Review.model_validate(review).model_dump(),
         reviewer_name=review.user.name,
+        media=[schemas.ReviewMedia.model_validate(item) for item in review.media],
         reply=reply,
     )
 

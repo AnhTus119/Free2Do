@@ -364,3 +364,25 @@ preview của Vercel.
   Cloudinary, không trả secret.
 - `GET /businesses` và `GET /businesses/{business_id}`: dữ liệu public của doanh
   nghiệp, gồm logo/gallery/menu và tổng số hoạt động active để frontend hiển thị.
+
+## 19. Frontend Business
+
+Các trang trong `frontend/Demo Trang Business` đã kết nối trực tiếp với backend:
+
+- `business-home.html`: dashboard và biểu đồ từ `/business/dashboard` và
+  `/business/analytics`.
+- `business-profile.html`: xem/sửa hồ sơ, upload/xóa logo, gallery và menu qua
+  Cloudinary.
+- `my-activities.html`: tạo, sửa, hủy hoạt động; chọn danh mục; upload/xóa
+  ảnh/video.
+- `reviews.html`: xem review và media thật, phản hồi, sửa/xóa phản hồi, upload
+  media phản hồi và gửi khiếu nại.
+
+Đăng nhập tự điều hướng theo role: Operator tới trang quản trị, Customer tới trang
+Customer và Business tới `Demo Trang Business/business-home.html`. Frontend chỉ
+định dạng và hiển thị response; các số liệu dashboard, biểu đồ, rating, review và
+tương tác đều được tổng hợp ở backend.
+
+`upgrade-plan.html` hiện chỉ là trang giới thiệu. Nút thanh toán bị vô hiệu hóa vì
+backend chưa có nghiệp vụ subscription/payment; trang không giả lập thao tác nâng
+cấp ở trình duyệt.

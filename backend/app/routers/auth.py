@@ -166,6 +166,7 @@ def read_me(account: models.Account = Depends(get_current_account), db: Session 
     if user:
         profile = user.business_profile or user.customer_profile
         avatar_url = profile.avatar_url if profile else None
+    is_business = role_name == "business"
     return schemas.MeResponse(
         account_id=account.account_id,
         email=account.email,
@@ -175,7 +176,11 @@ def read_me(account: models.Account = Depends(get_current_account), db: Session 
         user_id=user.user_id if user else None,
         phone=user.phone if user else None,
         avatar_url=avatar_url,
-        redirect="index.html",
+        redirect=(
+            "Demo Trang Business/business-home.html"
+            if is_business
+            else "Demo Trang Customer/home.html"
+        ),
     )
 
 # Quên / đổi mật khẩu

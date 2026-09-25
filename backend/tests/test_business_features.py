@@ -160,7 +160,13 @@ class BusinessFeatureTests(unittest.TestCase):
             media_kind="gallery",
             created_at=datetime.now(UTC).replace(tzinfo=None),
         )
-        self.db.add(media)
+        review_media = models.ReviewMedia(
+            media_id="RM1",
+            review_id="R1",
+            media_url="https://res.cloudinary.com/demo/image/upload/review.jpg",
+            media_type="image",
+        )
+        self.db.add_all([media, review_media])
         create_review_reply(
             "R1",
             schemas.ReviewReplyCreate(content="Cảm ơn bạn"),
@@ -171,6 +177,7 @@ class BusinessFeatureTests(unittest.TestCase):
         public_review = _to_review_out(self.db.query(models.Review).filter_by(review_id="R1").one())
         self.assertEqual(public_business.activity_count, 1)
         self.assertEqual(public_business.media[0].media_kind, "gallery")
+        self.assertEqual(public_review.media[0].media_type, "image")
         self.assertEqual(public_review.reply.content, "Cảm ơn bạn")
 
     def test_cloudinary_validation_and_metadata(self):

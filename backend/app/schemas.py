@@ -199,6 +199,15 @@ class Review(BaseModel):
     created_at: datetime
     updated_at: Optional[datetime] = None
 
+class ReviewMedia(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    media_id: str
+    review_id: str
+    media_url: str
+    media_type: str
+    public_id: Optional[str] = None
+    bytes: Optional[int] = None
+
 class ReviewReplyMediaPublicOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     media_url: str
@@ -215,17 +224,8 @@ class ReviewReplyPublicOut(BaseModel):
 class ReviewOut(Review):
     """Review trả về frontend kèm tên thật của người đánh giá."""
     reviewer_name: str
+    media: list[ReviewMedia] = Field(default_factory=list)
     reply: Optional[ReviewReplyPublicOut] = None
-
-# ReviewMedia
-class ReviewMedia(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-    media_id: str
-    review_id: str
-    media_url: str
-    media_type: str
-    public_id: Optional[str] = None
-    bytes: Optional[int] = None
 
 # Complaint
 class ComplaintCreate(BaseModel):
@@ -336,7 +336,7 @@ class MeResponse(BaseModel):
     phone: Optional[str] = None
     avatar_url: Optional[str] = None
     level: Optional[str] = None
-    redirect: str                # "admin.html" | "index.html"
+    redirect: str                # Trang phù hợp với operator, customer hoặc business
 
 # ---------------------------------------------------------------------------
 # User categories (sở thích) -- khách hàng chọn để phục vụ interest matching
@@ -563,6 +563,7 @@ class BusinessReviewOut(BaseModel):
     content: Optional[str] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
+    media: list[ReviewMedia] = Field(default_factory=list)
     reply: Optional[ReviewReplyOut] = None
 
 class AvatarPresetOut(BaseModel):

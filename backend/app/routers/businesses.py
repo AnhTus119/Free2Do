@@ -57,6 +57,7 @@ def _review_out(review: models.Review) -> schemas.BusinessReviewOut:
         content=review.content,
         created_at=review.created_at,
         updated_at=review.updated_at,
+        media=[schemas.ReviewMedia.model_validate(item) for item in review.media],
         reply=schemas.ReviewReplyOut.model_validate(review.reply) if review.reply else None,
     )
 

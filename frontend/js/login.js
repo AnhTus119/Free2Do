@@ -67,9 +67,13 @@ if (loginForm) {
         return;
       }
 
-      window.location.href = me.account_type === "operator"
-        ? (me.redirect || "admin.html")
-        : "Demo Trang Customer/home.html";
+      window.location.href = me.redirect || (
+        me.account_type === "operator"
+          ? "admin.html"
+          : me.role === "business"
+            ? "Demo Trang Business/business-home.html"
+            : "Demo Trang Customer/home.html"
+      );
     } catch (error) {
       console.error(error);
       showLoginError(`Không kết nối được backend tại ${API_BASE_URL}.`);

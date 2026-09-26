@@ -260,6 +260,55 @@ async def upload_activity_media(
 
 
 @router.post(
+    "/reviews/{review_id}/media/upload",
+    response_model=schemas.ReviewMedia,
+    status_code=status.HTTP_201_CREATED,
+)
+async def upload_review_media(
+    review_id: str,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    review = db.query(models.Review).filter(models.Review.review_id == review_id).first()
+    if not review or review.user_id != user.user_id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Không tìm thấy đánh giá")
+    asset = await _upload(
+        file,
+        folder=f"users/{user.user_id}/reviews/{review_id}",
+        owner_id=user.user_id,
+        kind="review",
+        allow_video=True,
+    )
+    media = models.ReviewMedia(
+        review_id=review_id,
+        media_url=asset.media_url,
+        media_type=asset.media_type,
+        public_id=asset.public_id,
+        bytes=asset.bytes,
+    )
+    db.add(media)
+    db.commit()
+    db.refresh(media)
+    return media
+
+
+@router.delete("/reviews/media/{media_id}", response_model=schemas.MessageResponse)
+def remove_review_media(
+    media_id: str,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    media = db.query(models.ReviewMedia).filter(models.ReviewMedia.media_id == media_id).first()
+    if not media or media.review.user_id != user.user_id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Không tìm thấy media")
+    _delete_or_502(media.public_id, media.media_type)
+    db.delete(media)
+    db.commit()
+    return {"message": "Đã xóa media đánh giá"}
+
+
+@router.post(
     "/business/review-replies/{reply_id}/media/upload",
     response_model=schemas.ReviewReplyMediaOut,
     status_code=status.HTTP_201_CREATED,

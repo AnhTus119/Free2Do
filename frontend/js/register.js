@@ -69,7 +69,7 @@ if (registerForm) {
 
       localStorage.setItem("token", data.access_token);
       alert("Đăng ký thành công!");
-      window.location.href = "index.html";
+      window.location.href = "Demo Trang Customer/home.html";
     } catch (error) {
       console.error(error);
       showRegisterError(`Không kết nối được backend tại ${API_BASE_URL}.`);

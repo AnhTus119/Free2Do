@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app import models, schemas
 from app.auth import get_current_user
+from app.services.cloudinary_storage import delete_asset
 
 router = APIRouter(tags=["reviews"])
 
@@ -103,25 +104,13 @@ def delete_review(
     # Dọn các bản ghi phụ thuộc trước -- complaints.review_id và review_media.review_id
     # đều là FK not null, xóa review trước sẽ vi phạm ràng buộc trên Postgres.
     db.query(models.Complaint).filter(models.Complaint.review_id == review_id).delete()
+    for media in review.media:
+        if media.public_id:
+            try:
+                delete_asset(media.public_id, media.media_type)
+            except Exception:
+                pass
     db.query(models.ReviewMedia).filter(models.ReviewMedia.review_id == review_id).delete()
     db.delete(review)
     db.commit()
     return {"message": "Đã xóa đánh giá"}
-
-
-@router.post("/reviews/{review_id}/media", response_model=schemas.ReviewMedia, status_code=status.HTTP_201_CREATED)
-def add_review_media(
-    review_id: str,
-    payload: schemas.ReviewMediaCreate,
-    db: Session = Depends(get_db),
-    user: models.User = Depends(get_current_user),
-):
-    review = db.query(models.Review).filter(models.Review.review_id == review_id).first()
-    if not review or review.user_id != user.user_id:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Không tìm thấy đánh giá")
-
-    media = models.ReviewMedia(review_id=review_id, media_url=payload.media_url, media_type=payload.media_type)
-    db.add(media)
-    db.commit()
-    db.refresh(media)
-    return media

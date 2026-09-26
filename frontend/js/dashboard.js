@@ -560,6 +560,8 @@
   }
 
   function renderAll() {
+    const updated = document.querySelector('.updated');
+    if (updated) updated.textContent = `Cập nhật: ${new Date().toLocaleString('vi-VN')}`;
     updateOverview();
     renderPendingActivities();
     renderPendingBusinesses();

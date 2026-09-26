@@ -379,20 +379,12 @@ class ActivityAdminOut(ActivityPublicOut):
     verified_at: Optional[datetime] = None
     expire_at: Optional[datetime] = None
 
-class ActivityMediaCreate(BaseModel):
-    media_url: str
-    media_type: str
-
 # ---------------------------------------------------------------------------
 # Review -- cập nhật
 # ---------------------------------------------------------------------------
 class ReviewUpdate(BaseModel):
     rating: Optional[int] = Field(None, ge=1, le=5)
     content: Optional[str] = None
-
-class ReviewMediaCreate(BaseModel):
-    media_url: str
-    media_type: str
 
 # ---------------------------------------------------------------------------
 # Operator -- xử lý report / complaint

@@ -37,6 +37,26 @@
     try { await api.request(`/bookmarks/${encodeURIComponent(button.dataset.removeId)}`, { method: 'DELETE' }); await renderBookmarks(); }
     catch (error) { alert(error.message); button.disabled = false; }
   };
+  function setAvatar(url, name) {
+    document.querySelectorAll('.nav-avatar').forEach(element => {
+      element.innerHTML = url ? `<img src="${api.escapeHTML(url)}" alt="Avatar" style="width:100%;height:100%;object-fit:cover;border-radius:50%">` : api.escapeHTML(name?.[0]?.toUpperCase() || '?');
+    });
+  }
+  document.getElementById('avatarUploadForm').addEventListener('submit', async event => {
+    event.preventDefault(); const file = document.getElementById('avatarFile').files[0]; if (!file) return;
+    const form = new FormData(); form.append('file', file);
+    try { const asset = await api.request('/media/avatar', { method: 'POST', body: form }); setAvatar(asset.media_url); }
+    catch (error) { alert(error.message); }
+  });
+  document.getElementById('avatarPresets').addEventListener('click', async event => {
+    const button = event.target.closest('[data-preset-id]'); if (!button) return;
+    try { const preset = await api.request(`/media/avatar/preset/${encodeURIComponent(button.dataset.presetId)}`, { method: 'PUT' }); setAvatar(preset.media_url); }
+    catch (error) { alert(error.message); }
+  });
+  document.getElementById('removeAvatar').addEventListener('click', async () => {
+    try { await api.request('/media/avatar', { method: 'DELETE' }); setAvatar(null, title?.textContent); }
+    catch (error) { alert(error.message); }
+  });
   async function renderBookmarks() {
     const list = await api.request('/bookmarks/me');
     const results = await Promise.all(list.map(b => api.request(`/activities/${encodeURIComponent(b.activity_id)}`).catch(() => null)));
@@ -47,13 +67,15 @@
   api.requireUser().then(async me => {
     if (title) title.textContent = me.name;
     if (subtitle) subtitle.textContent = [me.email, me.phone].filter(Boolean).join(' · ');
-    document.querySelector('#pane-hoso .nav-avatar').textContent = me.name[0]?.toUpperCase() || '?';
+    setAvatar(me.avatar_url, me.name);
     const profileInputs = document.querySelectorAll('#edit-mode .field input');
     [me.name, me.email, me.phone || ''].forEach((value, index) => {
       if (profileInputs[index]) profileInputs[index].value = value;
     });
     // No self-service profile update endpoint; only preferences are editable.
-    available = await api.request('/categories');
+    const [categoryRows, presets] = await Promise.all([api.request('/categories'), api.request('/media/avatar-presets')]);
+    available = categoryRows;
+    document.getElementById('avatarPresets').innerHTML = presets.map(item => `<button type="button" class="chip" data-preset-id="${api.escapeHTML(item.preset_id)}"><img src="${api.escapeHTML(item.media_url)}" alt="${api.escapeHTML(item.name)}" style="width:36px;height:36px;border-radius:50%;object-fit:cover"> ${api.escapeHTML(item.name)}</button>`).join('') || '<span>Chưa có ảnh mẫu.</span>';
     selected = new Set((await api.request('/users/me/categories')).map(c => c.category_id));
     renderCategories(); await renderBookmarks();
     const historyItems = await api.request('/users/me/search-history');

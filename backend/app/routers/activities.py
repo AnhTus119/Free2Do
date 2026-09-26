@@ -103,19 +103,6 @@ def create_activity(
     return _to_detail(db, activity)
 
 
-@router.get("/mine/list", response_model=list[schemas.Activity])
-def list_my_activities(
-    db: Session = Depends(get_db),
-    business: models.BusinessProfile = Depends(get_current_business_user),
-):
-    return (
-        db.query(models.Activity)
-        .filter(models.Activity.business_id == business.user_id)
-        .order_by(models.Activity.created_at.desc())
-        .all()
-    )
-
-
 @router.patch("/{activity_id}", response_model=schemas.ActivityDetail)
 def update_activity(
     activity_id: str,
@@ -159,24 +146,6 @@ def cancel_activity(
     activity.updated_at = datetime.utcnow()
     db.commit()
     return {"message": "Đã hủy hoạt động"}
-
-
-@router.post("/{activity_id}/media", response_model=schemas.ActivityMedia, status_code=status.HTTP_201_CREATED)
-def add_activity_media(
-    activity_id: str,
-    payload: schemas.ActivityMediaCreate,
-    db: Session = Depends(get_db),
-    business: models.BusinessProfile = Depends(get_current_business_user),
-):
-    activity = db.query(models.Activity).filter(models.Activity.activity_id == activity_id).first()
-    if not activity or activity.business_id != business.user_id:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Không tìm thấy hoạt động")
-
-    media = models.ActivityMedia(activity_id=activity_id, media_url=payload.media_url, media_type=payload.media_type)
-    db.add(media)
-    db.commit()
-    db.refresh(media)
-    return media
 
 
 @router.delete("/media/{media_id}", response_model=schemas.MessageResponse)

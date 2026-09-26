@@ -3,9 +3,9 @@ let complaints = new Map();
 const filters = { media: false, rating: 0 };
 
 const stars = rating => `<span style="color:#F5B921;letter-spacing:1px;">${'★'.repeat(rating)}${'☆'.repeat(5 - rating)}</span>`;
-const mediaHTML = items => items?.length ? `<div class="rv-media">${items.map(item => item.media_type === 'video'
+const mediaHTML = (items, editable = false) => items?.length ? `<div class="rv-media">${items.map(item => `<span>${item.media_type === 'video'
   ? `<video class="rv-thumb" src="${BusinessAPI.escapeHTML(item.media_url)}" controls></video>`
-  : `<img class="rv-thumb" src="${BusinessAPI.escapeHTML(item.media_url)}" alt="Ảnh đánh giá">`).join('')}</div>` : '';
+  : `<img class="rv-thumb" src="${BusinessAPI.escapeHTML(item.media_url)}" alt="Ảnh đánh giá">`}${editable ? `<button class="row-btn danger" data-action="delete-reply-media" data-media-id="${BusinessAPI.escapeHTML(item.media_id)}">Xóa file</button>` : ''}</span>`).join('')}</div>` : '';
 
 function card(review) {
   const complaint = complaints.get(review.review_id);
@@ -16,7 +16,7 @@ function card(review) {
     <div class="rv-meta">Hoạt động: <b>${BusinessAPI.escapeHTML(review.activity_name)}</b></div>
     <p class="rv-text">${BusinessAPI.escapeHTML(review.content || 'Không có nội dung.')}</p>
     ${mediaHTML(review.media)}
-    ${reply ? `<div class="biz-reply"><b>Doanh nghiệp phản hồi:</b> ${BusinessAPI.escapeHTML(reply.content)}${mediaHTML(reply.media)}
+    ${reply ? `<div class="biz-reply"><b>Doanh nghiệp phản hồi:</b> ${BusinessAPI.escapeHTML(reply.content)}${mediaHTML(reply.media, true)}
       <div class="rv-actions"><button class="row-btn" data-action="edit-reply">Sửa</button><button class="row-btn danger" data-action="delete-reply">Xóa</button></div></div>` : ''}
     ${complaint ? `<div class="rv-complaint-note"><b>Khiếu nại ${BusinessAPI.escapeHTML(complaint.status)}:</b> ${BusinessAPI.escapeHTML(complaint.reason)}${complaint.description ? ` — ${BusinessAPI.escapeHTML(complaint.description)}` : ''}</div>` : ''}
     ${!reply ? `<div class="rv-actions"><button class="btn btn-secondary" data-action="toggle-reply">Phản hồi</button>${!complaint ? '<button class="btn btn-ghost" data-action="toggle-complaint">Khiếu nại</button>' : ''}</div>
@@ -69,6 +69,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (button.dataset.action === 'edit-reply') {
         const content = prompt('Nội dung phản hồi mới:', review.reply.content); if (content === null) return;
         await BusinessAPI.request(`/business/review-replies/${review.reply.reply_id}`, { method: 'PATCH', body: { content: content.trim() } });
+      }
+      if (button.dataset.action === 'delete-reply-media') {
+        await BusinessAPI.request(`/business/review-replies/media/${encodeURIComponent(button.dataset.mediaId)}`, { method: 'DELETE' });
       }
       if (button.dataset.action === 'delete-reply') {
         if (!confirm('Xóa phản hồi này?')) return;

@@ -202,17 +202,21 @@ Mật khẩu kiểm thử chung là `Doanhnghiep123`. Script chỉ cập nhật 
 điện thoại trong database/dữ liệu mẫu và có thể chạy lại. Không dùng mật khẩu chung này
 cho môi trường vận hành thật.
 
-Để gửi OTP đặt lại mật khẩu qua SMS, cấu hình thêm ba biến môi trường Twilio trên máy
-chạy backend/Render:
+Đăng ký và đăng nhập chấp nhận email hoặc số điện thoại. Sau lần đăng nhập đầu tiên,
+mọi tài khoản phải nhập và xác minh email khôi phục trước khi sử dụng các chức năng khác.
+OTP đặt lại mật khẩu chỉ được gửi tới email khôi phục đã xác minh.
+
+Gửi OTP bằng Gmail SMTP không cần Twilio. Cấu hình trên máy chạy backend/Render:
 
 ```env
-TWILIO_ACCOUNT_SID=...
-TWILIO_AUTH_TOKEN=...
-TWILIO_FROM_PHONE=+...
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-account@gmail.com
+SMTP_PASSWORD=your-16-character-google-app-password
 ```
 
-Đăng ký và đăng nhập chấp nhận email hoặc số điện thoại. API quên mật khẩu nhận
-`identifier` và `channel` (`email` hoặc `sms`); kênh đã chọn phải tồn tại trên tài khoản.
+`smtp.gmail.com` và cổng TLS `587` là giá trị cố định. `SMTP_PASSWORD` phải là App
+Password của Google, không phải mật khẩu đăng nhập Gmail và không được commit `.env`.
 
 Chạy kiểm thử backend:
 

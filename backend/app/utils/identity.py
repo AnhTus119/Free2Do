@@ -1,6 +1,5 @@
 import re
 
-from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app import models
@@ -39,8 +38,3 @@ def find_account(db: Session, identifier: str) -> models.Account | None:
     if email:
         return db.query(models.Account).filter(models.Account.email == email).first()
     return db.query(models.Account).filter(models.Account.phone == phone).first()
-
-
-def phone_to_e164(phone: str) -> str:
-    normalized = normalize_phone(phone)
-    return "+84" + normalized[1:]

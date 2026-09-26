@@ -13,12 +13,11 @@ from app.auth import (
     create_reset_token,
     decode_token,
     verify_google_token,
-    get_current_account,
+    get_authenticated_account,
 )
 from app.utils.otp import generate_and_save_otp, verify_otp
 from app.utils.email import send_otp_email
-from app.utils.identity import find_account, normalize_phone, split_identifier
-from app.utils.sms import SmsNotConfigured, send_otp_sms
+from app.utils.identity import find_account, normalize_email, normalize_phone, split_identifier
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -160,13 +159,15 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
 
 # Lấy thông tin tài khoản đang đăng nhập + gợi ý trang điều hướng (dùng ngay sau khi login/register)
 @router.get("/me", response_model=schemas.MeResponse)
-def read_me(account: models.Account = Depends(get_current_account), db: Session = Depends(get_db)):
+def read_me(account: models.Account = Depends(get_authenticated_account), db: Session = Depends(get_db)):
     if account.account_type == "operator":
         operator = db.query(models.Operator).filter(models.Operator.account_id == account.account_id).first()
         return schemas.MeResponse(
             account_id=account.account_id,
             email=account.email,
             phone=account.phone,
+            recovery_email=account.recovery_email,
+            requires_recovery_email=not bool(account.recovery_email),
             account_type="operator",
             role="operator",
             name=operator.name if operator else "",
@@ -190,6 +191,8 @@ def read_me(account: models.Account = Depends(get_current_account), db: Session 
         name=user.name if user else "",
         user_id=user.user_id if user else None,
         phone=(account.phone or user.phone) if user else account.phone,
+        recovery_email=account.recovery_email,
+        requires_recovery_email=not bool(account.recovery_email),
         avatar_url=avatar_url,
         redirect=(
             "Demo Trang Business/business-home.html"
@@ -205,22 +208,11 @@ def forgot_password(payload: schemas.ForgotPasswordRequest, db: Session = Depend
         account = find_account(db, payload.identifier)
     except ValueError:
         account = None
-    destination = None
-    if account and account.password_hash:
-        destination = account.email if payload.channel == "email" else account.phone
-        if destination and not destination.endswith("@seed.free2do.local"):
-            code = generate_and_save_otp(
-                db, destination, purpose="reset_password", channel=payload.channel
-            )
-            if payload.channel == "email":
-                send_otp_email(destination, code, purpose="reset_password")
-            else:
-                try:
-                    send_otp_sms(destination, code, purpose="reset_password")
-                except SmsNotConfigured as exc:
-                    raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, str(exc)) from exc
+    if account and account.password_hash and account.recovery_email:
+        code = generate_and_save_otp(db, account.recovery_email, purpose="reset_password")
+        send_otp_email(account.recovery_email, code, purpose="reset_password")
 
-    return {"message": "Nếu tài khoản và kênh nhận tồn tại, mã OTP đã được gửi"}
+    return {"message": "Nếu tài khoản tồn tại, mã OTP đã được gửi tới email khôi phục"}
 
 @router.post("/verify-reset-otp", response_model=schemas.ResetTokenResponse)
 def verify_reset_otp(payload: schemas.VerifyOtpRequest, db: Session = Depends(get_db)):
@@ -228,15 +220,45 @@ def verify_reset_otp(payload: schemas.VerifyOtpRequest, db: Session = Depends(ge
         account = find_account(db, payload.identifier)
     except ValueError:
         account = None
-    destination = None
-    if account:
-        destination = account.email if payload.channel == "email" else account.phone
-    if not destination or not verify_otp(
-        db, destination, payload.code, purpose="reset_password", channel=payload.channel
-    ):
+    destination = account.recovery_email if account else None
+    if not destination or not verify_otp(db, destination, payload.code, purpose="reset_password"):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Mã OTP không đúng hoặc đã hết hạn")
 
     return {"reset_token": create_reset_token(account.account_id)}
+
+
+def _validate_recovery_email(raw_email: str) -> str:
+    try:
+        email = normalize_email(raw_email)
+    except ValueError as exc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc)) from exc
+    return email
+
+
+@router.post("/recovery-email/request", response_model=schemas.MessageResponse)
+def request_recovery_email(
+    payload: schemas.RecoveryEmailRequest,
+    account: models.Account = Depends(get_authenticated_account),
+    db: Session = Depends(get_db),
+):
+    email = _validate_recovery_email(payload.recovery_email)
+    code = generate_and_save_otp(db, email, purpose="verify_recovery_email")
+    send_otp_email(email, code, purpose="verify_recovery_email")
+    return {"message": "Mã OTP đã được gửi tới email khôi phục"}
+
+
+@router.put("/recovery-email/verify", response_model=schemas.MessageResponse)
+def verify_recovery_email(
+    payload: schemas.RecoveryEmailVerifyRequest,
+    account: models.Account = Depends(get_authenticated_account),
+    db: Session = Depends(get_db),
+):
+    email = _validate_recovery_email(payload.recovery_email)
+    if not verify_otp(db, email, payload.code, purpose="verify_recovery_email"):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Mã OTP không đúng hoặc đã hết hạn")
+    account.recovery_email = email
+    db.commit()
+    return {"message": "Email khôi phục đã được xác minh"}
 
 @router.post("/reset-password", response_model=schemas.MessageResponse)
 def reset_password(payload: schemas.ResetPasswordRequest, db: Session = Depends(get_db)):

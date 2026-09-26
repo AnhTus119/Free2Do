@@ -4,19 +4,14 @@
 -- Một tài khoản có thể đăng nhập bằng email, số điện thoại hoặc cả hai.
 ALTER TABLE accounts
   ADD COLUMN IF NOT EXISTS phone VARCHAR,
+  ADD COLUMN IF NOT EXISTS recovery_email VARCHAR,
   ALTER COLUMN email DROP NOT NULL;
 
 CREATE UNIQUE INDEX IF NOT EXISTS uq_accounts_phone
   ON accounts(phone) WHERE phone IS NOT NULL;
 
--- OTP dùng chung cho email và SMS; giữ cột email để tương thích dữ liệu cũ.
-ALTER TABLE otp_codes
-  ADD COLUMN IF NOT EXISTS recipient VARCHAR,
-  ADD COLUMN IF NOT EXISTS channel VARCHAR NOT NULL DEFAULT 'email',
-  ALTER COLUMN email DROP NOT NULL;
-
-UPDATE otp_codes SET recipient = email WHERE recipient IS NULL AND email IS NOT NULL;
-CREATE INDEX IF NOT EXISTS idx_otp_codes_recipient ON otp_codes(recipient);
+CREATE INDEX IF NOT EXISTS idx_accounts_recovery_email
+  ON accounts(lower(recovery_email)) WHERE recovery_email IS NOT NULL;
 
 ALTER TABLE operators
   ADD COLUMN IF NOT EXISTS level VARCHAR NOT NULL DEFAULT 'staff',

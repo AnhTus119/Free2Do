@@ -34,6 +34,10 @@
 
   async function requireBusiness() {
     const me = await request('/auth/me');
+    if (me.requires_recovery_email) {
+      location.href = '../recovery-email.html';
+      throw new Error('Cần xác minh email khôi phục.');
+    }
     if (me.role !== 'business') {
       location.href = me.account_type === 'operator'
         ? '../admin.html'

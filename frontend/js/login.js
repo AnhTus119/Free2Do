@@ -67,6 +67,11 @@ if (loginForm) {
         return;
       }
 
+      if (me.requires_recovery_email) {
+        window.location.href = "recovery-email.html";
+        return;
+      }
+
       window.location.href = me.redirect || (
         me.account_type === "operator"
           ? "admin.html"

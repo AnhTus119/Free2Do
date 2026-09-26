@@ -29,6 +29,8 @@ class FullFrontendContractTests(unittest.TestCase):
             "/operator/categories": "post",
             "/operator/reports": "get",
             "/operator/complaints": "get",
+            "/auth/recovery-email/request": "post",
+            "/auth/recovery-email/verify": "put",
         }
         for path, method in expected.items():
             self.assertIn(path, paths)

@@ -5,13 +5,17 @@ from unittest.mock import patch
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
+from fastapi import HTTPException
 
 from app import models, schemas
+from app.auth import get_current_account
 from app.routers.auth import (
     forgot_password,
     login,
+    request_recovery_email,
     register,
     reset_password,
+    verify_recovery_email,
     verify_reset_otp,
 )
 
@@ -61,8 +65,8 @@ class AuthIdentifierTests(unittest.TestCase):
         )
         self.assertTrue(login_token["access_token"])
 
-    @patch("app.routers.auth.send_otp_sms")
-    def test_phone_otp_reset_flow(self, send_otp_sms):
+    @patch("app.routers.auth.send_otp_email")
+    def test_phone_account_adds_recovery_email_then_resets_password(self, send_otp_email):
         register(
             schemas.RegisterRequest(
                 identifier="0901234567",
@@ -71,17 +75,42 @@ class AuthIdentifierTests(unittest.TestCase):
             ),
             db=self.db,
         )
-        forgot_password(
-            schemas.ForgotPasswordRequest(identifier="0901234567", channel="sms"),
+        account = self.db.query(models.Account).filter_by(phone="0901234567").one()
+        self.assertIsNone(account.recovery_email)
+        with self.assertRaises(HTTPException) as blocked:
+            get_current_account(account)
+        self.assertEqual(blocked.exception.status_code, 428)
+
+        request_recovery_email(
+            schemas.RecoveryEmailRequest(recovery_email="recover@example.com"),
+            account=account,
             db=self.db,
         )
-        send_otp_sms.assert_called_once()
         code = self.db.query(models.OtpCode).one().code
+        verify_recovery_email(
+            schemas.RecoveryEmailVerifyRequest(
+                recovery_email="recover@example.com", code=code
+            ),
+            account=account,
+            db=self.db,
+        )
+        self.assertEqual(account.recovery_email, "recover@example.com")
+        self.assertIs(get_current_account(account), account)
+
+        forgot_password(
+            schemas.ForgotPasswordRequest(identifier="0901234567"),
+            db=self.db,
+        )
+        send_otp_email.assert_called()
+        code = (
+            self.db.query(models.OtpCode)
+            .filter_by(purpose="reset_password")
+            .one()
+            .code
+        )
 
         result = verify_reset_otp(
-            schemas.VerifyOtpRequest(
-                identifier="+84901234567", channel="sms", code=code
-            ),
+            schemas.VerifyOtpRequest(identifier="+84901234567", code=code),
             db=self.db,
         )
         reset_password(

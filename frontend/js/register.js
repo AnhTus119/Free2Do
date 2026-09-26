@@ -71,7 +71,7 @@ if (registerForm) {
 
       localStorage.setItem("token", data.access_token);
       alert("Đăng ký thành công!");
-      window.location.href = "Demo Trang Customer/home.html";
+      window.location.href = "recovery-email.html";
     } catch (error) {
       console.error(error);
       showRegisterError(`Không kết nối được backend tại ${API_BASE_URL}.`);

@@ -39,6 +39,7 @@ class BusinessFeatureTests(unittest.TestCase):
                 models.Account(
                     account_id="AB",
                     email="business@test.local",
+                    recovery_email="business@test.local",
                     account_type="user",
                     status="active",
                     auth_provider="email",
@@ -48,6 +49,7 @@ class BusinessFeatureTests(unittest.TestCase):
                 models.Account(
                     account_id="AC",
                     email="customer@test.local",
+                    recovery_email="customer@test.local",
                     account_type="user",
                     status="active",
                     auth_provider="email",

@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Email khôi phục — FREE2DO</title>
+  <link rel="stylesheet" href="style1.css">
+  <style>body{display:grid;place-items:center;min-height:100vh}.auth-card{width:min(440px,90vw);background:#fff;padding:28px;border-radius:16px;border:1px solid #ddd}.auth-card input{box-sizing:border-box;width:100%;padding:12px;margin:8px 0 16px}.auth-card button{width:100%;padding:12px}.hidden{display:none}.message{min-height:20px;color:#b42318}</style>
+</head>
+<body>
+<main class="auth-card">
+  <h1>Email khôi phục</h1>
+  <p>Bạn cần xác minh email khôi phục trước khi tiếp tục sử dụng Free2Do.</p>
+  <form id="recovery-email-form">
+    <label for="recovery-email">Email khôi phục</label>
+    <input id="recovery-email" type="email" autocomplete="email" placeholder="Nhập email nhận mã OTP" required>
+    <button type="submit">Gửi mã OTP</button>
+  </form>
+  <form id="recovery-code-form" class="hidden">
+    <label for="recovery-code">Mã OTP trong email</label>
+    <input id="recovery-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" required>
+    <button type="submit">Xác minh và tiếp tục</button>
+  </form>
+  <p id="recovery-message" class="message" role="alert"></p>
+</main>
+<script src="js/config.js"></script>
+<script src="js/recovery-email.js"></script>
+</body>
+</html>

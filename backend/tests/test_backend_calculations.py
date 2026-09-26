@@ -38,6 +38,7 @@ class BackendCalculationTests(unittest.TestCase):
         account = models.Account(
             account_id="ACC-C001",
             email="customer@test.local",
+            recovery_email="customer@test.local",
             auth_provider="email",
             email_verified=True,
             account_type="user",

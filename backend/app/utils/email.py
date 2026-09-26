@@ -6,6 +6,7 @@ from app.config import settings
 
 SUBJECT_BY_PURPOSE = {
     "reset_password": "Mã xác minh đổi mật khẩu Free2Do",
+    "verify_recovery_email": "Xác minh email khôi phục Free2Do",
 }
 
 

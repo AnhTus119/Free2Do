@@ -65,11 +65,11 @@ def verify_google_token(token: str) -> Optional[dict]:
 # Dependencies phân quyền -- dùng trong router bằng Depends(...)
 # ---------------------------------------------------------------------------
 
-def get_current_account(
+def get_authenticated_account(
     token: str = Depends(oauth2_scheme),
     db: Session = Depends(get_db),
 ) -> models.Account:
-    """Giải mã access token, trả về Account đang đăng nhập. Dùng cho mọi route cần đăng nhập."""
+    """Giải mã access token mà chưa yêu cầu email khôi phục."""
     account_id = decode_token(token, expected_type="access")
     if not account_id:
         raise HTTPException(
@@ -83,6 +83,18 @@ def get_current_account(
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Tài khoản không tồn tại")
     if account.status != "active":
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Tài khoản chưa được kích hoạt hoặc đã bị khóa")
+    return account
+
+
+def get_current_account(
+    account: models.Account = Depends(get_authenticated_account),
+) -> models.Account:
+    """Tài khoản đã đăng nhập và đã có email khôi phục."""
+    if not account.recovery_email:
+        raise HTTPException(
+            status.HTTP_428_PRECONDITION_REQUIRED,
+            "Bạn cần bổ sung và xác minh email khôi phục trước khi tiếp tục",
+        )
     return account
 
 

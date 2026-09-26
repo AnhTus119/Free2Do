@@ -79,6 +79,10 @@
   async function requireOperatorAuth() {
     if (!getToken()) { goToLogin(); throw new Error('Chưa đăng nhập'); }
     if (!validation) validation = authFetch('/auth/me').then(me => {
+      if (me.requires_recovery_email) {
+        window.location.href = 'recovery-email.html';
+        throw new Error('Cần xác minh email khôi phục.');
+      }
       if (me.account_type !== 'operator') {
         window.location.href = 'log-in.html';
         throw new Error('Tài khoản không có quyền quản trị.');

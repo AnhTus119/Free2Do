@@ -23,6 +23,10 @@
   async function requireUser() {
     if (!localStorage.getItem('token')) { location.href = '../log-in.html'; throw new Error('Vui lòng đăng nhập.'); }
     const me = await request('/auth/me');
+    if (me.requires_recovery_email) {
+      location.href = '../recovery-email.html';
+      throw new Error('Cần xác minh email khôi phục.');
+    }
     if (me.account_type !== 'user' || me.role === 'business') {
       location.href = me.role === 'business' ? '../Demo Trang Business/business-home.html' : '../dashboard.html';
       throw new Error('Tài khoản không phải người dùng.');

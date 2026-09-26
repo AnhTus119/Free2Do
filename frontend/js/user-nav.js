@@ -11,6 +11,11 @@
   }
   try {
     const me = await window.Free2DoAPI.request('/auth/me', { auth: true });
+    if (me.requires_recovery_email) {
+      const prefix = location.pathname.includes('/Demo%20Trang') || location.pathname.includes('/Demo Trang') ? '../' : '';
+      location.href = `${prefix}recovery-email.html`;
+      return;
+    }
     document.querySelectorAll('.nav-name, .side-admin-name, .who .name').forEach(el => el.textContent = me.name);
     document.querySelectorAll('.nav-avatar, .side-avatar, .who .avatar').forEach(el => el.textContent = me.name.charAt(0).toUpperCase());
   } catch (error) { console.warn('Không lấy được hồ sơ đăng nhập:', error); }

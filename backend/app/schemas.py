@@ -314,12 +314,16 @@ class GoogleLoginRequest(BaseModel):
 
 class VerifyOtpRequest(BaseModel):
     identifier: str
-    channel: Literal["email", "sms"]
     code: str
 
 class ForgotPasswordRequest(BaseModel):
     identifier: str
-    channel: Literal["email", "sms"]
+
+class RecoveryEmailRequest(BaseModel):
+    recovery_email: str
+
+class RecoveryEmailVerifyRequest(RecoveryEmailRequest):
+    code: str
 
 class ResetTokenResponse(BaseModel):
     reset_token: str
@@ -341,6 +345,8 @@ class MeResponse(BaseModel):
     user_id: Optional[str] = None
     operator_id: Optional[str] = None
     phone: Optional[str] = None
+    recovery_email: Optional[str] = None
+    requires_recovery_email: bool = False
     avatar_url: Optional[str] = None
     level: Optional[str] = None
     redirect: str                # Trang phù hợp với operator, customer hoặc business

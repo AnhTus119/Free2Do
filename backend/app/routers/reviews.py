@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app import models, schemas
 from app.auth import get_current_user
-from app.services.cloudinary_storage import delete_asset
+from app.services.supabase_storage import delete_asset
 
 router = APIRouter(tags=["reviews"])
 

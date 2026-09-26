@@ -28,12 +28,50 @@ ALTER TABLE activities
   ALTER COLUMN latitude DROP NOT NULL,
   ALTER COLUMN longitude DROP NOT NULL;
 
+-- PostGIS lọc theo bán kính ngay trong PostgreSQL. latitude/longitude vẫn được
+-- giữ để tương thích API; trigger đồng bộ sang geography(Point, 4326).
+CREATE SCHEMA IF NOT EXISTS extensions;
+CREATE EXTENSION IF NOT EXISTS postgis WITH SCHEMA extensions;
+
+ALTER TABLE activities
+  ADD COLUMN IF NOT EXISTS location extensions.geography(Point, 4326);
+
+UPDATE activities
+SET location = extensions.ST_SetSRID(
+  extensions.ST_MakePoint(longitude, latitude), 4326
+)::extensions.geography
+WHERE latitude IS NOT NULL AND longitude IS NOT NULL;
+
+CREATE OR REPLACE FUNCTION public.sync_activity_location()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = ''
+AS $$
+BEGIN
+  NEW.location := CASE
+    WHEN NEW.latitude IS NULL OR NEW.longitude IS NULL THEN NULL
+    ELSE extensions.ST_SetSRID(
+      extensions.ST_MakePoint(NEW.longitude, NEW.latitude), 4326
+    )::extensions.geography
+  END;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_sync_activity_location ON activities;
+CREATE TRIGGER trg_sync_activity_location
+BEFORE INSERT OR UPDATE OF latitude, longitude ON activities
+FOR EACH ROW EXECUTE FUNCTION public.sync_activity_location();
+
+CREATE INDEX IF NOT EXISTS idx_activities_location_gist
+  ON activities USING GIST (location);
+
 CREATE INDEX IF NOT EXISTS idx_activities_status ON activities(status);
 CREATE INDEX IF NOT EXISTS idx_activities_business_id ON activities(business_id);
 CREATE INDEX IF NOT EXISTS idx_reviews_activity_id ON reviews(activity_id);
 CREATE INDEX IF NOT EXISTS idx_reviews_user_id ON reviews(user_id);
 
--- Hồ sơ và metadata Cloudinary. public_id được lưu để backend có thể xóa tài sản
+-- Hồ sơ và metadata Storage. public_id lưu object path để backend có thể xóa tài sản
 -- khi người dùng thay ảnh, tránh file mồ côi làm tăng dung lượng.
 ALTER TABLE business_profiles
   ADD COLUMN IF NOT EXISTS avatar_url VARCHAR,

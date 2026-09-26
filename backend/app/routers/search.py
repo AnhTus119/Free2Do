@@ -2,7 +2,7 @@ from datetime import UTC, datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends
-from sqlalchemy import func, or_
+from sqlalchemy import func, or_, text
 from sqlalchemy.orm import Session
 
 from app import models, schemas
@@ -57,6 +57,7 @@ def search_activities(
     user: models.User = Depends(get_current_user),
 ):
     """Lọc và xếp hạng hoạt động ở backend; frontend chỉ hiển thị kết quả đã tính."""
+    use_postgis = db.bind is not None and db.bind.dialect.name == "postgresql"
     query = db.query(models.Activity).filter(
         models.Activity.status == "active",
         models.Activity.latitude.is_not(None),
@@ -79,16 +80,26 @@ def search_activities(
             models.ActivityCategory.category_id.in_(payload.category_ids)
         ).distinct()
 
-    results = []
-    for activity in query.all():
-        distance_km = haversine_km(
-            payload.latitude,
-            payload.longitude,
-            activity.latitude,
-            activity.longitude,
+    if use_postgis:
+        query = query.filter(
+            text(
+                "extensions.ST_DWithin(activities.location, "
+                "extensions.ST_SetSRID(extensions.ST_MakePoint(:search_lon, :search_lat), 4326)::extensions.geography, "
+                ":radius_m)"
+            )
+        ).params(
+            search_lon=payload.longitude,
+            search_lat=payload.latitude,
+            radius_m=payload.radius * 1000,
         )
-        if distance_km > payload.radius:
-            continue
+    rows = []
+    for activity in query.all():
+        distance = haversine_km(payload.latitude, payload.longitude, activity.latitude, activity.longitude)
+        if distance <= payload.radius:
+            rows.append((activity, distance))
+
+    results = []
+    for activity, distance_km in rows:
         avg_rating, review_count = (
             db.query(func.avg(models.Review.rating), func.count(models.Review.review_id))
             .filter(models.Review.activity_id == activity.activity_id)

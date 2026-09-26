@@ -1,4 +1,4 @@
-"""Seed logo và gallery từ cấu trúc ROOT/<business_id>/* lên Cloudinary.
+"""Seed logo và gallery từ cấu trúc ROOT/<business_id>/* lên Supabase Storage.
 
 Ví dụ:
     python seed_business_media.py --root "C:/data/QLDACNTT" --dry-run
@@ -16,9 +16,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from app import models
-from app.config import settings
 from app.database import SessionLocal
-from app.services.cloudinary_storage import delete_asset, upload_seed_image
+from app.services.supabase_storage import delete_asset, upload_seed_image
 
 
 SUPPORTED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
@@ -37,13 +36,13 @@ def _seed_public_id(path: Path) -> str:
     return f"seed-{_slug(path.stem)}-{digest}"
 
 
-def _full_public_id(business_id: str, kind: str, public_id: str) -> str:
-    root = settings.CLOUDINARY_FOLDER.strip("/") or "free2do"
-    return f"{root}/businesses/{business_id}/{kind}/{public_id}"
+def _full_public_id(business_id: str, kind: str, public_id: str, suffix: str) -> str:
+    extension = ".jpg" if suffix.lower() in {".jpg", ".jpeg"} else suffix.lower()
+    return f"businesses/{business_id}/{kind}/{public_id}{extension}"
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Seed ảnh doanh nghiệp lên Cloudinary")
+    parser = argparse.ArgumentParser(description="Seed ảnh doanh nghiệp lên Supabase Storage")
     parser.add_argument("--root", required=True, type=Path, help="Thư mục chứa B001, B002, ...")
     parser.add_argument(
         "--image-kind",
@@ -84,7 +83,9 @@ def main() -> None:
             for image_path in files:
                 kind = "logo" if image_path.stem.lower() == "logo" else args.image_kind
                 short_public_id = _seed_public_id(image_path)
-                expected_public_id = _full_public_id(business_id, kind, short_public_id)
+                expected_public_id = _full_public_id(
+                    business_id, kind, short_public_id, image_path.suffix
+                )
                 existing = (
                     db.query(models.BusinessMedia)
                     .filter(models.BusinessMedia.public_id == expected_public_id)

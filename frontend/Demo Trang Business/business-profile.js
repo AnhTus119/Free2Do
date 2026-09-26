@@ -60,7 +60,7 @@ async function uploadMedia() {
     if (kind === 'logo') profileState = await BusinessAPI.request('/business/me');
     renderProfile(); renderMedia();
     document.getElementById('media-file').value = '';
-    BusinessAPI.notify('Đã tải ảnh lên Cloudinary.');
+    BusinessAPI.notify('Đã tải ảnh lên kho lưu trữ.');
   } catch (error) { BusinessAPI.notify(error.message, 'error'); }
 }
 

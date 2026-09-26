@@ -7,8 +7,8 @@ from sqlalchemy.orm import Session
 from app import models, schemas
 from app.auth import get_current_business_user, get_current_user
 from app.database import get_db
-from app.services.cloudinary_storage import (
-    CloudinaryNotConfigured,
+from app.services.supabase_storage import (
+    StorageNotConfigured,
     InvalidMedia,
     delete_asset,
     upload_asset,
@@ -36,12 +36,12 @@ async def _upload(
             kind=kind,
             allow_video=allow_video,
         )
-    except CloudinaryNotConfigured as exc:
+    except StorageNotConfigured as exc:
         raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, str(exc)) from exc
     except InvalidMedia as exc:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc)) from exc
     except Exception as exc:
-        raise HTTPException(status.HTTP_502_BAD_GATEWAY, "Không thể tải file lên Cloudinary") from exc
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, "Không thể tải file lên Supabase Storage") from exc
 
 
 def _delete_or_502(public_id: str | None, media_type: str = "image") -> None:
@@ -49,10 +49,10 @@ def _delete_or_502(public_id: str | None, media_type: str = "image") -> None:
         return
     try:
         delete_asset(public_id, media_type)
-    except CloudinaryNotConfigured as exc:
+    except StorageNotConfigured as exc:
         raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, str(exc)) from exc
     except Exception as exc:
-        raise HTTPException(status.HTTP_502_BAD_GATEWAY, "Không thể xóa file trên Cloudinary") from exc
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, "Không thể xóa file trên Supabase Storage") from exc
 
 
 def _avatar_target(db: Session, user: models.User):

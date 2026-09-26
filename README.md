@@ -244,16 +244,16 @@ Các endpoint Business đều dùng Bearer token và kiểm tra quyền sở h�
 động mới hoặc hoạt động đang active được Business chỉnh sửa sẽ về trạng thái `pending`
 để Operator duyệt lại.
 
-## 15. Lưu ảnh bằng Cloudinary
+## 15. Lưu ảnh bằng Supabase Storage
 
-1. Tạo tài khoản Cloudinary và mở Dashboard để lấy `cloud name`, `API key`, `API secret`.
-2. Điền các biến sau vào `backend/.env` (không đưa file này lên Git):
+Backend dùng chính dự án Supabase hiện tại để lưu avatar, logo, gallery, menu và
+ảnh/video hoạt động. Không còn cần tài khoản Cloudinary. Điền các biến sau vào
+`backend/.env` và Render (không đưa secret lên Git):
 
 ```env
-CLOUDINARY_CLOUD_NAME=your_cloud_name
-CLOUDINARY_API_KEY=your_api_key
-CLOUDINARY_API_SECRET=your_api_secret
-CLOUDINARY_FOLDER=free2do
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_KEY=your_service_role_key
+SUPABASE_STORAGE_BUCKET=free2do-media
 MAX_IMAGE_UPLOAD_MB=5
 MAX_VIDEO_UPLOAD_MB=25
 ```
@@ -266,15 +266,15 @@ python migrate_db.py
 uvicorn app.main:app --reload
 ```
 
-Frontend gửi `multipart/form-data`, field tên `file`, tới endpoint upload. File đi qua
-backend để API secret không bao giờ xuất hiện ở trình duyệt. Backend giới hạn MIME và
-kích thước, tối ưu ảnh khi upload, lưu cả URL lẫn `public_id`, và xóa asset cũ khi người
-dùng thay avatar/logo.
+Bucket public `free2do-media` được backend tự tạo nếu chưa tồn tại. Frontend gửi
+`multipart/form-data`, field tên `file`, tới endpoint upload. File đi qua backend để
+service-role key không bao giờ xuất hiện ở trình duyệt. Backend giới hạn MIME và kích
+thước, lưu URL cùng object path, và xóa file cũ khi người dùng thay avatar/logo.
 
 ### Avatar mẫu dùng chung
 
 Upload 5-10 ảnh mẫu đúng một lần; mọi người dùng sau đó chỉ lưu chung URL của ảnh, nên
-không phát sinh thêm bản sao trong Cloudinary:
+không phát sinh thêm bản sao trong Storage:
 
 ```powershell
 cd backend
@@ -288,9 +288,9 @@ python seed_avatar_presets.py `
 - `POST /media/avatar`: upload avatar riêng.
 - `DELETE /media/avatar`: xóa avatar riêng.
 
-Nên theo dõi Usage trên Cloudinary, đặt giới hạn file hợp lý, ưu tiên WebP/JPEG cho ảnh,
-và xóa ảnh cũ bằng các API đã có. Menu, gallery, ảnh/video hoạt động và phản hồi đều do
-Business tự upload; Operator không cần đưa ảnh lên Cloudinary thủ công.
+Nên theo dõi Storage Usage trong Supabase, đặt giới hạn file hợp lý và ưu tiên WebP/JPEG.
+Menu, gallery, ảnh/video hoạt động và phản hồi đều do Business tự upload; Operator
+không cần đưa ảnh lên thủ công.
 
 ## 16. Biểu đồ Business từ dữ liệu thật
 
@@ -336,7 +336,7 @@ cd backend
 python seed_business_media.py --root "C:\duong-dan\QLDACNTT" --dry-run
 ```
 
-Upload lên Cloudinary và ghi `business_media`:
+Upload lên Supabase Storage và ghi `business_media`:
 
 ```powershell
 python seed_business_media.py --root "C:\duong-dan\QLDACNTT"
@@ -353,18 +353,28 @@ Seed chỉ dành cho bộ dữ liệu ban đầu. Sau đó doanh nghiệp vẫn 
 `POST /activities/{activity_id}/media/upload`; Operator không tham gia luồng
 này.
 
-Với tài khoản Cloudinary dùng **Dynamic Folders**, backend truyền cả
-`asset_folder` (thư mục hiển thị trong Media Library) và `public_id_prefix`
-(đường dẫn phân phối). Nếu dữ liệu đã seed bằng bản cũ, chạy một lần:
+Nếu database còn URL Cloudinary từ bản cũ, chạy một lần để sao chép các file còn
+truy cập được sang bucket Supabase và cập nhật URL trong database:
 
 ```powershell
 cd backend
-python organize_cloudinary_media.py --dry-run
-python organize_cloudinary_media.py
+python migrate_media_to_supabase.py
 ```
 
-Script chỉ sắp xếp asset vào thư mục `free2do/businesses/{business_id}/{kind}`;
-không đổi `public_id` và không làm hỏng URL đang lưu trong database.
+Script chạy lại an toàn; các URL đã thuộc Supabase Storage sẽ được bỏ qua.
+
+### PostGIS và tọa độ Google Maps
+
+`python migrate_db.py` bật extension PostGIS, thêm cột
+`activities.location geography(Point,4326)`, trigger đồng bộ cột đó từ
+`latitude/longitude`, và GiST index để tìm theo bán kính. API vẫn giữ hai cột số cũ để
+không phá hợp đồng frontend. Search trên PostgreSQL dùng `ST_DWithin`; SQLite test dùng
+Haversine dự phòng.
+
+Khi tạo hoặc sửa hoạt động, backend tự lấy tọa độ từ link Google Maps nếu URL chứa
+`@lat,lng`, `!3d...!4d...`, tham số `q/query/ll/destination/center`, hoặc short link
+Google chuyển hướng tới một URL như vậy. Link chỉ chứa place ID/tên địa điểm mà không
+có tọa độ vẫn cần nhập latitude/longitude hoặc tích hợp Google Geocoding API.
 
 ## 18. Deploy backend lên Render
 
@@ -379,15 +389,15 @@ Health Check Path: /health/live
 PYTHON_VERSION: 3.13.5
 ```
 
-Các biến bắt buộc trên Render: `DATABASE_URL`, `JWT_SECRET_KEY`,
-`CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`.
+Các biến bắt buộc trên Render: `DATABASE_URL`, `JWT_SECRET_KEY`, `SUPABASE_URL`,
+`SUPABASE_SERVICE_KEY`, `SUPABASE_STORAGE_BUCKET`.
 Đặt `CORS_ORIGINS` thành danh sách domain frontend, phân tách bằng dấu phẩy.
 Backend cũng cho phép HTTPS từ các deployment `*.vercel.app` để dùng được với
 preview của Vercel.
 
 - `GET /health/live`: kiểm tra tiến trình FastAPI, không phụ thuộc dịch vụ ngoài.
-- `GET /health/ready`: kiểm tra kết nối database và trạng thái cấu hình
-  Cloudinary, không trả secret.
+- `GET /health/ready`: kiểm tra kết nối database, PostGIS và trạng thái cấu hình
+  Supabase Storage, không trả secret.
 - `GET /businesses` và `GET /businesses/{business_id}`: dữ liệu public của doanh
   nghiệp, gồm logo/gallery/menu và tổng số hoạt động active để frontend hiển thị.
 
@@ -398,7 +408,7 @@ Các trang trong `frontend/Demo Trang Business` đã kết nối trực tiếp v
 - `business-home.html`: dashboard và biểu đồ từ `/business/dashboard` và
   `/business/analytics`.
 - `business-profile.html`: xem/sửa hồ sơ, upload/xóa logo, gallery và menu qua
-  Cloudinary.
+  Supabase Storage.
 - `my-activities.html`: tạo, sửa, hủy hoạt động; chọn danh mục; upload/xóa
   ảnh/video.
 - `reviews.html`: xem review và media thật, phản hồi, sửa/xóa phản hồi, upload

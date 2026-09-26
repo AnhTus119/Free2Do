@@ -17,7 +17,7 @@ from app.routers.businesses import (
 from app.routers.complaints import create_complaint
 from app.routers.public_businesses import get_public_business
 from app.routers.reviews import _to_review_out
-from app.services.cloudinary_storage import InvalidMedia, set_asset_folder, upload_asset, validate_upload
+from app.services.supabase_storage import InvalidMedia, upload_asset, validate_upload
 
 
 class BusinessFeatureTests(unittest.TestCase):
@@ -182,26 +182,18 @@ class BusinessFeatureTests(unittest.TestCase):
         self.assertEqual(public_review.media[0].media_type, "image")
         self.assertEqual(public_review.reply.content, "Cảm ơn bạn")
 
-    def test_cloudinary_validation_and_metadata(self):
+    def test_supabase_storage_validation_and_metadata(self):
         self.assertEqual(validate_upload(b"image", "image/png", False), "image")
         with self.assertRaises(InvalidMedia):
             validate_upload(b"payload", "application/pdf", False)
 
-        fake_result = {
-            "secure_url": "https://res.cloudinary.com/demo/image/upload/avatar.png",
-            "public_id": "free2do/users/B1/avatar/avatar-1",
-            "resource_type": "image",
-            "bytes": 5,
-            "width": 512,
-            "height": 512,
-        }
         with (
-            patch("app.services.cloudinary_storage.settings.CLOUDINARY_CLOUD_NAME", "demo"),
-            patch("app.services.cloudinary_storage.settings.CLOUDINARY_API_KEY", "key"),
-            patch("app.services.cloudinary_storage.settings.CLOUDINARY_API_SECRET", "secret"),
-            patch("app.services.cloudinary_storage.cloudinary.uploader.upload", return_value=fake_result) as upload_mock,
-            patch("app.services.cloudinary_storage.cloudinary.uploader.explicit") as explicit_mock,
+            patch("app.services.supabase_storage.settings.SUPABASE_URL", "https://demo.supabase.co"),
+            patch("app.services.supabase_storage.settings.SUPABASE_SERVICE_KEY", "secret"),
+            patch("app.services.supabase_storage.ensure_bucket"),
+            patch("app.services.supabase_storage.requests.post") as upload_mock,
         ):
+            upload_mock.return_value.status_code = 200
             asset = upload_asset(
                 content=b"image",
                 content_type="image/png",
@@ -209,16 +201,11 @@ class BusinessFeatureTests(unittest.TestCase):
                 owner_id="B1",
                 kind="avatar",
             )
-            set_asset_folder(
-                public_id=fake_result["public_id"],
-                asset_folder="free2do/users/B1/avatar",
-            )
-        self.assertEqual(asset.public_id, fake_result["public_id"])
-        self.assertEqual(asset.width, 512)
-        upload_options = upload_mock.call_args.kwargs
-        self.assertEqual(upload_options["asset_folder"], "free2do/users/B1/avatar")
-        self.assertEqual(upload_options["public_id_prefix"], "free2do/users/B1/avatar")
-        self.assertEqual(explicit_mock.call_args.kwargs["asset_folder"], "free2do/users/B1/avatar")
+        self.assertTrue(asset.public_id.startswith("users/B1/avatar/avatar-"))
+        self.assertTrue(asset.public_id.endswith(".png"))
+        self.assertIn("/storage/v1/object/public/free2do-media/", asset.media_url)
+        self.assertEqual(asset.bytes, 5)
+        self.assertEqual(upload_mock.call_args.kwargs["headers"]["Content-Type"], "image/png")
 
 
 if __name__ == "__main__":

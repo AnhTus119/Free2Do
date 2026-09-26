@@ -14,6 +14,7 @@ from app.routers.operator_users import (
     get_dashboard,
 )
 from app.routers.search import search_activities
+from app.utils.google_maps import coordinates_from_google_maps_url
 import seed_activities
 import seed_business_accounts
 
@@ -131,6 +132,12 @@ class BackendCalculationTests(unittest.TestCase):
         self.assertEqual(results[0].distance_km, 0)
         self.assertGreater(results[0].match_score, 0)
         self.assertEqual(self.db.query(models.SearchHistory).filter_by(user_id="C001").count(), 1)
+
+    def test_google_maps_url_coordinates_are_extracted(self):
+        coordinates = coordinates_from_google_maps_url(
+            "https://www.google.com/maps/place/Free2Do/@21.03125,105.85111,17z"
+        )
+        self.assertEqual(coordinates, (21.03125, 105.85111))
 
 
 if __name__ == "__main__":

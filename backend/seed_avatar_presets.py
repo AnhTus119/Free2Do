@@ -1,4 +1,4 @@
-"""Upload một lần các avatar mẫu lên Cloudinary và ghi vào avatar_presets.
+"""Upload một lần các avatar mẫu lên Supabase Storage và ghi vào avatar_presets.
 
 Ví dụ:
   python seed_avatar_presets.py --avatar "Mèo xanh=C:/images/cat.png" \
@@ -11,7 +11,7 @@ from datetime import UTC, datetime
 
 from app import models
 from app.database import SessionLocal
-from app.services.cloudinary_storage import upload_source
+from app.services.supabase_storage import upload_source
 
 
 def _slug(value: str) -> str:
@@ -20,7 +20,7 @@ def _slug(value: str) -> str:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Seed avatar mẫu dùng chung trên Cloudinary")
+    parser = argparse.ArgumentParser(description="Seed avatar mẫu dùng chung trên Supabase Storage")
     parser.add_argument(
         "--avatar",
         action="append",

@@ -8,9 +8,17 @@ from app.database import get_db
 from app import models, schemas
 from app.auth import get_current_business_user, get_current_operator
 from app.utils.email import send_activity_approved_email, send_activity_hidden_email
-from app.services.cloudinary_storage import delete_asset
+from app.utils.google_maps import coordinates_from_google_maps_url
+from app.services.supabase_storage import delete_asset
 
 router = APIRouter(prefix="/activities", tags=["activities"])
+
+
+def _coordinates(latitude, longitude, google_maps_url):
+    if latitude is not None and longitude is not None:
+        return latitude, longitude
+    extracted = coordinates_from_google_maps_url(google_maps_url) if google_maps_url else None
+    return extracted if extracted else (latitude, longitude)
 
 
 def _to_detail(db: Session, activity: models.Activity) -> schemas.ActivityPublicOut:
@@ -80,6 +88,7 @@ def create_activity(
     business: models.BusinessProfile = Depends(get_current_business_user),
 ):
     now = datetime.utcnow()
+    latitude, longitude = _coordinates(payload.latitude, payload.longitude, payload.google_maps_url)
     activity = models.Activity(
         business_id=business.user_id,
         name=payload.name,
@@ -87,8 +96,8 @@ def create_activity(
         price=payload.price,
         price_text=payload.price_text,
         address=payload.address,
-        latitude=payload.latitude,
-        longitude=payload.longitude,
+        latitude=latitude,
+        longitude=longitude,
         time_open=payload.time_open,
         time_close=payload.time_close,
         status="pending",
@@ -116,6 +125,10 @@ def update_activity(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Không tìm thấy hoạt động")
 
     data = payload.model_dump(exclude_unset=True, exclude={"category_ids"})
+    if "google_maps_url" in data and "latitude" not in data and "longitude" not in data:
+        coordinates = _coordinates(None, None, data["google_maps_url"])
+        if coordinates != (None, None):
+            data["latitude"], data["longitude"] = coordinates
     for field, value in data.items():
         setattr(activity, field, value)
     if payload.category_ids is not None:
@@ -163,7 +176,7 @@ def delete_activity_media(
         try:
             delete_asset(media.public_id, media.media_type)
         except Exception as exc:
-            raise HTTPException(status.HTTP_502_BAD_GATEWAY, "Không thể xóa file trên Cloudinary") from exc
+            raise HTTPException(status.HTTP_502_BAD_GATEWAY, "Không thể xóa file trên Supabase Storage") from exc
     db.delete(media)
     db.commit()
     return {"message": "Đã xóa media"}
@@ -245,6 +258,10 @@ def update_activity_as_operator(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Không tìm thấy hoạt động")
 
     data = payload.model_dump(exclude_unset=True, exclude={"category_ids"})
+    if "google_maps_url" in data and "latitude" not in data and "longitude" not in data:
+        coordinates = _coordinates(None, None, data["google_maps_url"])
+        if coordinates != (None, None):
+            data["latitude"], data["longitude"] = coordinates
     for field, value in data.items():
         setattr(activity, field, value)
     if payload.category_ids is not None:

@@ -10,4 +10,3 @@ python-jose[cryptography]==3.5.0
 python-multipart==0.0.32
 google-auth==2.57.0
 requests==2.34.2
-cloudinary==1.46.2

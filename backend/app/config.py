@@ -18,11 +18,10 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_ID: str = ""
     OTP_EXPIRE_MINUTES: int = 10
     RESET_TOKEN_EXPIRE_MINUTES: int = 10
-    # Cloudinary (để trống thì API upload trả 503, phần còn lại vẫn chạy)
-    CLOUDINARY_CLOUD_NAME: str = ""
-    CLOUDINARY_API_KEY: str = ""
-    CLOUDINARY_API_SECRET: str = ""
-    CLOUDINARY_FOLDER: str = "free2do"
+    # Supabase Storage dùng cùng Project URL và server-side secret/service key.
+    SUPABASE_URL: str = ""
+    SUPABASE_SERVICE_KEY: str = ""
+    SUPABASE_STORAGE_BUCKET: str = "free2do-media"
     MAX_IMAGE_UPLOAD_MB: int = 5
     MAX_VIDEO_UPLOAD_MB: int = 25
     CORS_ORIGINS: str = "http://127.0.0.1:5500,http://localhost:5500,https://free2-do.vercel.app"

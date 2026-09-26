@@ -72,17 +72,23 @@ def health_live():
 @app.get("/health/ready", tags=["health"])
 def health_ready():
     """Kiểm tra kết nối database và trạng thái cấu hình, không lộ secret."""
+    postgis_enabled = False
     try:
         with engine.connect() as connection:
             connection.execute(text("SELECT 1"))
+            if connection.dialect.name == "postgresql":
+                postgis_enabled = bool(
+                    connection.execute(
+                        text("SELECT EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'postgis')")
+                    ).scalar()
+                )
     except Exception as exc:
         raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "Database chưa sẵn sàng") from exc
     return {
         "status": "ready",
         "database": "connected",
-        "cloudinary_configured": bool(
-            settings.CLOUDINARY_CLOUD_NAME
-            and settings.CLOUDINARY_API_KEY
-            and settings.CLOUDINARY_API_SECRET
+        "postgis_enabled": postgis_enabled,
+        "supabase_storage_configured": bool(
+            settings.SUPABASE_URL and settings.SUPABASE_SERVICE_KEY
         ),
     }

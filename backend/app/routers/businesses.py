@@ -8,7 +8,7 @@ from app import models, schemas
 from app.auth import get_current_business_user
 from app.database import get_db
 from app.routers.activities import _to_detail
-from app.services.cloudinary_storage import delete_asset
+from app.services.supabase_storage import delete_asset
 
 
 router = APIRouter(prefix="/business", tags=["business"])
@@ -394,7 +394,7 @@ def delete_review_reply(
         try:
             delete_asset(media.public_id, media.media_type)
         except Exception:
-            # Không chặn xóa phản hồi nếu Cloudinary tạm thời lỗi; public_id vẫn giúp
+            # Không chặn xóa phản hồi nếu Storage tạm thời lỗi; public_id vẫn giúp
             # tác vụ dọn rác định kỳ có thể xử lý asset mồ côi sau đó.
             pass
     db.delete(reply)

@@ -1,6 +1,23 @@
 -- Chạy 1 lần trong Supabase SQL Editor (Database > SQL Editor) TRƯỚC khi deploy code mới.
 -- Bảng operators trên Supabase hiện chưa có level/status/created_at, cần bổ sung 3 cột này.
 
+-- Một tài khoản có thể đăng nhập bằng email, số điện thoại hoặc cả hai.
+ALTER TABLE accounts
+  ADD COLUMN IF NOT EXISTS phone VARCHAR,
+  ALTER COLUMN email DROP NOT NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_accounts_phone
+  ON accounts(phone) WHERE phone IS NOT NULL;
+
+-- OTP dùng chung cho email và SMS; giữ cột email để tương thích dữ liệu cũ.
+ALTER TABLE otp_codes
+  ADD COLUMN IF NOT EXISTS recipient VARCHAR,
+  ADD COLUMN IF NOT EXISTS channel VARCHAR NOT NULL DEFAULT 'email',
+  ALTER COLUMN email DROP NOT NULL;
+
+UPDATE otp_codes SET recipient = email WHERE recipient IS NULL AND email IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_otp_codes_recipient ON otp_codes(recipient);
+
 ALTER TABLE operators
   ADD COLUMN IF NOT EXISTS level VARCHAR NOT NULL DEFAULT 'staff',
   ADD COLUMN IF NOT EXISTS status VARCHAR NOT NULL DEFAULT 'active',

@@ -10,9 +10,10 @@ class Account(Base):
     __tablename__ = "accounts"
 
     account_id = Column(String, primary_key=True, default=gen_id)
-    email = Column(String, unique=True, nullable=False)
+    email = Column(String, unique=True, nullable=True)
+    phone = Column(String, unique=True, nullable=True)
     password_hash = Column(String, nullable=True)  # null nếu đăng ký bằng Google
-    auth_provider = Column(String, nullable=False, default="email")  # "email" | "google"
+    auth_provider = Column(String, nullable=False, default="email")  # "email" | "phone" | "google"
     google_id = Column(String, unique=True, nullable=True)
     email_verified = Column(Boolean, nullable=False, default=False)
     account_type = Column(String, nullable=False)
@@ -302,7 +303,9 @@ class OtpCode(Base):
     __tablename__ = "otp_codes"
 
     otp_id = Column(String, primary_key=True, default=gen_id)
-    email = Column(String, nullable=False, index=True)
+    email = Column(String, nullable=True, index=True)  # tương thích dữ liệu OTP cũ
+    recipient = Column(String, nullable=True, index=True)
+    channel = Column(String, nullable=False, default="email")
     code = Column(String, nullable=False)
     purpose = Column(String, nullable=False)  # hiện chỉ dùng "reset_password"
     expires_at = Column(DateTime, nullable=False)

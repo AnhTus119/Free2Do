@@ -6,6 +6,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app import models, schemas
+from app.auth import verify_password
 from app.routers.activities import get_activity, get_activity_summary
 from app.routers.operator_users import (
     get_business_summary,
@@ -14,6 +15,7 @@ from app.routers.operator_users import (
 )
 from app.routers.search import search_activities
 import seed_activities
+import seed_business_accounts
 
 
 class BackendCalculationTests(unittest.TestCase):
@@ -79,6 +81,24 @@ class BackendCalculationTests(unittest.TestCase):
         self.assertEqual(activity.google_maps_url, seed_activities.GOOGLE_MAP_URLS["A001"])
         response = get_activity("A001", db=self.db)
         self.assertEqual(response.google_maps_url, seed_activities.GOOGLE_MAP_URLS["A001"])
+
+    def test_seed_enables_business_phone_login(self):
+        updated, missing = seed_business_accounts.seed_business_accounts(self.db)
+        self.assertEqual(len(updated), 27)
+        self.assertEqual(missing, ["B022"])
+
+        business = self.db.query(models.User).filter_by(user_id="B001").one()
+        self.assertEqual(
+            business.account.phone,
+            seed_business_accounts.SEED_PHONES["B001"],
+        )
+        self.assertEqual(business.account.auth_provider, "phone")
+        self.assertTrue(
+            verify_password(
+                seed_business_accounts.DEFAULT_BUSINESS_PASSWORD,
+                business.account.password_hash,
+            )
+        )
 
     def test_operator_summaries_are_calculated_by_backend(self):
         dashboard = get_dashboard(db=self.db, _operator=None)

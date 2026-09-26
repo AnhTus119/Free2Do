@@ -4,7 +4,8 @@ from pydantic import BaseModel, ConfigDict, Field
 
 # Account
 class AccountCreate(BaseModel):
-    email: str
+    email: Optional[str] = None
+    phone: Optional[str] = None
     password: str
     account_type: str
 
@@ -12,7 +13,8 @@ class Account(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     account_id: str
-    email: str
+    email: Optional[str] = None
+    phone: Optional[str] = None
     account_type: str
     status: str
     created_at: datetime
@@ -293,12 +295,13 @@ class Token(BaseModel):
     token_type: str = "bearer"
 
 class LoginRequest(BaseModel):
-    email: str
+    identifier: str
     password: str
 
 class RegisterRequest(BaseModel):
-    """Đăng ký bằng email + mật khẩu. Nếu không truyền role_id, mặc định dùng role customer."""
-    email: str
+    """Đăng ký bằng email hoặc số điện thoại; mặc định dùng role customer."""
+    identifier: Optional[str] = None
+    email: Optional[str] = None  # tương thích client cũ
     password: str
     name: str
     role_id: Optional[str] = None
@@ -310,11 +313,13 @@ class GoogleLoginRequest(BaseModel):
     role_id: Optional[str] = None
 
 class VerifyOtpRequest(BaseModel):
-    email: str
+    identifier: str
+    channel: Literal["email", "sms"]
     code: str
 
 class ForgotPasswordRequest(BaseModel):
-    email: str
+    identifier: str
+    channel: Literal["email", "sms"]
 
 class ResetTokenResponse(BaseModel):
     reset_token: str
@@ -329,7 +334,7 @@ class MessageResponse(BaseModel):
 class MeResponse(BaseModel):
     """Dùng cho GET /auth/me -- frontend gọi ngay sau khi có token để biết điều hướng vào trang nào."""
     account_id: str
-    email: str
+    email: Optional[str] = None
     account_type: str            # "user" | "operator"
     role: Optional[str] = None   # role_name nếu là user (vd "customer","business"), "operator" nếu là Operator
     name: str
@@ -404,7 +409,7 @@ class ComplaintResolveRequest(BaseModel):
 class UserAdminOut(BaseModel):
     user_id: str
     account_id: str
-    email: str
+    email: Optional[str] = None
     role_name: str
     name: str
     phone: Optional[str] = None

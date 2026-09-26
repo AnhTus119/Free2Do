@@ -192,6 +192,28 @@ python seed_activities.py
 
 `seed_activities.py` tạo/cập nhật 28 doanh nghiệp, 30 hoạt động và 9 danh mục theo mã nguồn. Tọa độ còn thiếu được giữ là `NULL`; `price_text` giữ nguyên chuỗi giá trong Excel, còn `price` dùng mức trần của khoảng giá để lọc ngân sách.
 
+Tạo thông tin đăng nhập bằng số điện thoại cho các doanh nghiệp mẫu:
+
+```powershell
+python seed_business_accounts.py
+```
+
+Mật khẩu kiểm thử chung là `Doanhnghiep123`. Script chỉ cập nhật doanh nghiệp có số
+điện thoại trong database/dữ liệu mẫu và có thể chạy lại. Không dùng mật khẩu chung này
+cho môi trường vận hành thật.
+
+Để gửi OTP đặt lại mật khẩu qua SMS, cấu hình thêm ba biến môi trường Twilio trên máy
+chạy backend/Render:
+
+```env
+TWILIO_ACCOUNT_SID=...
+TWILIO_AUTH_TOKEN=...
+TWILIO_FROM_PHONE=+...
+```
+
+Đăng ký và đăng nhập chấp nhận email hoặc số điện thoại. API quên mật khẩu nhận
+`identifier` và `channel` (`email` hoặc `sms`); kênh đã chọn phải tồn tại trên tài khoản.
+
 Chạy kiểm thử backend:
 
 ```powershell

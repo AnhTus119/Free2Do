@@ -10,7 +10,9 @@ import re
 from datetime import UTC, datetime, time
 
 from app import models
+from app.auth import hash_password
 from app.database import SessionLocal
+from app.utils.identity import normalize_phone
 
 
 ACTIVITIES = [
@@ -123,11 +125,13 @@ def main():
         for business_id, (name, phone, address) in businesses.items():
             user = db.query(models.User).filter(models.User.user_id == business_id).first()
             if user is None:
+                login_phone = normalize_phone(phone) if phone else None
                 account = models.Account(
                     account_id=f"ACC-{business_id}",
                     email=f"{business_id.lower()}@seed.free2do.local",
-                    password_hash=None,
-                    auth_provider="seed",
+                    phone=login_phone,
+                    password_hash=hash_password("Doanhnghiep123") if login_phone else None,
+                    auth_provider="phone" if login_phone else "seed",
                     email_verified=True,
                     account_type="user",
                     status="active",
@@ -143,6 +147,12 @@ def main():
                 )
                 db.add(user)
                 db.flush()
+            elif phone and user.account and user.account.auth_provider == "seed":
+                login_phone = normalize_phone(phone)
+                user.account.phone = login_phone
+                user.account.password_hash = hash_password("Doanhnghiep123")
+                user.account.auth_provider = "phone"
+                user.phone = login_phone
             profile = db.query(models.BusinessProfile).filter(models.BusinessProfile.user_id == business_id).first()
             if profile is None:
                 profile = models.BusinessProfile(user_id=business_id, business_name=name, phone=phone, business_address=address)

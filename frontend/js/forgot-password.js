@@ -8,19 +8,21 @@ const forgotForm = document.querySelector(".forgot-password__form");
 if (forgotForm) {
   forgotForm.addEventListener("submit", async (event) => {
     event.preventDefault();
-    const email = document.getElementById("forgot-email").value.trim();
-    if (!email) return;
+    const identifier = document.getElementById("forgot-identifier").value.trim();
+    const channel = document.getElementById("forgot-channel").value;
+    if (!identifier) return;
 
     try {
       const response = await fetch(`${AUTH_API_BASE_URL}/auth/forgot-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ identifier, channel }),
       });
       const data = await readJson(response);
       if (!response.ok) return alert(data.detail || "Không gửi được mã xác nhận.");
 
-      sessionStorage.setItem("reset_email", email);
+      sessionStorage.setItem("reset_identifier", identifier);
+      sessionStorage.setItem("reset_channel", channel);
       window.location.href = "check-email.html";
     } catch (error) {
       console.error(error);
@@ -33,11 +35,12 @@ const checkEmailForm = document.querySelector(".check-email__form");
 if (checkEmailForm) {
   checkEmailForm.addEventListener("submit", async (event) => {
     event.preventDefault();
-    const email = sessionStorage.getItem("reset_email");
+    const identifier = sessionStorage.getItem("reset_identifier");
+    const channel = sessionStorage.getItem("reset_channel");
     const code = document.getElementById("check-email-code").value.trim();
 
-    if (!email) {
-      alert("Không tìm thấy email cần đặt lại mật khẩu. Vui lòng nhập lại email.");
+    if (!identifier || !channel) {
+      alert("Không tìm thấy tài khoản cần đặt lại mật khẩu. Vui lòng thử lại.");
       window.location.href = "forgot-password.html";
       return;
     }
@@ -46,7 +49,7 @@ if (checkEmailForm) {
       const response = await fetch(`${AUTH_API_BASE_URL}/auth/verify-reset-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, code }),
+        body: JSON.stringify({ identifier, channel, code }),
       });
       const data = await readJson(response);
       if (!response.ok) return alert(data.detail || "Mã xác nhận không đúng hoặc đã hết hạn.");
@@ -85,7 +88,8 @@ if (resetForm) {
       const data = await readJson(response);
       if (!response.ok) return alert(data.detail || "Đổi mật khẩu thất bại.");
 
-      sessionStorage.removeItem("reset_email");
+      sessionStorage.removeItem("reset_identifier");
+      sessionStorage.removeItem("reset_channel");
       sessionStorage.removeItem("reset_token");
       alert("Đổi mật khẩu thành công. Hãy đăng nhập bằng mật khẩu mới.");
       window.location.href = "log-in.html";

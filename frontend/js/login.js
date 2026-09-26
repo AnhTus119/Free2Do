@@ -29,17 +29,17 @@ if (loginForm) {
     event.preventDefault();
     hideLoginError();
 
-    const email = document.getElementById("login-account").value.trim();
+    const identifier = document.getElementById("login-account").value.trim();
     const password = document.getElementById("login-password").value;
 
-    if (!email || !password) {
-      showLoginError("Vui lòng nhập email và mật khẩu.");
+    if (!identifier || !password) {
+      showLoginError("Vui lòng nhập email/số điện thoại và mật khẩu.");
       return;
     }
 
     try {
       const formData = new URLSearchParams();
-      formData.append("username", email);
+      formData.append("username", identifier);
       formData.append("password", password);
 
       const response = await fetch(`${API_BASE_URL}/auth/login`, {

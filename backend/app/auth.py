@@ -26,14 +26,14 @@ def create_access_token(account_id: str, expire_minutes: Optional[int] = None) -
     payload = {"sub": account_id, "type": "access", "exp": expire}
     return jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 
-def create_reset_token(email: str) -> str:
+def create_reset_token(account_id: str) -> str:
     """Token ngắn hạn, chỉ dùng để đổi mật khẩu sau khi đã xác minh OTP thành công."""
     expire = datetime.utcnow() + timedelta(minutes=settings.RESET_TOKEN_EXPIRE_MINUTES)
-    payload = {"sub": email, "type": "reset", "exp": expire}
+    payload = {"sub": account_id, "type": "reset", "exp": expire}
     return jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 
 def decode_token(token: str, expected_type: str) -> Optional[str]:
-    """Trả về 'sub' (account_id hoặc email) nếu token hợp lệ và đúng loại, ngược lại None."""
+    """Trả về account_id trong ``sub`` nếu token hợp lệ và đúng loại."""
     try:
         payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
     except JWTError:

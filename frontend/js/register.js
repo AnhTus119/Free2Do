@@ -30,17 +30,19 @@ if (registerForm) {
     hideRegisterError();
 
     const name = document.getElementById("register-name").value.trim();
-    const email = document.getElementById("register-account").value.trim();
+    const identifier = document.getElementById("register-account").value.trim();
     const password = document.getElementById("register-password").value;
     const passwordConfirm = document.getElementById("register-password-confirm").value;
 
-    if (!name || !email || !password || !passwordConfirm) {
+    if (!name || !identifier || !password || !passwordConfirm) {
       showRegisterError("Vui lòng nhập đầy đủ thông tin.");
       return;
     }
 
-    if (!/^\S+@\S+\.\S+$/.test(email)) {
-      showRegisterError("Hiện tại hệ thống đăng ký bằng email. Vui lòng nhập email hợp lệ.");
+    const isEmail = /^\S+@\S+\.\S+$/.test(identifier);
+    const phoneDigits = identifier.replace(/[^0-9+]/g, "");
+    if (!isEmail && !/^(?:\+84|84|0)\d{8,10}$/.test(phoneDigits)) {
+      showRegisterError("Vui lòng nhập email hoặc số điện thoại hợp lệ.");
       return;
     }
 
@@ -58,7 +60,7 @@ if (registerForm) {
       const response = await fetch(`${API_BASE_URL}/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, name }),
+        body: JSON.stringify({ identifier, password, name }),
       });
 
       const data = await response.json();

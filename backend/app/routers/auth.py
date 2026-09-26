@@ -242,8 +242,27 @@ def request_recovery_email(
     db: Session = Depends(get_db),
 ):
     email = _validate_recovery_email(payload.recovery_email)
-    code = generate_and_save_otp(db, email, purpose="verify_recovery_email")
-    send_otp_email(email, code, purpose="verify_recovery_email")
+    code = generate_and_save_otp(
+        db,
+        email,
+        purpose="verify_recovery_email",
+    )
+
+    try:
+        send_otp_email(
+            email,
+            code,
+            purpose="verify_recovery_email",
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=(
+                "Không gửi được email OTP. Hãy kiểm tra SMTP_USER và "
+                "SMTP_PASSWORD trên Render."
+            ),
+        ) from exc
+
     return {"message": "Mã OTP đã được gửi tới email khôi phục"}
 
 

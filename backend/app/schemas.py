@@ -137,6 +137,7 @@ class ActivityCreate(BaseModel):
     time_close: Optional[datetime] = None
     category_ids: list[str] = Field(default_factory=list)
     source_url: Optional[str] = None
+    google_maps_url: Optional[str] = None
 
 class Activity(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -154,6 +155,7 @@ class Activity(BaseModel):
     status: str
     created_at: datetime
     source_url: Optional[str] = None
+    google_maps_url: Optional[str] = None
 
 class ActivityWithScore(Activity):
     """Dùng cho kết quả tìm kiếm kèm % phù hợp"""
@@ -359,6 +361,7 @@ class ActivityUpdate(BaseModel):
     time_close: Optional[datetime] = None
     category_ids: Optional[list[str]] = None
     source_url: Optional[str] = None
+    google_maps_url: Optional[str] = None
 
 class ActivityDetail(Activity):
     """Chi tiết hoạt động: kèm danh mục, media, rating trung bình -- dùng cho trang chi tiết"""

@@ -46,6 +46,41 @@ ACTIVITIES = [
     ("A031", "B028", "Photo Easel", "0987487774", "Chụp ảnh", "PhotoBooth Tạ Quang Bửu", 100000, "70.000-100.000", "103e7 P. Tạ Quang Bửu, Khu tập thể Bách Khoa, Bạch Mai, Hà Nội, Việt Nam", None, None, "09:00", "23:00", "Chụp ảnh", None),
 ]
 
+# Cột ``LINK Googlemap`` trong sheet DỮ LIỆU, ghép bằng activity_id.
+# Tách khỏi source_url vì source_url là website/Facebook/TikTok cung cấp thông tin.
+GOOGLE_MAP_URLS = {
+    "A001": "https://maps.app.goo.gl/MbNc5WPasWq1Ad9u5?g_st=ic",
+    "A002": "https://maps.app.goo.gl/MCZEsJ4oMRNCMCDLA?g_st=ic",
+    "A003": "https://maps.app.goo.gl/F3zmREZe98Z5T5hF6?g_st=ic",
+    "A004": "https://maps.app.goo.gl/5C8VdVNUSgtkchqHA?g_st=ic",
+    "A005": "https://maps.app.goo.gl/4wNnXYEHDWZXZUUE8?g_st=ic",
+    "A006": "https://maps.app.goo.gl/CoHdPmrT7fMf1njh8?g_st=ic",
+    "A007": "https://maps.app.goo.gl/k6ypyEkDkJAXYYxs5?g_st=ic",
+    "A009": "https://maps.app.goo.gl/NP6wua1gAFuzf4gs6?g_st=ic",
+    "A010": "https://maps.app.goo.gl/ry1UVQ2GaxPMUVPh6?g_st=ic",
+    "A011": "https://maps.app.goo.gl/RegguYApzXYYrvM16?g_st=ic",
+    "A012": "https://maps.app.goo.gl/2MwoqG3DQ4dCjBiz9?g_st=ic",
+    "A013": "https://maps.app.goo.gl/eWMK81PryW4wcjZP6?g_st=ic",
+    "A014": "https://maps.app.goo.gl/vZ27VzKopsSWVAXc9?g_st=ic",
+    "A015": "https://maps.app.goo.gl/kHcWKM5NMCDVsgZA7?g_st=ic",
+    "A016": "https://maps.app.goo.gl/kHcWKM5NMCDVsgZA7?g_st=ic",
+    "A017": "https://maps.app.goo.gl/LmDAXK6uj9p33Hby9?g_st=ic",
+    "A018": "https://maps.app.goo.gl/YZwzECAFK1TWVA6N9?g_st=ic",
+    "A019": "https://maps.app.goo.gl/KkdTKMGpCgDinPAD9?g_st=ic",
+    "A020": "https://maps.app.goo.gl/KWz42uBJCvr722iZ7?g_st=ic",
+    "A021": "https://maps.app.goo.gl/E4CfEbZ54BNkK4BJA?g_st=ic",
+    "A022": "https://maps.app.goo.gl/zQVmmvgTmysAFV4T8?g_st=ic",
+    "A023": "https://maps.app.goo.gl/SoZqMM7BogRLiu7h8?g_st=ic",
+    "A024": "https://maps.app.goo.gl/gsz1AWKrSkwo956h9?g_st=ic",
+    "A025": "https://maps.app.goo.gl/m72XQvq845g2KQNb6?g_st=ic",
+    "A026": "https://maps.app.goo.gl/9SDM5FuULQGWhfMj8?g_st=ic",
+    "A027": "https://maps.app.goo.gl/Xu4nXojThbFFeH4J6?g_st=ic",
+    "A028": "https://maps.app.goo.gl/SF1ugaLckSycaJR56?g_st=ic",
+    "A029": "https://maps.app.goo.gl/k4Tf26NSpzrXySLK7?g_st=ic",
+    "A030": "https://maps.app.goo.gl/sKfgFXWmWBgA8n8r5?g_st=ic",
+    "A031": "https://maps.app.goo.gl/ptaDBG6wUeUEUrSC9?g_st=ic",
+}
+
 
 def _as_datetime(value, closing=False):
     if not value:
@@ -133,6 +168,7 @@ def main():
                 time_close=_as_datetime(time_close or time_open, closing=True),
                 status="active",
                 source_url=source_url,
+                google_maps_url=GOOGLE_MAP_URLS[activity_id],
                 updated_at=now,
             )
             if activity is None:

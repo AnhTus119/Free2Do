@@ -6,7 +6,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app import models, schemas
-from app.routers.activities import get_activity_summary
+from app.routers.activities import get_activity, get_activity_summary
 from app.routers.operator_users import (
     get_business_summary,
     get_customer_summary,
@@ -71,6 +71,14 @@ class BackendCalculationTests(unittest.TestCase):
         seed_activities.SessionLocal = self.Session
         seed_activities.main()
         self.assertEqual(self.db.query(models.Activity).count(), 30)
+        self.assertEqual(
+            self.db.query(models.Activity).filter(models.Activity.google_maps_url.is_not(None)).count(),
+            30,
+        )
+        activity = self.db.query(models.Activity).filter_by(activity_id="A001").one()
+        self.assertEqual(activity.google_maps_url, seed_activities.GOOGLE_MAP_URLS["A001"])
+        response = get_activity("A001", db=self.db)
+        self.assertEqual(response.google_maps_url, seed_activities.GOOGLE_MAP_URLS["A001"])
 
     def test_operator_summaries_are_calculated_by_backend(self):
         dashboard = get_dashboard(db=self.db, _operator=None)

@@ -94,6 +94,7 @@ def create_activity(
         status="pending",
         created_at=now,
         source_url=payload.source_url,
+        google_maps_url=payload.google_maps_url,
     )
     db.add(activity)
     db.flush()

@@ -138,6 +138,7 @@ class Activity(Base):
     created_at = Column(DateTime, nullable=False)
     updated_at = Column(DateTime)
     source_url = Column(String)
+    google_maps_url = Column(String)
     business = relationship("BusinessProfile", back_populates="activities")
     categories = relationship("ActivityCategory", back_populates="activity")
     media = relationship("ActivityMedia", back_populates="activity")

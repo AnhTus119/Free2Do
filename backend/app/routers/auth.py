@@ -14,12 +14,23 @@ from app.auth import (
     decode_token,
     verify_google_token,
     get_authenticated_account,
+    requires_recovery_email,
 )
 from app.utils.otp import generate_and_save_otp, verify_otp
 from app.utils.email import send_otp_email
 from app.utils.identity import find_account, normalize_email, normalize_phone, split_identifier
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+
+def _send_otp_or_502(email: str, code: str, purpose: str) -> None:
+    try:
+        send_otp_email(email, code, purpose=purpose)
+    except Exception as exc:
+        raise HTTPException(
+            status.HTTP_502_BAD_GATEWAY,
+            "Không gửi được email OTP. Hãy kiểm tra cấu hình Gmail App Password trên Render.",
+        ) from exc
 
 # Cách 1: đăng ký bằng email hoặc số điện thoại + mật khẩu (không dùng OTP)
 @router.post("/register", response_model=schemas.Token, status_code=status.HTTP_201_CREATED)
@@ -58,6 +69,7 @@ def register(payload: schemas.RegisterRequest, db: Session = Depends(get_db)):
     account = models.Account(
         email=email,
         phone=phone,
+        recovery_email=email,
         password_hash=hash_password(payload.password),
         auth_provider="email" if email else "phone",
         # Không gửi OTP khi đăng ký nên email chưa được xác minh, nhưng tài khoản
@@ -98,6 +110,8 @@ def google_login(payload: schemas.GoogleLoginRequest, db: Session = Depends(get_
             # Email đã tồn tại bằng cách đăng ký khác -- gắn thêm Google vào tài khoản đó
             account.google_id = info["google_id"]
             account.email_verified = True
+            if account.auth_provider != "phone":
+                account.recovery_email = info["email"]
         else:
             if not payload.role_id:
                 raise HTTPException(status.HTTP_400_BAD_REQUEST, "Cần role_id để tạo tài khoản mới")
@@ -105,6 +119,7 @@ def google_login(payload: schemas.GoogleLoginRequest, db: Session = Depends(get_
             now = datetime.utcnow()
             account = models.Account(
                 email=info["email"],
+                recovery_email=info["email"],
                 password_hash=None,
                 auth_provider="google",
                 google_id=info["google_id"],
@@ -167,7 +182,7 @@ def read_me(account: models.Account = Depends(get_authenticated_account), db: Se
             email=account.email,
             phone=account.phone,
             recovery_email=account.recovery_email,
-            requires_recovery_email=not bool(account.recovery_email),
+            requires_recovery_email=requires_recovery_email(account),
             account_type="operator",
             role="operator",
             name=operator.name if operator else "",
@@ -192,7 +207,7 @@ def read_me(account: models.Account = Depends(get_authenticated_account), db: Se
         user_id=user.user_id if user else None,
         phone=(account.phone or user.phone) if user else account.phone,
         recovery_email=account.recovery_email,
-        requires_recovery_email=not bool(account.recovery_email),
+        requires_recovery_email=requires_recovery_email(account),
         avatar_url=avatar_url,
         redirect=(
             "Demo Trang Business/business-home.html"
@@ -208,9 +223,14 @@ def forgot_password(payload: schemas.ForgotPasswordRequest, db: Session = Depend
         account = find_account(db, payload.identifier)
     except ValueError:
         account = None
-    if account and account.password_hash and account.recovery_email:
-        code = generate_and_save_otp(db, account.recovery_email, purpose="reset_password")
-        send_otp_email(account.recovery_email, code, purpose="reset_password")
+    destination = None
+    if account:
+        destination = account.recovery_email or (
+            account.email if account.auth_provider != "phone" else None
+        )
+    if account and account.password_hash and destination:
+        code = generate_and_save_otp(db, destination, purpose="reset_password")
+        _send_otp_or_502(destination, code, purpose="reset_password")
 
     return {"message": "Nếu tài khoản tồn tại, mã OTP đã được gửi tới email khôi phục"}
 
@@ -220,7 +240,11 @@ def verify_reset_otp(payload: schemas.VerifyOtpRequest, db: Session = Depends(ge
         account = find_account(db, payload.identifier)
     except ValueError:
         account = None
-    destination = account.recovery_email if account else None
+    destination = None
+    if account:
+        destination = account.recovery_email or (
+            account.email if account.auth_provider != "phone" else None
+        )
     if not destination or not verify_otp(db, destination, payload.code, purpose="reset_password"):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Mã OTP không đúng hoặc đã hết hạn")
 
@@ -241,6 +265,11 @@ def request_recovery_email(
     account: models.Account = Depends(get_authenticated_account),
     db: Session = Depends(get_db),
 ):
+    if account.auth_provider != "phone":
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "Tài khoản email/Google dùng chính email đăng nhập để khôi phục mật khẩu",
+        )
     email = _validate_recovery_email(payload.recovery_email)
     code = generate_and_save_otp(
         db,
@@ -248,20 +277,7 @@ def request_recovery_email(
         purpose="verify_recovery_email",
     )
 
-    try:
-        send_otp_email(
-            email,
-            code,
-            purpose="verify_recovery_email",
-        )
-    except Exception as exc:
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=(
-                "Không gửi được email OTP. Hãy kiểm tra SMTP_USER và "
-                "SMTP_PASSWORD trên Render."
-            ),
-        ) from exc
+    _send_otp_or_502(email, code, purpose="verify_recovery_email")
 
     return {"message": "Mã OTP đã được gửi tới email khôi phục"}
 
@@ -272,6 +288,11 @@ def verify_recovery_email(
     account: models.Account = Depends(get_authenticated_account),
     db: Session = Depends(get_db),
 ):
+    if account.auth_provider != "phone":
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "Tài khoản này không cần thiết lập email khôi phục riêng",
+        )
     email = _validate_recovery_email(payload.recovery_email)
     if not verify_otp(db, email, payload.code, purpose="verify_recovery_email"):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Mã OTP không đúng hoặc đã hết hạn")

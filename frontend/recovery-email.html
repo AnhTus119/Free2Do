@@ -5,25 +5,36 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Email khôi phục — FREE2DO</title>
   <link rel="stylesheet" href="style1.css">
-  <style>body{display:grid;place-items:center;min-height:100vh}.auth-card{width:min(440px,90vw);background:#fff;padding:28px;border-radius:16px;border:1px solid #ddd}.auth-card input{box-sizing:border-box;width:100%;padding:12px;margin:8px 0 16px}.auth-card button{width:100%;padding:12px}.hidden{display:none}.message{min-height:20px;color:#b42318}</style>
+  <link rel="stylesheet" href="css/forgot-password.css">
 </head>
 <body>
-<main class="auth-card">
-  <h1>Email khôi phục</h1>
-  <p>Bạn cần xác minh email khôi phục trước khi tiếp tục sử dụng Free2Do.</p>
-  <form id="recovery-email-form">
-    <label for="recovery-email">Email khôi phục</label>
-    <input id="recovery-email" type="email" autocomplete="email" placeholder="Nhập email nhận mã OTP" required>
-    <button type="submit">Gửi mã OTP</button>
-  </form>
-  <form id="recovery-code-form" class="hidden">
-    <label for="recovery-code">Mã OTP trong email</label>
-    <input id="recovery-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" required>
-    <button type="submit">Xác minh và tiếp tục</button>
-  </form>
-  <p id="recovery-message" class="message" role="alert"></p>
-</main>
-<script src="js/config.js"></script>
-<script src="js/recovery-email.js"></script>
+  <main class="password-page">
+    <section class="password-card" aria-labelledby="page-title">
+      <a class="password-brand" href="Demo Trang Customer/home.html" aria-label="Free2Do - Trang chủ">
+        <img src="img/logo.svg" alt="Logo Free2Do">
+        <span>FREE2DO</span>
+      </a>
+      <h1 id="page-title">Email khôi phục</h1>
+      <p class="password-description">
+        Tài khoản số điện thoại cần một email để nhận mã khi bạn quên mật khẩu.
+      </p>
+      <form id="recovery-email-form" class="password-form">
+        <label for="recovery-email">Email khôi phục</label>
+        <input id="recovery-email" type="email" autocomplete="email"
+               placeholder="Nhập email nhận mã OTP" required>
+        <button type="submit">Gửi mã xác nhận</button>
+      </form>
+      <form id="recovery-code-form" class="password-form hidden">
+        <label for="recovery-code">Mã OTP trong email</label>
+        <input id="recovery-code" inputmode="numeric" autocomplete="one-time-code"
+               pattern="[0-9]{6}" maxlength="6" placeholder="Nhập mã gồm 6 số" required>
+        <button type="submit">Xác minh và tiếp tục</button>
+      </form>
+      <p id="recovery-message" class="form-message" role="alert"></p>
+      <p class="password-footer"><a href="log-in.html">Quay lại đăng nhập</a></p>
+    </section>
+  </main>
+  <script src="js/config.js"></script>
+  <script src="js/recovery-email.js"></script>
 </body>
 </html>

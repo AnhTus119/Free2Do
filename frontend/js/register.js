@@ -57,6 +57,11 @@ if (registerForm) {
     }
 
     try {
+      const submitButton = registerForm.querySelector(".signup__submit");
+      submitButton.disabled = true;
+      submitButton.textContent = "Đang đăng ký...";
+      await window.FREE2DO_BACKEND_READY;
+
       const response = await fetch(`${API_BASE_URL}/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -65,16 +70,28 @@ if (registerForm) {
 
       const data = await response.json();
       if (!response.ok) {
+        submitButton.disabled = false;
+        submitButton.textContent = "Đăng ký";
         showRegisterError(data.detail || "Đăng ký thất bại.");
         return;
       }
 
       localStorage.setItem("token", data.access_token);
-      alert("Đăng ký thành công!");
-      window.location.href = "recovery-email.html";
+      const meResponse = await fetch(`${API_BASE_URL}/auth/me`, {
+        headers: { Authorization: `Bearer ${data.access_token}` },
+      });
+      const me = await meResponse.json();
+      if (!meResponse.ok) throw new Error(me.detail || "Không lấy được thông tin tài khoản.");
+
+      window.location.href = me.requires_recovery_email
+        ? "recovery-email.html"
+        : (me.redirect || "Demo Trang Customer/home.html");
     } catch (error) {
       console.error(error);
-      showRegisterError(`Không kết nối được backend tại ${API_BASE_URL}.`);
+      const submitButton = registerForm.querySelector(".signup__submit");
+      submitButton.disabled = false;
+      submitButton.textContent = "Đăng ký";
+      showRegisterError(error.message || `Không kết nối được backend tại ${API_BASE_URL}.`);
     }
   });
 }

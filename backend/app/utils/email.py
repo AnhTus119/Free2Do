@@ -1,4 +1,5 @@
 import smtplib
+import ssl
 from email.mime.text import MIMEText
 from email.utils import formataddr
 
@@ -8,6 +9,21 @@ SUBJECT_BY_PURPOSE = {
     "reset_password": "Mã xác minh đổi mật khẩu Free2Do",
     "verify_recovery_email": "Xác minh email khôi phục Free2Do",
 }
+
+
+def _send_message(to_email: str, message: MIMEText) -> None:
+    user = settings.SMTP_USER.strip()
+    # Google hiển thị App Password theo 4 nhóm có dấu cách; SMTP cần chuỗi 16 ký tự.
+    password = "".join(settings.SMTP_PASSWORD.split())
+    if not user or not password:
+        raise RuntimeError("SMTP_USER hoặc SMTP_PASSWORD chưa được cấu hình")
+
+    with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=15) as server:
+        server.ehlo()
+        server.starttls(context=ssl.create_default_context())
+        server.ehlo()
+        server.login(user, password)
+        server.send_message(message, from_addr=user, to_addrs=[to_email])
 
 
 def send_otp_email(to_email: str, code: str, purpose: str) -> None:
@@ -23,10 +39,7 @@ def send_otp_email(to_email: str, code: str, purpose: str) -> None:
     msg["From"] = formataddr(("Free2Do", settings.SMTP_USER))
     msg["To"] = to_email
 
-    with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as server:
-        server.starttls()
-        server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
-        server.sendmail(settings.SMTP_USER, [to_email], msg.as_string())
+    _send_message(to_email, msg)
 
 
 def send_notification_email(to_email: str, subject: str, body: str) -> None:
@@ -36,10 +49,7 @@ def send_notification_email(to_email: str, subject: str, body: str) -> None:
     msg["From"] = formataddr(("Free2Do", settings.SMTP_USER))
     msg["To"] = to_email
 
-    with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as server:
-        server.starttls()
-        server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
-        server.sendmail(settings.SMTP_USER, [to_email], msg.as_string())
+    _send_message(to_email, msg)
 
 
 def send_business_request_approved_email(to_email: str, business_name: str) -> None:

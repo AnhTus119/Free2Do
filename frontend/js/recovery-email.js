@@ -17,6 +17,13 @@ const message = document.getElementById("recovery-message");
 
 let pendingEmail = "";
 
+function setBusy(form, busy, busyText) {
+  const button = form.querySelector("button");
+  if (!button.dataset.label) button.dataset.label = button.textContent;
+  button.disabled = busy;
+  button.textContent = busy ? busyText : button.dataset.label;
+}
+
 function homePageForAccount(me) {
   if (me.account_type === "operator" || me.role === "operator") {
     return "admin.html";
@@ -71,6 +78,7 @@ emailForm.addEventListener("submit", async (event) => {
 
   pendingEmail = emailInput.value.trim().toLowerCase();
   message.textContent = "";
+  setBusy(emailForm, true, "Đang gửi mã...");
 
   try {
     await request("/auth/recovery-email/request", {
@@ -88,6 +96,7 @@ emailForm.addEventListener("submit", async (event) => {
     message.textContent =
       "Đã gửi mã OTP. Hãy kiểm tra hộp thư và thư rác.";
   } catch (error) {
+    setBusy(emailForm, false, "");
     message.style.color = "#b42318";
     message.textContent = error.message;
   }
@@ -96,6 +105,7 @@ emailForm.addEventListener("submit", async (event) => {
 codeForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   message.textContent = "";
+  setBusy(codeForm, true, "Đang xác minh...");
 
   try {
     await request("/auth/recovery-email/verify", {
@@ -113,7 +123,23 @@ codeForm.addEventListener("submit", async (event) => {
       me.redirect || homePageForAccount(me)
     );
   } catch (error) {
+    setBusy(codeForm, false, "");
     message.style.color = "#b42318";
     message.textContent = error.message;
   }
 });
+
+// Nếu tài khoản email/Google mở nhầm URL này, đưa thẳng về đúng trang thay vì
+// bắt nhập thêm email khôi phục.
+(async () => {
+  try {
+    await window.FREE2DO_BACKEND_READY;
+    const me = await request("/auth/me");
+    if (!me.requires_recovery_email) {
+      window.location.replace(me.redirect || homePageForAccount(me));
+    }
+  } catch (error) {
+    message.style.color = "#b42318";
+    message.textContent = error.message;
+  }
+})();

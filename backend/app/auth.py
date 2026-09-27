@@ -86,11 +86,16 @@ def get_authenticated_account(
     return account
 
 
+def requires_recovery_email(account: models.Account) -> bool:
+    """Chỉ tài khoản đăng nhập bằng số điện thoại cần email khôi phục riêng."""
+    return account.auth_provider == "phone" and not bool(account.recovery_email)
+
+
 def get_current_account(
     account: models.Account = Depends(get_authenticated_account),
 ) -> models.Account:
-    """Tài khoản đã đăng nhập và đã có email khôi phục."""
-    if not account.recovery_email:
+    """Tài khoản hợp lệ; phone account phải có email khôi phục đã xác minh."""
+    if requires_recovery_email(account):
         raise HTTPException(
             status.HTTP_428_PRECONDITION_REQUIRED,
             "Bạn cần bổ sung và xác minh email khôi phục trước khi tiếp tục",

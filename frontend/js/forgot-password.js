@@ -11,20 +11,28 @@ if (forgotForm) {
     const identifier = document.getElementById("forgot-identifier").value.trim();
     if (!identifier) return;
 
+    const button = forgotForm.querySelector("button");
+    const message = forgotForm.querySelector(".form-message");
+    button.disabled = true;
+    button.textContent = "Đang gửi mã...";
+    message.textContent = "";
     try {
+      await window.FREE2DO_BACKEND_READY;
       const response = await fetch(`${AUTH_API_BASE_URL}/auth/forgot-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ identifier }),
       });
       const data = await readJson(response);
-      if (!response.ok) return alert(data.detail || "Không gửi được mã xác nhận.");
+      if (!response.ok) throw new Error(data.detail || "Không gửi được mã xác nhận.");
 
       sessionStorage.setItem("reset_identifier", identifier);
       window.location.href = "check-email.html";
     } catch (error) {
       console.error(error);
-      alert(`Không kết nối được backend tại ${AUTH_API_BASE_URL}.`);
+      button.disabled = false;
+      button.textContent = "Gửi mã xác nhận";
+      message.textContent = error.message || `Không kết nối được backend tại ${AUTH_API_BASE_URL}.`;
     }
   });
 }

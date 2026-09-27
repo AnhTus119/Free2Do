@@ -1,8 +1,14 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 from app.config import settings
-# pool_pre_ping=True để tránh lỗi "connection closed" do Supabase tự ngắt kết nối rảnh
-engine = create_engine(settings.DATABASE_URL, pool_pre_ping=True)
+# Giữ một pool nhỏ cho Render/Supabase, tái sử dụng kết nối nhưng loại bỏ kết nối
+# rảnh quá lâu trước khi Supabase đóng nó.
+engine = create_engine(
+    settings.DATABASE_URL,
+    pool_pre_ping=True,
+    pool_recycle=300,
+    pool_use_lifo=True,
+)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 

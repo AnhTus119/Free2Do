@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from sqlalchemy import text
 from app.config import settings
 from app.database import engine
@@ -22,6 +23,7 @@ from app.routers import (
 )
 
 app = FastAPI(title="Free2Do API", version="1.1.0")
+app.add_middleware(GZipMiddleware, minimum_size=1000, compresslevel=5)
 cors_origins = [origin.strip() for origin in settings.CORS_ORIGINS.split(",") if origin.strip()]
 app.add_middleware(
     CORSMiddleware,

@@ -13,6 +13,15 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_accounts_phone
 CREATE INDEX IF NOT EXISTS idx_accounts_recovery_email
   ON accounts(lower(recovery_email)) WHERE recovery_email IS NOT NULL;
 
+-- Tài khoản email/Google dùng chính email đăng nhập để khôi phục mật khẩu.
+-- Phone account vẫn phải xác minh một email khôi phục riêng.
+UPDATE accounts
+SET recovery_email = lower(email)
+WHERE recovery_email IS NULL
+  AND auth_provider <> 'phone'
+  AND email IS NOT NULL
+  AND email NOT LIKE '%@seed.free2do.local';
+
 ALTER TABLE operators
   ADD COLUMN IF NOT EXISTS level VARCHAR NOT NULL DEFAULT 'staff',
   ADD COLUMN IF NOT EXISTS status VARCHAR NOT NULL DEFAULT 'active',

@@ -38,6 +38,12 @@ if (loginForm) {
     }
 
     try {
+      const submitButton = loginForm.querySelector(".login__submit");
+      const originalLabel = submitButton.textContent;
+      submitButton.disabled = true;
+      submitButton.textContent = "Đang kết nối...";
+      await window.FREE2DO_BACKEND_READY;
+
       const formData = new URLSearchParams();
       formData.append("username", identifier);
       formData.append("password", password);
@@ -50,6 +56,8 @@ if (loginForm) {
 
       const data = await response.json();
       if (!response.ok) {
+        submitButton.disabled = false;
+        submitButton.textContent = originalLabel;
         showLoginError(data.detail || "Đăng nhập thất bại.");
         return;
       }
@@ -63,6 +71,8 @@ if (loginForm) {
 
       if (!meResponse.ok) {
         localStorage.removeItem("token");
+        submitButton.disabled = false;
+        submitButton.textContent = originalLabel;
         showLoginError(me.detail || "Không lấy được thông tin tài khoản.");
         return;
       }
@@ -81,6 +91,9 @@ if (loginForm) {
       );
     } catch (error) {
       console.error(error);
+      const submitButton = loginForm.querySelector(".login__submit");
+      submitButton.disabled = false;
+      submitButton.textContent = "Đăng nhập";
       showLoginError(`Không kết nối được backend tại ${API_BASE_URL}.`);
     }
   });

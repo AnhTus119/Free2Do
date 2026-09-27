@@ -66,6 +66,27 @@ class AuthIdentifierTests(unittest.TestCase):
         self.assertTrue(login_token["access_token"])
 
     @patch("app.routers.auth.send_otp_email")
+    def test_email_account_uses_login_email_for_password_reset(self, send_otp_email):
+        register(
+            schemas.RegisterRequest(
+                identifier="customer@example.com",
+                password="StrongPassword123",
+                name="Email customer",
+            ),
+            db=self.db,
+        )
+        account = self.db.query(models.Account).filter_by(email="customer@example.com").one()
+        self.assertEqual(account.recovery_email, "customer@example.com")
+        self.assertIs(get_current_account(account), account)
+
+        forgot_password(
+            schemas.ForgotPasswordRequest(identifier="customer@example.com"),
+            db=self.db,
+        )
+        send_otp_email.assert_called_once()
+        self.assertEqual(send_otp_email.call_args.args[0], "customer@example.com")
+
+    @patch("app.routers.auth.send_otp_email")
     def test_phone_account_adds_recovery_email_then_resets_password(self, send_otp_email):
         register(
             schemas.RegisterRequest(
@@ -86,7 +107,12 @@ class AuthIdentifierTests(unittest.TestCase):
             account=account,
             db=self.db,
         )
-        code = self.db.query(models.OtpCode).one().code
+        code = (
+            self.db.query(models.OtpCode)
+            .filter_by(purpose="verify_recovery_email", email="recover@example.com")
+            .one()
+            .code
+        )
         verify_recovery_email(
             schemas.RecoveryEmailVerifyRequest(
                 recovery_email="recover@example.com", code=code
@@ -104,7 +130,7 @@ class AuthIdentifierTests(unittest.TestCase):
         send_otp_email.assert_called()
         code = (
             self.db.query(models.OtpCode)
-            .filter_by(purpose="reset_password")
+            .filter_by(purpose="reset_password", email="recover@example.com")
             .one()
             .code
         )

@@ -18,8 +18,10 @@ class FullFrontendContractTests(unittest.TestCase):
     def test_new_frontend_flows_are_backed_by_openapi(self):
         paths = app.openapi()["paths"]
         expected = {
+            "/users/me": "patch",
             "/search": "post",
             "/businesses": "get",
+            "/businesses/{business_id}": "get",
             "/media/avatar-presets": "get",
             "/media/avatar": "post",
             "/media/avatar/preset/{preset_id}": "put",
@@ -53,6 +55,24 @@ class FullFrontendContractTests(unittest.TestCase):
             self.assertNotIn(marker, self.source)
         self.assertIn("api.request('/search'", self.source)
         self.assertIn("request('/businesses')", self.source)
+
+    def test_customer_pages_call_every_customer_api_group(self):
+        markers = (
+            "api.request('/auth/me')", "api.request('/activities')", "api.request('/categories')",
+            "api.request('/search'", "api.request('/bookmarks/me')", "api.request('/reviews'",
+            "api.request('/reports'", "api.request('/users/me'", "api.request('/users/me/categories'",
+            "api.request('/users/me/search-history')", "api.request('/media/avatar-presets')",
+            "api.request('/media/avatar'", "api.request('/business-requests'",
+            "api.request('/business-requests/me')",
+        )
+        for marker in markers:
+            self.assertIn(marker, self.source)
+
+    def test_customer_detail_controls_are_wired(self):
+        detail = (self.frontend / "Demo Trang Customer" / "activity-detail.html").read_text(encoding="utf-8")
+        self.assertIn('id="reportActivity"', detail)
+        self.assertIn('id="mapLink"', detail)
+        self.assertIn('id="detailSearchForm"', detail)
 
 
 if __name__ == "__main__":

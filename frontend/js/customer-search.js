@@ -19,7 +19,7 @@
   function render(items) {
     if (!items.length) { results.className = 'message'; results.textContent = 'Không có hoạt động phù hợp.'; return; }
     results.className = '';
-    results.innerHTML = items.map(item => `<article class="result"><h3><a href="activity-detail.html?id=${encodeURIComponent(item.activity_id)}">${api.escapeHTML(item.name)}</a></h3><div class="meta">${api.escapeHTML(item.business_name)} · ${api.escapeHTML(item.address)}</div><p>${api.escapeHTML(item.description || 'Chưa có mô tả.')}</p><div><span class="score">${item.match_score}% phù hợp</span> · ${item.distance_km} km · ${api.escapeHTML(api.price(item.price))} · ★ ${item.avg_rating ?? '—'} (${item.review_count})</div></article>`).join('');
+    results.innerHTML = items.map(item => `<article class="result"><h3><a href="activity-detail.html?id=${encodeURIComponent(item.activity_id)}">${api.escapeHTML(item.name)}</a></h3><div class="meta">${api.escapeHTML(item.business_name)} · ${api.escapeHTML(item.address)}</div><p>${api.escapeHTML(item.description || 'Chưa có mô tả.')}</p><div><span class="score">${item.match_score}% phù hợp</span> · ${item.distance_km == null ? 'Chưa rõ khoảng cách' : `${item.distance_km} km`} · ${api.escapeHTML(api.priceLabel(item.price_text, item.price))} · ★ ${item.avg_rating ?? '—'} (${item.review_count})</div></article>`).join('');
   }
   form.addEventListener('submit', async event => {
     event.preventDefault(); const button = form.querySelector('button[type=submit]'); button.disabled = true;
@@ -35,8 +35,13 @@
     finally { button.disabled = false; }
   });
   api.requireUser().then(async () => {
-    const categories = await api.request('/categories');
+    const [categories, preferences] = await Promise.all([
+      api.request('/categories'),
+      api.request('/users/me/categories'),
+    ]);
+    const preferred = new Set(preferences.map(item => item.category_id));
     document.getElementById('categoryList').innerHTML = categories.map(item => `<label><input type="checkbox" name="category" value="${api.escapeHTML(item.category_id)}"> ${api.escapeHTML(item.name)}</label>`).join('') || '<span>Chưa có danh mục.</span>';
+    document.querySelectorAll('[name=category]').forEach(input => { input.checked = preferred.has(input.value); });
     const query = new URLSearchParams(location.search).get('q'); if (query) { document.getElementById('keyword').value = query; form.requestSubmit(); }
   }).catch(error => { results.textContent = error.message; });
 })();

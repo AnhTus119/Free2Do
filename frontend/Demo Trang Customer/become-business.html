@@ -115,34 +115,18 @@
           nhu cầu.</p>
       </div>
 
-      <div style="background:#fff;border:1px solid var(--line);border-radius:18px;padding:28px;">
-        <div class="field"><label>Tên doanh nghiệp</label><input type="text" placeholder="VD: She.slays"></div>
-        <div class="field"><label>Số điện thoại</label><input type="text" placeholder="VD: 0934 802 345"></div>
-        <div class="field"><label>Địa chỉ</label><input type="text" placeholder="Số nhà, đường, quận, thành phố"></div>
-        <div class="field"><label>Email liên hệ</label><input type="text" placeholder="contact@doanhnghiep.vn"></div>
-        <div class="field"><label>Mô tả doanh nghiệp</label><textarea
-            placeholder="Giới thiệu ngắn về doanh nghiệp và hoạt động bạn muốn đăng..."></textarea></div>
-        <div class="field">
-          <label>Logo</label>
-          <div
-            style="border:1.5px dashed var(--line);border-radius:12px;padding:20px;text-align:center;font-size:13px;color:var(--muted);cursor:pointer;">
-            <svg class="icon">
-              <use href="#icon-image"></use>
-            </svg> Kéo thả hoặc bấm để tải logo lên
-          </div>
-        </div>
-        <div class="field">
-          <label>Giấy tờ / minh chứng (nếu có)</label>
-          <div
-            style="border:1.5px dashed var(--line);border-radius:12px;padding:20px;text-align:center;font-size:13px;color:var(--muted);cursor:pointer;">
-            <svg class="icon">
-              <use href="#icon-paperclip"></use>
-            </svg> Kéo thả hoặc bấm để tải file lên
-          </div>
-        </div>
-        <button class="btn btn-primary btn-block" onclick="submitForm()">Gửi yêu cầu</button>
-      </div>
+      <form id="businessRequestForm" style="background:#fff;border:1px solid var(--line);border-radius:18px;padding:28px;">
+        <div class="field"><label for="businessName">Tên doanh nghiệp</label><input id="businessName" type="text" maxlength="255" placeholder="VD: She.slays" required></div>
+        <div class="field"><label for="businessPhone">Số điện thoại</label><input id="businessPhone" type="tel" maxlength="30" placeholder="VD: 0934 802 345"></div>
+        <div class="field"><label for="businessAddress">Địa chỉ</label><input id="businessAddress" type="text" maxlength="500" placeholder="Số nhà, đường, quận, thành phố" required></div>
+        <div class="field"><label for="businessDescription">Mô tả doanh nghiệp</label><textarea id="businessDescription" maxlength="5000" placeholder="Giới thiệu ngắn về doanh nghiệp và hoạt động bạn muốn đăng..."></textarea></div>
+        <p style="color:var(--muted);font-size:13px;line-height:1.6;">Sau khi yêu cầu được duyệt, bạn có thể tải logo, menu và thư viện ảnh trong trang quản lý Business.</p>
+        <button class="btn btn-primary btn-block" type="submit">Gửi yêu cầu</button>
+        <p id="businessRequestStatus" role="status" style="font-size:13px;margin-bottom:0;"></p>
+      </form>
     </div>
+
+    <section id="requestHistory" style="margin-top:24px;"></section>
 
     <div id="success-view" style="display:none;text-align:center;padding:60px 20px;">
       <svg class="icon" style="width:44px;height:44px;margin-bottom:16px;">

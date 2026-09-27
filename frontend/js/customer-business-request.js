@@ -1,25 +1,43 @@
 (function () {
   'use strict';
   const api = window.CustomerAPI;
-  api.requireUser().then(async () => {
+  const form = document.getElementById('businessRequestForm');
+  const status = document.getElementById('businessRequestStatus');
+  function renderHistory(requests) {
+    const labels = { pending: 'Đang chờ duyệt', approved: 'Đã duyệt', rejected: 'Đã từ chối' };
+    const history = document.getElementById('requestHistory');
+    history.innerHTML = requests.length
+      ? `<h2>Lịch sử yêu cầu</h2>${requests.map(item => `<article class="history-card"><b>${api.escapeHTML(item.business_name)}</b><div class="activity-meta">${api.escapeHTML(labels[item.status] || item.status)} · ${api.escapeHTML(new Date(item.created_at).toLocaleString('vi-VN'))}</div><p>${api.escapeHTML(item.business_address)}</p>${item.description ? `<p>${api.escapeHTML(item.description)}</p>` : ''}${item.rejection_reason ? `<p style="color:#b42318">Lý do từ chối: ${api.escapeHTML(item.rejection_reason)}</p>` : ''}</article>`).join('')}`
+      : '';
+  }
+  api.requireUser().then(async me => {
+    document.getElementById('businessPhone').value = me.phone || '';
     const requests = await api.request('/business-requests/me');
-    const pending = requests.find(r => r.status === 'pending');
-    if (pending) {
-      document.getElementById('form-view').innerHTML = '<h2>Yêu cầu của bạn đang chờ duyệt</h2><p>Bạn sẽ được thông báo khi có kết quả.</p>';
-    }
-  }).catch(error => { alert(error.message); });
-  window.submitForm = async function () {
-    const fields = document.querySelectorAll('#form-view .field');
-    const value = i => fields[i].querySelector('input,textarea')?.value.trim() || '';
-    const business_name = value(0), phone = value(1), business_address = value(2), description = value(3);
-    if (!business_name || !business_address) return alert('Vui lòng nhập tên và địa chỉ doanh nghiệp.');
-    const button = document.querySelector('#form-view button[onclick="submitForm()"]');
-    button.disabled = true;
-    try {
-      await api.requireUser();
-      await api.request('/business-requests', { method: 'POST', body: JSON.stringify({ business_name, phone: phone || null, business_address, description: description || null }) });
-      document.getElementById('form-view').style.display = 'none';
+    renderHistory(requests);
+    if (requests.some(item => item.status === 'pending')) {
+      form.querySelectorAll('input,textarea,button').forEach(element => { element.disabled = true; });
+      status.textContent = 'Bạn đã có một yêu cầu đang chờ xét duyệt.';
+    } else if (requests.some(item => item.status === 'approved')) {
+      form.style.display = 'none';
       document.getElementById('success-view').style.display = 'block';
-    } catch (error) { alert(error.message); } finally { button.disabled = false; }
-  };
+      document.querySelector('#success-view h2').textContent = 'Yêu cầu Business đã được duyệt.';
+      document.querySelector('#success-view .badge').textContent = 'Đã duyệt';
+    }
+  }).catch(error => { status.textContent = error.message; });
+  form.addEventListener('submit', async event => {
+    event.preventDefault();
+    const payload = {
+      business_name: document.getElementById('businessName').value.trim(),
+      phone: document.getElementById('businessPhone').value.trim() || null,
+      business_address: document.getElementById('businessAddress').value.trim(),
+      description: document.getElementById('businessDescription').value.trim() || null,
+    };
+    const button = form.querySelector('button[type=submit]');
+    button.disabled = true; status.textContent = 'Đang gửi yêu cầu…';
+    try {
+      const created = await api.request('/business-requests', { method: 'POST', body: payload });
+      form.style.display = 'none'; document.getElementById('success-view').style.display = 'block';
+      renderHistory([created]);
+    } catch (error) { status.textContent = error.message; button.disabled = false; }
+  });
 })();

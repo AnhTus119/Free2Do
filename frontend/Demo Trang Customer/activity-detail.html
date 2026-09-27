@@ -28,10 +28,10 @@
 <div class="navbar">
   <div class="nav-left">
     <a href="home.html" class="nav-logo" style="text-decoration:none; color:inherit;"><img src="Logo.svg" alt="logo" style="width:38px;height:auto;">FREE2DO</a>
-    <div class="nav-search">
+    <form class="nav-search" id="detailSearchForm">
       <svg class="icon"><use href="#icon-search"></use></svg>
-      <input type="text" placeholder="Tìm hoạt động, địa điểm...">
-    </div>
+      <input id="detailSearchInput" type="search" placeholder="Tìm hoạt động, địa điểm...">
+    </form>
   </div>
   <div class="nav-right">
     <div class="nav-center">
@@ -82,7 +82,7 @@
       <div class="map-box" style="height:220px;margin-top:12px;">
         <div class="map-grid-bg"></div>
         <div class="map-pin" id="activityMapPin" style="left:50%;top:45%;"></div>
-        <a href="#" class="btn btn-secondary map-cta" style="background:#fff;">Xem đường đi</a>
+        <a id="mapLink" href="#" class="btn btn-secondary map-cta" style="background:#fff;display:none;">Xem đường đi</a>
       </div>
 
       <div class="section-title" id="reviewsTitle" style="font-size:16px;margin-top:32px;"></div>
@@ -97,7 +97,7 @@
         <div id="sideActivityMeta" style="font-size:12.5px;color:var(--muted);margin-bottom:18px;"></div>
         <button class="btn btn-secondary btn-block favorite-btn" id="favoriteButton" type="button"><svg class="icon"><use href="#icon-heart"></use></svg> <span id="favoriteLabel">Lưu vào yêu thích</span></button>
         <div style="text-align:center;margin-top:16px;">
-          <a href="#" style="font-size:12.5px;color:var(--muted);text-decoration:underline;"><svg class="icon icon-sm"><use href="#icon-flag"></use></svg> Báo cáo hoạt động này</a>
+          <a id="reportActivity" href="#" style="font-size:12.5px;color:var(--muted);text-decoration:underline;"><svg class="icon icon-sm"><use href="#icon-flag"></use></svg> Báo cáo hoạt động này</a>
         </div>
       </div>
     </div>

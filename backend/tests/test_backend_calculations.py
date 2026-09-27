@@ -1,6 +1,7 @@
 import unittest
 from datetime import UTC, datetime
 
+from fastapi import HTTPException
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -14,6 +15,7 @@ from app.routers.operator_users import (
     get_dashboard,
 )
 from app.routers.search import search_activities
+from app.routers.users import update_my_categories, update_my_profile
 from app.utils.google_maps import coordinates_from_google_maps_url
 import seed_activities
 import seed_business_accounts
@@ -138,6 +140,31 @@ class BackendCalculationTests(unittest.TestCase):
             "https://www.google.com/maps/place/Free2Do/@21.03125,105.85111,17z"
         )
         self.assertEqual(coordinates, (21.03125, 105.85111))
+
+    def test_customer_can_update_profile_and_preferences(self):
+        response = update_my_profile(
+            schemas.UserProfileUpdate(name="Customer Updated", phone="0901234567"),
+            db=self.db,
+            user=self.customer,
+        )
+        self.assertEqual(response.name, "Customer Updated")
+        self.assertEqual(response.phone, "0901234567")
+        category = self.db.query(models.Category).first()
+        result = update_my_categories(
+            schemas.UserCategoriesUpdate(category_ids=[category.category_id, category.category_id]),
+            db=self.db,
+            user=self.customer,
+        )
+        self.assertEqual([item.category_id for item in result], [category.category_id])
+
+    def test_customer_preferences_reject_unknown_category(self):
+        with self.assertRaises(HTTPException) as context:
+            update_my_categories(
+                schemas.UserCategoriesUpdate(category_ids=["missing-category"]),
+                db=self.db,
+                user=self.customer,
+            )
+        self.assertEqual(context.exception.status_code, 422)
 
 
 if __name__ == "__main__":

@@ -73,9 +73,9 @@
     </div>
 
     <div id="edit-mode" style="display:none;background:#fff;border:1px solid var(--line);border-radius:16px;padding:22px;margin-bottom:20px;">
-      <div class="field"><label>Họ và tên</label><input type="text" value=""></div>
-      <div class="field"><label>Email</label><input type="text" value=""></div>
-      <div class="field"><label>Số điện thoại</label><input type="text" value=""></div>
+      <div class="field"><label for="profileName">Họ và tên</label><input id="profileName" type="text" maxlength="255" required></div>
+      <div class="field"><label for="profileEmail">Email</label><input id="profileEmail" type="email" readonly aria-readonly="true"></div>
+      <div class="field"><label for="profilePhone">Số điện thoại</label><input id="profilePhone" type="tel" maxlength="30"></div>
       <div class="field">
         <label>Sở thích</label>
         <div class="chip-row">Đang tải từ hệ thống…</div>

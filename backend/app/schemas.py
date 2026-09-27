@@ -357,6 +357,10 @@ class MeResponse(BaseModel):
 class UserCategoriesUpdate(BaseModel):
     category_ids: list[str]
 
+class UserProfileUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=1, max_length=255)
+    phone: Optional[str] = Field(None, max_length=30)
+
 # ---------------------------------------------------------------------------
 # Activity -- mở rộng cho Business (CRUD) và Operator (duyệt)
 # ---------------------------------------------------------------------------

@@ -1,9 +1,12 @@
 import smtplib
 import ssl
+import logging
 from email.mime.text import MIMEText
 from email.utils import formataddr
 
 from app.config import settings
+
+logger = logging.getLogger(__name__)
 
 SUBJECT_BY_PURPOSE = {
     "reset_password": "Mã xác minh đổi mật khẩu Free2Do",
@@ -12,18 +15,24 @@ SUBJECT_BY_PURPOSE = {
 
 
 def _send_message(to_email: str, message: MIMEText) -> None:
-    user = settings.SMTP_USER.strip()
+    user = settings.SMTP_USER.strip().strip("\"'")
     # Google hiển thị App Password theo 4 nhóm có dấu cách; SMTP cần chuỗi 16 ký tự.
-    password = "".join(settings.SMTP_PASSWORD.split())
+    password = "".join(settings.SMTP_PASSWORD.strip().strip("\"'").split())
+    host = settings.SMTP_HOST.strip().strip("\"'") or "smtp.gmail.com"
     if not user or not password:
         raise RuntimeError("SMTP_USER hoặc SMTP_PASSWORD chưa được cấu hình")
 
-    with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=15) as server:
-        server.ehlo()
-        server.starttls(context=ssl.create_default_context())
-        server.ehlo()
-        server.login(user, password)
-        server.send_message(message, from_addr=user, to_addrs=[to_email])
+    try:
+        with smtplib.SMTP(host, settings.SMTP_PORT, timeout=20) as server:
+            server.ehlo()
+            server.starttls(context=ssl.create_default_context())
+            server.ehlo()
+            server.login(user, password)
+            server.send_message(message, from_addr=user, to_addrs=[to_email])
+    except Exception:
+        # Chỉ ghi loại lỗi, host và user; tuyệt đối không ghi mật khẩu hay OTP.
+        logger.exception("SMTP send failed (host=%s, port=%s, user=%s)", host, settings.SMTP_PORT, user)
+        raise
 
 
 def send_otp_email(to_email: str, code: str, purpose: str) -> None:

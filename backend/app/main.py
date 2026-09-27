@@ -93,4 +93,7 @@ def health_ready():
         "supabase_storage_configured": bool(
             settings.SUPABASE_URL and settings.SUPABASE_SERVICE_KEY
         ),
+        "smtp_configured": bool(
+            settings.SMTP_USER.strip() and settings.SMTP_PASSWORD.strip()
+        ),
     }

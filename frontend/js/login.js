@@ -41,7 +41,7 @@ if (loginForm) {
       const submitButton = loginForm.querySelector(".login__submit");
       const originalLabel = submitButton.textContent;
       submitButton.disabled = true;
-      submitButton.textContent = "Đang kết nối...";
+      submitButton.textContent = "Đang đăng nhập...";
       await window.FREE2DO_BACKEND_READY;
 
       const formData = new URLSearchParams();

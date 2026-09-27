@@ -5,6 +5,7 @@ async function readJson(response) {
 }
 
 const forgotForm = document.querySelector(".forgot-password__form");
+const inlineOtpForm = document.getElementById("forgot-otp-form");
 if (forgotForm) {
   forgotForm.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -12,7 +13,7 @@ if (forgotForm) {
     if (!identifier) return;
 
     const button = forgotForm.querySelector("button");
-    const message = forgotForm.querySelector(".form-message");
+    const message = document.getElementById("forgot-message");
     button.disabled = true;
     button.textContent = "Đang gửi mã...";
     message.textContent = "";
@@ -27,12 +28,58 @@ if (forgotForm) {
       if (!response.ok) throw new Error(data.detail || "Không gửi được mã xác nhận.");
 
       sessionStorage.setItem("reset_identifier", identifier);
-      window.location.href = "check-email.html";
+      message.textContent = data.message || "Mã OTP đã được gửi tới email của bạn.";
+      message.classList.add("is-success");
+      button.disabled = false;
+      button.textContent = "Gửi lại mã";
+      inlineOtpForm.classList.remove("hidden");
+      inlineOtpForm.setAttribute("aria-hidden", "false");
+      document.getElementById("forgot-otp-code").focus();
     } catch (error) {
       console.error(error);
       button.disabled = false;
       button.textContent = "Gửi mã xác nhận";
+      message.classList.remove("is-success");
       message.textContent = error.message || `Không kết nối được backend tại ${AUTH_API_BASE_URL}.`;
+    }
+  });
+}
+
+if (inlineOtpForm) {
+  inlineOtpForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const identifier = sessionStorage.getItem("reset_identifier");
+    const codeInput = document.getElementById("forgot-otp-code");
+    const code = codeInput.value.trim();
+    const button = inlineOtpForm.querySelector("button");
+    const message = document.getElementById("otp-message");
+
+    if (!identifier) {
+      message.textContent = "Phiên xác nhận đã hết hạn. Vui lòng gửi lại mã OTP.";
+      return;
+    }
+
+    button.disabled = true;
+    button.textContent = "Đang xác nhận...";
+    message.textContent = "";
+    try {
+      await window.FREE2DO_BACKEND_READY;
+      const response = await fetch(`${AUTH_API_BASE_URL}/auth/verify-reset-otp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ identifier, code }),
+      });
+      const data = await readJson(response);
+      if (!response.ok) throw new Error(data.detail || "Mã OTP không đúng hoặc đã hết hạn.");
+
+      sessionStorage.setItem("reset_token", data.reset_token);
+      window.location.href = "reset-password.html";
+    } catch (error) {
+      console.error(error);
+      button.disabled = false;
+      button.textContent = "Xác nhận mã OTP";
+      message.textContent = error.message || `Không kết nối được backend tại ${AUTH_API_BASE_URL}.`;
+      codeInput.focus();
     }
   });
 }
@@ -50,20 +97,28 @@ if (checkEmailForm) {
       return;
     }
 
+    const button = checkEmailForm.querySelector("button");
+    const message = checkEmailForm.querySelector(".form-message");
+    button.disabled = true;
+    button.textContent = "Đang xác nhận...";
+    message.textContent = "";
     try {
+      await window.FREE2DO_BACKEND_READY;
       const response = await fetch(`${AUTH_API_BASE_URL}/auth/verify-reset-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ identifier, code }),
       });
       const data = await readJson(response);
-      if (!response.ok) return alert(data.detail || "Mã xác nhận không đúng hoặc đã hết hạn.");
+      if (!response.ok) throw new Error(data.detail || "Mã xác nhận không đúng hoặc đã hết hạn.");
 
       sessionStorage.setItem("reset_token", data.reset_token);
       window.location.href = "reset-password.html";
     } catch (error) {
       console.error(error);
-      alert(`Không kết nối được backend tại ${AUTH_API_BASE_URL}.`);
+      button.disabled = false;
+      button.textContent = "Xác nhận mã OTP";
+      message.textContent = error.message || `Không kết nối được backend tại ${AUTH_API_BASE_URL}.`;
     }
   });
 }

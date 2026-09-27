@@ -1,1 +1,35 @@
-<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Xác nhận OTP — FREE2DO</title><link rel="stylesheet" href="style1.css"><style>body{display:grid;place-items:center;min-height:100vh}.auth-card{width:min(420px,90vw);background:#fff;padding:28px;border-radius:16px;border:1px solid #ddd}.auth-card input{width:100%;padding:12px;margin:10px 0 16px}.auth-card button{width:100%;padding:12px}</style></head><body><main class="auth-card"><h1>Nhập mã xác nhận</h1><p id="otp-destination">Mã OTP đã được gửi tới email khôi phục của bạn.</p><form class="check-email__form"><label for="check-email-code">Mã xác nhận</label><input id="check-email-code" inputmode="numeric" autocomplete="one-time-code" required><button type="submit">Xác nhận</button></form><p><a href="forgot-password.html">Gửi lại yêu cầu</a></p></main><script src="js/config.js"></script><script src="js/forgot-password.js"></script></body></html>
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Xác nhận OTP — FREE2DO</title>
+  <link rel="stylesheet" href="style1.css">
+  <link rel="stylesheet" href="css/forgot-password.css">
+</head>
+<body>
+  <main class="password-page">
+    <section class="password-card" aria-labelledby="page-title">
+      <a class="password-brand" href="Demo Trang Customer/home.html" aria-label="Free2Do - Trang chủ">
+        <img src="img/logo.svg" alt="Logo Free2Do">
+        <span>FREE2DO</span>
+      </a>
+      <h1 id="page-title">Nhập mã xác nhận</h1>
+      <p id="otp-destination" class="password-description">
+        Mã OTP đã được gửi tới email của bạn.
+      </p>
+      <form class="check-email__form password-form">
+        <label for="check-email-code">Mã OTP</label>
+        <input id="check-email-code" type="text" inputmode="numeric"
+               autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}"
+               placeholder="Nhập mã OTP gồm 6 chữ số" required>
+        <p class="form-message" role="alert" aria-live="polite"></p>
+        <button type="submit">Xác nhận mã OTP</button>
+      </form>
+      <p class="password-footer"><a href="forgot-password.html">Gửi lại yêu cầu</a></p>
+    </section>
+  </main>
+  <script src="js/config.js"></script>
+  <script src="js/forgot-password.js"></script>
+</body>
+</html>

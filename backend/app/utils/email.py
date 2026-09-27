@@ -1,12 +1,17 @@
 import smtplib
 import ssl
 import logging
+import socket
 from email.mime.text import MIMEText
 from email.utils import formataddr
 
 from app.config import settings
 
 logger = logging.getLogger(__name__)
+
+
+class EmailDeliveryError(RuntimeError):
+    """Lỗi SMTP an toàn để trả về client mà không làm lộ credential."""
 
 SUBJECT_BY_PURPOSE = {
     "reset_password": "Mã xác minh đổi mật khẩu Free2Do",
@@ -20,7 +25,7 @@ def _send_message(to_email: str, message: MIMEText) -> None:
     password = "".join(settings.SMTP_PASSWORD.strip().strip("\"'").split())
     host = settings.SMTP_HOST.strip().strip("\"'") or "smtp.gmail.com"
     if not user or not password:
-        raise RuntimeError("SMTP_USER hoặc SMTP_PASSWORD chưa được cấu hình")
+        raise EmailDeliveryError("Render chưa có SMTP_USER hoặc SMTP_PASSWORD")
 
     try:
         with smtplib.SMTP(host, settings.SMTP_PORT, timeout=20) as server:
@@ -29,6 +34,19 @@ def _send_message(to_email: str, message: MIMEText) -> None:
             server.ehlo()
             server.login(user, password)
             server.send_message(message, from_addr=user, to_addrs=[to_email])
+    except smtplib.SMTPAuthenticationError as exc:
+        logger.exception("SMTP authentication failed (host=%s, port=%s, user=%s)", host, settings.SMTP_PORT, user)
+        raise EmailDeliveryError(
+            "Gmail từ chối đăng nhập SMTP. Hãy tạo Gmail App Password mới và cập nhật SMTP_PASSWORD trên Render"
+        ) from exc
+    except (smtplib.SMTPConnectError, smtplib.SMTPServerDisconnected, socket.timeout, TimeoutError, OSError) as exc:
+        logger.exception("SMTP connection failed (host=%s, port=%s, user=%s)", host, settings.SMTP_PORT, user)
+        raise EmailDeliveryError(
+            f"Không kết nối được Gmail SMTP tại {host}:{settings.SMTP_PORT}"
+        ) from exc
+    except smtplib.SMTPException as exc:
+        logger.exception("SMTP protocol failed (host=%s, port=%s, user=%s)", host, settings.SMTP_PORT, user)
+        raise EmailDeliveryError("Gmail SMTP từ chối gửi email. Hãy xem Render Logs để biết mã lỗi") from exc
     except Exception:
         # Chỉ ghi loại lỗi, host và user; tuyệt đối không ghi mật khẩu hay OTP.
         logger.exception("SMTP send failed (host=%s, port=%s, user=%s)", host, settings.SMTP_PORT, user)

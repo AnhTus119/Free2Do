@@ -17,7 +17,7 @@ from app.auth import (
     requires_recovery_email,
 )
 from app.utils.otp import generate_and_save_otp, verify_otp
-from app.utils.email import send_otp_email
+from app.utils.email import EmailDeliveryError, send_otp_email
 from app.utils.identity import find_account, normalize_email, normalize_phone, split_identifier
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -26,6 +26,8 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 def _send_otp_or_502(email: str, code: str, purpose: str) -> None:
     try:
         send_otp_email(email, code, purpose=purpose)
+    except EmailDeliveryError as exc:
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, str(exc)) from exc
     except Exception as exc:
         raise HTTPException(
             status.HTTP_502_BAD_GATEWAY,

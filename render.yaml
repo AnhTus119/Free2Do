@@ -26,5 +26,16 @@ services:
         sync: false
       - key: SMTP_PASSWORD
         sync: false
+      # Render Free chặn SMTP; Gmail API gửi qua HTTPS/443.
+      - key: EMAIL_PROVIDER
+        value: gmail_api
+      - key: GMAIL_API_CLIENT_ID
+        sync: false
+      - key: GMAIL_API_CLIENT_SECRET
+        sync: false
+      - key: GMAIL_API_REFRESH_TOKEN
+        sync: false
+      - key: GMAIL_SENDER_EMAIL
+        sync: false
       - key: GOOGLE_CLIENT_ID
         sync: false

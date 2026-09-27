@@ -2,6 +2,11 @@ import smtplib
 import ssl
 import logging
 import socket
+import base64
+import json
+import urllib.error
+import urllib.parse
+import urllib.request
 from email.mime.text import MIMEText
 from email.utils import formataddr
 
@@ -13,13 +18,22 @@ logger = logging.getLogger(__name__)
 class EmailDeliveryError(RuntimeError):
     """Lỗi SMTP an toàn để trả về client mà không làm lộ credential."""
 
+
+def get_email_provider() -> str:
+    provider = settings.EMAIL_PROVIDER.strip().lower()
+    if provider == "auto":
+        return "gmail_api" if settings.GMAIL_API_REFRESH_TOKEN.strip() else "smtp"
+    if provider not in {"gmail_api", "smtp"}:
+        raise EmailDeliveryError("EMAIL_PROVIDER phải là auto, gmail_api hoặc smtp")
+    return provider
+
 SUBJECT_BY_PURPOSE = {
     "reset_password": "Mã xác minh đổi mật khẩu Free2Do",
     "verify_recovery_email": "Xác minh email khôi phục Free2Do",
 }
 
 
-def _send_message(to_email: str, message: MIMEText) -> None:
+def _send_smtp_message(to_email: str, message: MIMEText) -> None:
     user = settings.SMTP_USER.strip().strip("\"'")
     # Google hiển thị App Password theo 4 nhóm có dấu cách; SMTP cần chuỗi 16 ký tự.
     password = "".join(settings.SMTP_PASSWORD.strip().strip("\"'").split())
@@ -51,6 +65,92 @@ def _send_message(to_email: str, message: MIMEText) -> None:
         # Chỉ ghi loại lỗi, host và user; tuyệt đối không ghi mật khẩu hay OTP.
         logger.exception("SMTP send failed (host=%s, port=%s, user=%s)", host, settings.SMTP_PORT, user)
         raise
+
+
+def _gmail_access_token() -> str:
+    client_id = settings.GMAIL_API_CLIENT_ID.strip().strip("\"'")
+    client_secret = settings.GMAIL_API_CLIENT_SECRET.strip().strip("\"'")
+    refresh_token = settings.GMAIL_API_REFRESH_TOKEN.strip().strip("\"'")
+    if not client_id or not client_secret or not refresh_token:
+        raise EmailDeliveryError(
+            "Render thiếu GMAIL_API_CLIENT_ID, GMAIL_API_CLIENT_SECRET hoặc GMAIL_API_REFRESH_TOKEN"
+        )
+    data = urllib.parse.urlencode(
+        {
+            "client_id": client_id,
+            "client_secret": client_secret,
+            "refresh_token": refresh_token,
+            "grant_type": "refresh_token",
+        }
+    ).encode("utf-8")
+    request = urllib.request.Request(
+        "https://oauth2.googleapis.com/token",
+        data=data,
+        method="POST",
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=20) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        logger.exception("Gmail OAuth token rejected (status=%s)", exc.code)
+        raise EmailDeliveryError(
+            "Google từ chối Gmail API refresh token. Hãy cấp lại token có quyền gmail.send"
+        ) from exc
+    except (urllib.error.URLError, socket.timeout, TimeoutError, OSError) as exc:
+        logger.exception("Gmail OAuth connection failed")
+        raise EmailDeliveryError("Không kết nối được Google OAuth qua HTTPS") from exc
+    access_token = payload.get("access_token")
+    if not access_token:
+        raise EmailDeliveryError("Google OAuth không trả về access token")
+    return access_token
+
+
+def _send_gmail_api(to_email: str, message: MIMEText) -> None:
+    sender = settings.GMAIL_SENDER_EMAIL.strip().strip("\"'") or settings.SMTP_USER.strip().strip("\"'")
+    if not sender:
+        raise EmailDeliveryError("Render thiếu GMAIL_SENDER_EMAIL")
+    if message.get("From"):
+        message.replace_header("From", formataddr(("Free2Do", sender)))
+    else:
+        message["From"] = formataddr(("Free2Do", sender))
+    if message.get("To"):
+        message.replace_header("To", to_email)
+    else:
+        message["To"] = to_email
+    raw = base64.urlsafe_b64encode(message.as_bytes()).decode("ascii").rstrip("=")
+    request = urllib.request.Request(
+        "https://gmail.googleapis.com/gmail/v1/users/me/messages/send",
+        data=json.dumps({"raw": raw}).encode("utf-8"),
+        method="POST",
+        headers={
+            "Authorization": f"Bearer {_gmail_access_token()}",
+            "Content-Type": "application/json",
+        },
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=20) as response:
+            if response.status not in {200, 201, 202}:
+                raise EmailDeliveryError(f"Gmail API trả về HTTP {response.status}")
+    except urllib.error.HTTPError as exc:
+        logger.exception("Gmail API rejected message (status=%s, sender=%s)", exc.code, sender)
+        if exc.code in {401, 403}:
+            detail = "Gmail API từ chối quyền gửi. Hãy bật Gmail API và cấp scope gmail.send"
+        elif exc.code == 429:
+            detail = "Gmail API đã vượt giới hạn gửi. Vui lòng thử lại sau"
+        else:
+            detail = f"Gmail API không gửi được email (HTTP {exc.code})"
+        raise EmailDeliveryError(detail) from exc
+    except (urllib.error.URLError, socket.timeout, TimeoutError, OSError) as exc:
+        logger.exception("Gmail API connection failed (sender=%s)", sender)
+        raise EmailDeliveryError("Không kết nối được Gmail API qua HTTPS") from exc
+
+
+def _send_message(to_email: str, message: MIMEText) -> None:
+    if get_email_provider() == "gmail_api":
+        _send_gmail_api(to_email, message)
+    else:
+        _send_smtp_message(to_email, message)
 
 
 def send_otp_email(to_email: str, code: str, purpose: str) -> None:

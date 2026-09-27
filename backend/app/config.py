@@ -14,6 +14,12 @@ class Settings(BaseSettings):
     SMTP_PORT: int = 587
     SMTP_USER: str = ""
     SMTP_PASSWORD: str = ""
+    # Render Free chặn SMTP 25/465/587. Gmail API dùng HTTPS/443 trên production.
+    EMAIL_PROVIDER: str = "auto"  # auto | gmail_api | smtp
+    GMAIL_API_CLIENT_ID: str = ""
+    GMAIL_API_CLIENT_SECRET: str = ""
+    GMAIL_API_REFRESH_TOKEN: str = ""
+    GMAIL_SENDER_EMAIL: str = ""
     # Sign in with Google
     GOOGLE_CLIENT_ID: str = ""
     OTP_EXPIRE_MINUTES: int = 10

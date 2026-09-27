@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from sqlalchemy import text
 from app.config import settings
+from app.utils.email import get_email_provider
 from app.database import engine
 from app.routers import (
     search,
@@ -94,6 +95,15 @@ def health_ready():
             settings.SUPABASE_URL and settings.SUPABASE_SERVICE_KEY
         ),
         "smtp_configured": bool(
+            settings.SMTP_USER.strip() and settings.SMTP_PASSWORD.strip()
+        ),
+        "email_provider": get_email_provider(),
+        "email_provider_configured": bool(
+            settings.GMAIL_API_CLIENT_ID.strip()
+            and settings.GMAIL_API_CLIENT_SECRET.strip()
+            and settings.GMAIL_API_REFRESH_TOKEN.strip()
+            and (settings.GMAIL_SENDER_EMAIL.strip() or settings.SMTP_USER.strip())
+        ) if get_email_provider() == "gmail_api" else bool(
             settings.SMTP_USER.strip() and settings.SMTP_PASSWORD.strip()
         ),
     }

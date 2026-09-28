@@ -33,6 +33,12 @@ class FullFrontendContractTests(unittest.TestCase):
             "/operator/complaints": "get",
             "/auth/recovery-email/request": "post",
             "/auth/recovery-email/verify": "put",
+            "/groups": "post",
+            "/groups/invite/{invite_code}/join": "post",
+            "/groups/{group_id}": "get",
+            "/groups/{group_id}/recommendations": "get",
+            "/groups/{group_id}/activity": "put",
+            "/groups/{group_id}/payments/{member_id}": "patch",
         }
         for path, method in expected.items():
             self.assertIn(path, paths)
@@ -51,10 +57,30 @@ class FullFrontendContractTests(unittest.TestCase):
         self.assertEqual([], missing)
 
     def test_frontend_has_no_removed_demo_logic(self):
-        for marker in ("21.0352", "105.7944", "fetch('/api", "const REVIEWS", "group.html"):
+        for marker in ("21.0352", "105.7944", "fetch('/api", "const REVIEWS"):
             self.assertNotIn(marker, self.source)
         self.assertIn("api.request('/search'", self.source)
         self.assertIn("request('/businesses')", self.source)
+
+    def test_group_page_uses_backend_only(self):
+        group_html = (self.frontend / "Demo Trang Customer" / "group.html").read_text(encoding="utf-8")
+        group_js = (self.frontend / "js" / "group.js").read_text(encoding="utf-8")
+        self.assertIn('../js/group.js', group_html)
+        self.assertIn("api.request('/categories')", group_js)
+        self.assertIn("api.request('/groups'", group_js)
+        self.assertIn("/recommendations`", group_js)
+        self.assertIn("new WebSocket", group_js)
+        for marker in ("Math.random", "const INTERESTS", "window.AdminData", "paymentStates"):
+            self.assertNotIn(marker, group_html + group_js)
+
+    def test_removed_empty_demo_files_are_gone(self):
+        removed = (
+            "js/main.js", "js/search.js", "js/results.js", "js/detail.js",
+            "js/review.js", "js/admin.js", "search-results.html",
+            "activity-detail.html", "review.html",
+        )
+        for path in removed:
+            self.assertFalse((self.frontend / path).exists(), path)
 
     def test_customer_pages_call_every_customer_api_group(self):
         markers = (

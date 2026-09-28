@@ -21,6 +21,7 @@ from app.routers import (
     businesses,
     media,
     public_businesses,
+    groups,
 )
 
 app = FastAPI(title="Free2Do API", version="1.1.0")
@@ -51,6 +52,7 @@ app.include_router(complaints.router)
 app.include_router(businesses.router)
 app.include_router(media.router)
 app.include_router(public_businesses.router)
+app.include_router(groups.router)
 
 # Operator
 app.include_router(categories.operator_router)

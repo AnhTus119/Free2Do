@@ -146,6 +146,50 @@ CREATE INDEX IF NOT EXISTS idx_business_media_business_kind
 CREATE INDEX IF NOT EXISTS idx_review_replies_business_id
   ON review_replies(business_id);
 
+-- Nhóm ghép lịch: dữ liệu tồn tại sau reload, hỗ trợ thành viên thật và khách
+-- được host nhập tay. Sở thích lưu dưới dạng JSON array category_id để chỉ cần
+-- đúng 3 bảng nghiệp vụ và vẫn liên kết được với bảng categories.
+CREATE TABLE IF NOT EXISTS groups (
+  group_id VARCHAR PRIMARY KEY,
+  invite_code VARCHAR NOT NULL UNIQUE,
+  host_user_id VARCHAR NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+  selected_activity_id VARCHAR REFERENCES activities(activity_id) ON DELETE SET NULL,
+  status VARCHAR NOT NULL DEFAULT 'active',
+  created_at TIMESTAMP NOT NULL DEFAULT now(),
+  updated_at TIMESTAMP NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS group_members (
+  member_id VARCHAR PRIMARY KEY,
+  group_id VARCHAR NOT NULL REFERENCES groups(group_id) ON DELETE CASCADE,
+  user_id VARCHAR REFERENCES users(user_id) ON DELETE SET NULL,
+  name VARCHAR NOT NULL,
+  free_hours DOUBLE PRECISION NOT NULL CHECK (free_hours > 0 AND free_hours <= 24),
+  address VARCHAR NOT NULL,
+  budget DOUBLE PRECISION NOT NULL CHECK (budget >= 0),
+  category_ids_json TEXT NOT NULL DEFAULT '[]',
+  is_host BOOLEAN NOT NULL DEFAULT FALSE,
+  joined_at TIMESTAMP NOT NULL DEFAULT now(),
+  updated_at TIMESTAMP NOT NULL DEFAULT now(),
+  CONSTRAINT uq_group_member_user UNIQUE (group_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS group_payments (
+  payment_id VARCHAR PRIMARY KEY,
+  group_id VARCHAR NOT NULL REFERENCES groups(group_id) ON DELETE CASCADE,
+  member_id VARCHAR NOT NULL UNIQUE REFERENCES group_members(member_id) ON DELETE CASCADE,
+  amount DOUBLE PRECISION NOT NULL DEFAULT 0 CHECK (amount >= 0),
+  status VARCHAR NOT NULL DEFAULT 'unpaid' CHECK (status IN ('unpaid', 'paid')),
+  reminded_at TIMESTAMP,
+  paid_at TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_groups_host_user_id ON groups(host_user_id);
+CREATE INDEX IF NOT EXISTS idx_group_members_group_id ON group_members(group_id);
+CREATE INDEX IF NOT EXISTS idx_group_members_user_id ON group_members(user_id);
+CREATE INDEX IF NOT EXISTS idx_group_payments_group_id ON group_payments(group_id);
+
 -- Nếu bạn đã seed sẵn 1 operator mẫu qua seed_db.py và muốn operator đó là admin cấp cao,
 -- chạy thêm (thay email cho đúng):
 -- UPDATE operators SET level = 'admin'

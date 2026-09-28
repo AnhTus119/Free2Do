@@ -422,3 +422,28 @@ tương tác đều được tổng hợp ở backend.
 `upgrade-plan.html` hiện chỉ là trang giới thiệu. Nút thanh toán bị vô hiệu hóa vì
 backend chưa có nghiệp vụ subscription/payment; trang không giả lập thao tác nâng
 cấp ở trình duyệt.
+
+## 20. Nhóm ghép lịch và chia chi phí
+
+Trước khi deploy backend có tính năng nhóm, chạy toàn bộ `migration.sql` một lần
+trong Supabase SQL Editor. Phần cuối migration tạo ba bảng `groups`,
+`group_members` và `group_payments` cùng khóa ngoại/index cần thiết.
+
+`frontend/Demo Trang Customer/group.html` giữ nguyên giao diện và tải logic từ
+`frontend/js/group.js`. Dữ liệu không còn nằm trong bộ nhớ trình duyệt:
+
+- Host tạo nhóm; form đầu tiên là thông tin host, các form sau là khách được host
+  nhập tay.
+- Người có link `?groupInvite=...` đăng nhập và tự nhập dữ liệu để tham gia. Nếu
+  tên trùng một khách host đã nhập, backend gắn tài khoản thật vào bản ghi đó.
+- Danh mục lấy từ `GET /categories`; gợi ý và điểm phù hợp lấy từ
+  `GET /groups/{group_id}/recommendations`.
+- Hoạt động đã chốt, chi phí, trạng thái đã trả và thời điểm nhắc được lưu trong
+  database. Chỉ host được chốt hoạt động hoặc cập nhật thanh toán.
+- `WS /groups/{group_id}/ws?token=...` thông báo presence/thay đổi theo thời gian
+  thực. Frontend tự reconnect và polling `GET /groups/{group_id}` mỗi 8 giây khi
+  WebSocket không hoạt động.
+
+Realtime hiện phù hợp một Render instance. Nếu scale nhiều instance, thay
+connection manager trong bộ nhớ bằng Redis Pub/Sub hoặc Supabase Realtime; dữ liệu
+nghiệp vụ trong PostgreSQL không cần đổi.

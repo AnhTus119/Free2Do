@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import Column, String, Float, Integer, Text, DateTime, Boolean, ForeignKey
+from sqlalchemy import Column, String, Float, Integer, Text, DateTime, Boolean, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship
 from app.database import Base
 
@@ -299,6 +299,57 @@ class SearchHistory(Base):
     free_time = Column(Integer)
     created_at = Column(DateTime, nullable=False)
     user = relationship("User", back_populates="search_history")
+
+
+class Group(Base):
+    __tablename__ = "groups"
+
+    group_id = Column(String, primary_key=True, default=gen_id)
+    invite_code = Column(String, nullable=False, unique=True, index=True)
+    host_user_id = Column(String, ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False, index=True)
+    selected_activity_id = Column(String, ForeignKey("activities.activity_id", ondelete="SET NULL"), nullable=True)
+    status = Column(String, nullable=False, default="active")
+    created_at = Column(DateTime, nullable=False)
+    updated_at = Column(DateTime, nullable=False)
+    host = relationship("User", foreign_keys=[host_user_id])
+    selected_activity = relationship("Activity", foreign_keys=[selected_activity_id])
+    members = relationship("GroupMember", back_populates="group", cascade="all, delete-orphan")
+    payments = relationship("GroupPayment", back_populates="group", cascade="all, delete-orphan")
+
+
+class GroupMember(Base):
+    __tablename__ = "group_members"
+    __table_args__ = (UniqueConstraint("group_id", "user_id", name="uq_group_member_user"),)
+
+    member_id = Column(String, primary_key=True, default=gen_id)
+    group_id = Column(String, ForeignKey("groups.group_id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(String, ForeignKey("users.user_id", ondelete="SET NULL"), nullable=True, index=True)
+    name = Column(String, nullable=False)
+    free_hours = Column(Float, nullable=False)
+    address = Column(String, nullable=False)
+    budget = Column(Float, nullable=False)
+    category_ids_json = Column(Text, nullable=False, default="[]")
+    is_host = Column(Boolean, nullable=False, default=False)
+    joined_at = Column(DateTime, nullable=False)
+    updated_at = Column(DateTime, nullable=False)
+    group = relationship("Group", back_populates="members")
+    user = relationship("User", foreign_keys=[user_id])
+    payment = relationship("GroupPayment", back_populates="member", uselist=False, cascade="all, delete-orphan")
+
+
+class GroupPayment(Base):
+    __tablename__ = "group_payments"
+
+    payment_id = Column(String, primary_key=True, default=gen_id)
+    group_id = Column(String, ForeignKey("groups.group_id", ondelete="CASCADE"), nullable=False, index=True)
+    member_id = Column(String, ForeignKey("group_members.member_id", ondelete="CASCADE"), nullable=False, unique=True)
+    amount = Column(Float, nullable=False, default=0)
+    status = Column(String, nullable=False, default="unpaid")
+    reminded_at = Column(DateTime)
+    paid_at = Column(DateTime)
+    updated_at = Column(DateTime, nullable=False)
+    group = relationship("Group", back_populates="payments")
+    member = relationship("GroupMember", back_populates="payment")
 
 class OtpCode(Base):
     __tablename__ = "otp_codes"

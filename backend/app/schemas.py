@@ -361,6 +361,99 @@ class UserProfileUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=255)
     phone: Optional[str] = Field(None, max_length=30)
 
+
+# ---------------------------------------------------------------------------
+# Group planning -- dữ liệu thật, đồng bộ qua REST + WebSocket
+# ---------------------------------------------------------------------------
+class GroupMemberInput(BaseModel):
+    name: str = Field(min_length=1, max_length=200)
+    free_hours: float = Field(gt=0, le=24)
+    address: str = Field(min_length=1, max_length=500)
+    budget: float = Field(ge=0)
+    category_ids: list[str] = Field(min_length=1)
+
+
+class GroupCreateRequest(BaseModel):
+    members: list[GroupMemberInput] = Field(min_length=1, max_length=30)
+
+
+class GroupJoinRequest(GroupMemberInput):
+    pass
+
+
+class GroupMemberUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=1, max_length=200)
+    free_hours: Optional[float] = Field(None, gt=0, le=24)
+    address: Optional[str] = Field(None, min_length=1, max_length=500)
+    budget: Optional[float] = Field(None, ge=0)
+    category_ids: Optional[list[str]] = Field(None, min_length=1)
+
+
+class GroupPaymentAction(BaseModel):
+    action: Literal["paid", "unpaid", "remind"]
+
+
+class GroupActivitySelect(BaseModel):
+    activity_id: str
+
+
+class GroupPaymentOut(BaseModel):
+    payment_id: str
+    member_id: str
+    amount: float
+    status: str
+    reminded_at: Optional[datetime] = None
+    paid_at: Optional[datetime] = None
+
+
+class GroupMemberOut(BaseModel):
+    member_id: str
+    user_id: Optional[str] = None
+    name: str
+    free_hours: float
+    address: str
+    budget: float
+    category_ids: list[str]
+    category_names: list[str]
+    is_host: bool
+    is_online: bool = False
+    payment: GroupPaymentOut
+
+
+class GroupSelectedActivityOut(BaseModel):
+    activity_id: str
+    name: str
+    description: Optional[str] = None
+    address: str
+    price: Optional[float] = None
+    price_text: Optional[str] = None
+    time_open: Optional[datetime] = None
+    time_close: Optional[datetime] = None
+    avg_rating: Optional[float] = None
+    category_ids: list[str] = Field(default_factory=list)
+    media_url: Optional[str] = None
+
+
+class GroupOut(BaseModel):
+    group_id: str
+    invite_code: str
+    invite_url: str
+    host_user_id: str
+    is_host: bool
+    status: str
+    selected_activity: Optional[GroupSelectedActivityOut] = None
+    members: list[GroupMemberOut]
+    total_amount: float
+    paid_amount: float
+    missing_amount: float
+    created_at: datetime
+    updated_at: datetime
+
+
+class GroupRecommendationOut(GroupSelectedActivityOut):
+    match_score: int
+    member_scores: dict[str, int]
+
 # ---------------------------------------------------------------------------
 # Activity -- mở rộng cho Business (CRUD) và Operator (duyệt)
 # ---------------------------------------------------------------------------

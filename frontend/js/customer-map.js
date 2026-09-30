@@ -50,60 +50,180 @@
     return { left: width / 2 + deltaX, top: height / 2 + point.y - origin.y };
   }
 
-  function drawBaseMap(tileLayer, center, zoom, width, height, drawToken, currentToken) {
-    const origin = worldPoint(center.latitude, center.longitude, zoom);
-    const topLeftX = origin.x - width / 2;
-    const topLeftY = origin.y - height / 2;
-    const startX = Math.floor(topLeftX / TILE_SIZE);
-    const endX = Math.floor((topLeftX + width) / TILE_SIZE);
-    const startY = Math.floor(topLeftY / TILE_SIZE);
-    const endY = Math.floor((topLeftY + height) / TILE_SIZE);
-    const tilesPerAxis = 2 ** zoom;
-    const viewport = document.createElement('div');
-    viewport.className = 'free2do-map-tile-viewport';
-    viewport.style.cssText = 'position:absolute;inset:0;overflow:hidden;';
-    let total = 0;
-    let settled = 0;
-    const previous = tileLayer.lastElementChild;
+  // Lớp tile dùng lại giữa các lần kéo/thu phóng thay vì vẽ lại cả khung:
+  // - phủ rộng hơn khung nhìn và bù thêm tile khi kéo, nên không lộ ô trống;
+  // - tải tối đa MAX_PARALLEL_TILES ô cùng lúc, ô gần tâm được tải trước để
+  //   tránh bị OpenStreetMap giới hạn tốc độ (HTTP 429) rồi rớt ô;
+  // - ô lỗi được thử lại nhiều lần với thời gian chờ tăng dần và được thử lại
+  //   khi người dùng kéo/phóng bản đồ tiếp;
+  // - lớp cũ chỉ bị gỡ khi lớp mới tải xong (hoặc quá thời gian chờ).
+  const MAX_PARALLEL_TILES = 6;
+  const MAX_TILE_RETRIES = 4;
+  const TILE_PADDING = 1;
+  const PREVIOUS_LAYER_TIMEOUT = 8000;
 
-    const finishTile = () => {
-      settled += 1;
-      if (drawToken !== currentToken()) return;
-      if (settled >= total && previous && previous !== viewport) previous.remove();
-    };
+  function createTileLayer(root) {
+    let current = null;
+    let previous = null;
+    let previousTimer = null;
+    let lastCenter = { x: 0, y: 0 };
+    const queue = [];
+    let active = 0;
 
-    for (let tileY = startY; tileY <= endY; tileY += 1) {
-      if (tileY < 0 || tileY >= tilesPerAxis) continue;
-      for (let tileX = startX; tileX <= endX; tileX += 1) {
-        const wrappedX = ((tileX % tilesPerAxis) + tilesPerAxis) % tilesPerAxis;
-        const image = document.createElement('img');
-        const url = `https://tile.openstreetmap.org/${zoom}/${wrappedX}/${tileY}.png`;
-        total += 1;
-        image.alt = '';
-        image.draggable = false;
-        image.loading = 'eager';
-        image.decoding = 'async';
-        image.style.cssText = `position:absolute;left:${Math.floor(tileX * TILE_SIZE - topLeftX)}px;top:${Math.floor(tileY * TILE_SIZE - topLeftY)}px;width:${TILE_SIZE + 1}px;height:${TILE_SIZE + 1}px;max-width:none;user-select:none;`;
-        let retry = 0;
-        image.addEventListener('load', finishTile, { once: true });
-        image.addEventListener('error', () => {
-          if (retry < 2 && drawToken === currentToken()) {
-            retry += 1;
-            setTimeout(() => { image.src = url; }, retry * 350);
-          } else finishTile();
-        });
-        image.src = url;
-        viewport.appendChild(image);
+    function releasePrevious() {
+      clearTimeout(previousTimer);
+      previous?.el.remove();
+      previous = null;
+    }
+
+    function maybeReleasePrevious() {
+      if (previous && current && current.pending <= 0) releasePrevious();
+    }
+
+    function makeImage(tile) {
+      const image = document.createElement('img');
+      image.alt = '';
+      image.draggable = false;
+      image.decoding = 'async';
+      image.style.cssText = `position:absolute;left:${tile.left}px;top:${tile.top}px;width:${TILE_SIZE + 1}px;height:${TILE_SIZE + 1}px;max-width:none;user-select:none;`;
+      tile.layer.el.appendChild(image);
+      tile.image = image;
+    }
+
+    function settle(tile, ok) {
+      tile.state = ok ? 'loaded' : 'failed';
+      tile.layer.pending -= 1;
+      if (tile.layer === current) maybeReleasePrevious();
+    }
+
+    function startLoad(tile) {
+      active += 1;
+      tile.state = 'loading';
+      const image = tile.image;
+      image.onload = () => {
+        image.onload = image.onerror = null;
+        active -= 1;
+        settle(tile, true);
+        pump();
+      };
+      image.onerror = () => {
+        image.onload = image.onerror = null;
+        active -= 1;
+        image.remove();
+        if (tile.retries < MAX_TILE_RETRIES && tile.layer.el.isConnected) {
+          const delay = 400 * (2 ** tile.retries);
+          tile.retries += 1;
+          tile.state = 'waiting';
+          setTimeout(() => {
+            if (!tile.layer.el.isConnected) return;
+            makeImage(tile);
+            queue.push(tile);
+            pump();
+          }, delay);
+        } else {
+          settle(tile, false);
+        }
+        pump();
+      };
+      image.src = tile.url;
+    }
+
+    function pump() {
+      while (active < MAX_PARALLEL_TILES && queue.length) {
+        const tile = queue.shift();
+        if (tile.layer.el.isConnected) startLoad(tile);
       }
     }
-    if (drawToken !== currentToken()) return;
-    tileLayer.appendChild(viewport);
-    // Giữ lớp tile trước ở phía dưới cho tới khi lớp mới hoàn tất; nhờ vậy
-    // zoom/pan không làm bản đồ biến thành các mảng nền trống.
-    if (previous) previous.style.opacity = '0.35';
-    setTimeout(() => {
-      if (drawToken === currentToken() && previous?.isConnected) previous.remove();
-    }, 5000);
+
+    function addTile(layer, tileX, tileY) {
+      const tilesPerAxis = 2 ** layer.zoom;
+      if (tileY < 0 || tileY >= tilesPerAxis) return;
+      const key = `${tileX}:${tileY}`;
+      const existing = layer.tiles.get(key);
+      if (existing) {
+        if (existing.state !== 'failed') return;
+        // Ô từng lỗi hẳn: thử lại khi khu vực này hiện ra lần nữa.
+        existing.retries = 0;
+        existing.state = 'queued';
+        existing.image?.remove();
+        layer.pending += 1;
+        makeImage(existing);
+        queue.push(existing);
+        return;
+      }
+      const wrappedX = ((tileX % tilesPerAxis) + tilesPerAxis) % tilesPerAxis;
+      const tile = {
+        layer,
+        url: `https://tile.openstreetmap.org/${layer.zoom}/${wrappedX}/${tileY}.png`,
+        left: tileX * TILE_SIZE - layer.originX,
+        top: tileY * TILE_SIZE - layer.originY,
+        centerX: (tileX + 0.5) * TILE_SIZE,
+        centerY: (tileY + 0.5) * TILE_SIZE,
+        retries: 0,
+        state: 'queued',
+        image: null,
+      };
+      layer.tiles.set(key, tile);
+      layer.pending += 1;
+      makeImage(tile);
+      queue.push(tile);
+    }
+
+    // Bảo đảm mọi tile quanh tâm (kèm vùng đệm) đã có mặt trong lớp hiện tại.
+    function ensure(centerWorld, width, height) {
+      const layer = current;
+      if (!layer) return;
+      lastCenter = centerWorld;
+      const pad = TILE_PADDING * TILE_SIZE;
+      const startX = Math.floor((centerWorld.x - width / 2 - pad) / TILE_SIZE);
+      const endX = Math.floor((centerWorld.x + width / 2 + pad) / TILE_SIZE);
+      const startY = Math.floor((centerWorld.y - height / 2 - pad) / TILE_SIZE);
+      const endY = Math.floor((centerWorld.y + height / 2 + pad) / TILE_SIZE);
+      for (let tileY = startY; tileY <= endY; tileY += 1) {
+        for (let tileX = startX; tileX <= endX; tileX += 1) addTile(layer, tileX, tileY);
+      }
+      queue.sort((a, b) => (
+        Math.hypot(a.centerX - lastCenter.x, a.centerY - lastCenter.y)
+        - Math.hypot(b.centerX - lastCenter.x, b.centerY - lastCenter.y)
+      ));
+      pump();
+    }
+
+    function show(center, zoom, width, height) {
+      const centerWorld = worldPoint(center.latitude, center.longitude, zoom);
+      if (!current || current.zoom !== zoom) {
+        releasePrevious();
+        if (current) {
+          previous = current;
+          previous.el.style.opacity = '0.35';
+          const stale = previous;
+          previousTimer = setTimeout(() => { if (previous === stale) releasePrevious(); }, PREVIOUS_LAYER_TIMEOUT);
+        }
+        const el = document.createElement('div');
+        el.className = 'free2do-map-tile-viewport';
+        el.style.cssText = 'position:absolute;left:0;top:0;width:0;height:0;';
+        root.appendChild(el);
+        current = {
+          el,
+          zoom,
+          originX: Math.floor(centerWorld.x),
+          originY: Math.floor(centerWorld.y),
+          tiles: new Map(),
+          pending: 0,
+        };
+      }
+      const shiftX = Math.round(width / 2 - (centerWorld.x - current.originX));
+      const shiftY = Math.round(height / 2 - (centerWorld.y - current.originY));
+      current.el.style.transform = `translate(${shiftX}px, ${shiftY}px)`;
+      ensure(centerWorld, width, height);
+    }
+
+    // Dùng khi đang kéo: khung đã dịch bằng transform nên chỉ cần bù thêm tile.
+    function extend(zoom, centerWorld, width, height) {
+      if (current && current.zoom === zoom) ensure(centerWorld, width, height);
+    }
+
+    return { show, extend };
   }
 
   function createMarker(activity, position, searchPosition) {
@@ -155,10 +275,10 @@
 
     const mapImage = layer.querySelector('.free2do-static-map-image');
     const markerLayer = layer.querySelector('.free2do-static-map-markers');
+    const tiles = createTileLayer(mapImage);
     const markers = new Map();
     let latestRender = { userPosition: DEFAULT_POSITION, radiusKm: 5, activities: [] };
     let resizeTimer;
-    let drawToken = 0;
     let baseMapKey = '';
     let viewportKey = '';
     let zoomOffset = 0;
@@ -197,8 +317,7 @@
       const nextBaseMapKey = `${viewCenter.latitude.toFixed(6)}:${viewCenter.longitude.toFixed(6)}:${zoom}:${displayWidth}:${displayHeight}`;
       if (nextBaseMapKey !== baseMapKey) {
         baseMapKey = nextBaseMapKey;
-        const token = ++drawToken;
-        drawBaseMap(mapImage, viewCenter, zoom, displayWidth, displayHeight, token, () => drawToken);
+        tiles.show(viewCenter, zoom, displayWidth, displayHeight);
       }
 
       const currentPosition = markerPosition(center.latitude, center.longitude, viewCenter, zoom, displayWidth, displayHeight);
@@ -271,6 +390,13 @@
       if (!dragging) return;
       mapImage.style.transform = `translate(${dx}px, ${dy}px)`;
       markerLayer.style.transform = `translate(${dx}px, ${dy}px)`;
+      const box = container.getBoundingClientRect();
+      tiles.extend(
+        dragStart.zoom,
+        { x: dragStart.centerPoint.x - dx, y: dragStart.centerPoint.y - dy },
+        Math.max(320, Math.round(box.width)),
+        Math.max(320, Math.round(box.height)),
+      );
     });
     const finishPointer = event => {
       if (!dragStart) return;

@@ -1,5 +1,5 @@
 import re
-from urllib.parse import parse_qs, unquote, urljoin, urlparse
+from urllib.parse import parse_qs, quote_plus, unquote, urljoin, urlparse
 
 import requests
 
@@ -125,4 +125,26 @@ def coordinates_from_google_maps_url(url: str, *, read_page: bool = True) -> tup
         coordinates = _extract(current)
         if coordinates:
             return coordinates
+    return None
+
+
+def build_google_maps_url(
+    latitude: float | None,
+    longitude: float | None,
+    address: str | None = None,
+) -> str | None:
+    """Tạo link Google Maps dự phòng cho hoạt động chưa có link được lưu.
+
+    Ưu tiên tọa độ (ghim đúng vị trí); nếu chưa có tọa độ thì tìm theo địa chỉ.
+    Không gọi mạng và không cần API key.
+    """
+    if (
+        isinstance(latitude, (int, float))
+        and isinstance(longitude, (int, float))
+        and _valid(float(latitude), float(longitude))
+    ):
+        return f"https://www.google.com/maps/search/?api=1&query={latitude},{longitude}"
+    address = " ".join((address or "").split())
+    if address:
+        return f"https://www.google.com/maps/search/?api=1&query={quote_plus(address)}"
     return None

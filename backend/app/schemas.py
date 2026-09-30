@@ -1,6 +1,15 @@
 from datetime import datetime
 from typing import Literal, Optional
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+from app.utils.google_maps import build_google_maps_url
+
+
+def _with_google_maps_fallback(model):
+    """Hoạt động chưa có link Google Maps thì tự tạo từ tọa độ/địa chỉ."""
+    if not model.google_maps_url:
+        model.google_maps_url = build_google_maps_url(model.latitude, model.longitude, model.address)
+    return model
 
 # Account
 class AccountCreate(BaseModel):
@@ -169,6 +178,10 @@ class ActivityWithScore(Activity):
     avg_rating: Optional[float] = None
     review_count: int = 0
     image_url: Optional[str] = None
+
+    @model_validator(mode="after")
+    def _fill_google_maps_url(self):
+        return _with_google_maps_fallback(self)
 
 # ActivityMedia
 class ActivityMedia(BaseModel):
@@ -484,6 +497,10 @@ class ActivityPublicOut(ActivityDetail):
     business_name: str
     business_avatar_url: Optional[str] = None
     distance_km: Optional[float] = None
+
+    @model_validator(mode="after")
+    def _fill_google_maps_url(self):
+        return _with_google_maps_fallback(self)
 
 
 class LocationResolveOut(BaseModel):

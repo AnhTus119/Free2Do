@@ -86,7 +86,7 @@ class FullFrontendContractTests(unittest.TestCase):
 
     def test_customer_pages_call_every_customer_api_group(self):
         markers = (
-            "api.request('/auth/me')", "api.request('/activities')", "api.request('/categories')",
+            "api.requireUser()", "api.request('/activities')", "api.request('/categories')",
             "api.request('/search'", "api.request('/bookmarks/me')", "api.request('/reviews'",
             "api.request('/reports'", "api.request('/users/me'", "api.request('/users/me/categories'",
             "api.request('/users/me/search-history')", "api.request('/media/avatar-presets')",
@@ -98,9 +98,12 @@ class FullFrontendContractTests(unittest.TestCase):
 
     def test_customer_detail_controls_are_wired(self):
         detail = (self.frontend / "Demo Trang Customer" / "activity-detail.html").read_text(encoding="utf-8")
+        detail_source = (self.frontend / "js" / "customer-detail.js").read_text(encoding="utf-8")
         self.assertIn('id="reportActivity"', detail)
         self.assertIn('id="mapLink"', detail)
         self.assertIn('id="detailSearchForm"', detail)
+        self.assertIn("api.requireUser()", detail_source)
+        self.assertIn("mapLink.href = activity.google_maps_url", detail_source)
 
     def test_map_icons_exist_and_zoom_does_not_depend_on_leaflet(self):
         icon_source = (self.frontend / "js" / "customer-activity-icons.js").read_text(encoding="utf-8")
@@ -111,7 +114,15 @@ class FullFrontendContractTests(unittest.TestCase):
             self.assertTrue((self.frontend / "img" / "map-icons" / filename).is_file(), filename)
         for marker in ("zoomBy", "addEventListener('wheel'", "addEventListener('dblclick'", "addEventListener('touchmove'", "addEventListener('pointermove'", "onSelectPosition"):
             self.assertIn(marker, map_source)
+        self.assertIn("document.createElement('img')", map_source)
+        self.assertIn("https://tile.openstreetmap.org/", map_source)
+        self.assertNotIn("canvas.getContext", map_source)
         self.assertNotIn("leaflet", map_source.lower())
+
+    def test_customer_nav_uses_backend_username(self):
+        api_source = (self.frontend / "js" / "customer-api.js").read_text(encoding="utf-8")
+        self.assertIn("me.username || me.name", api_source)
+        self.assertIn("el.textContent = username", api_source)
 
 
 if __name__ == "__main__":

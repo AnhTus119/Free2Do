@@ -35,6 +35,7 @@ def update_my_profile(
         account_type="user",
         role=role_name,
         name=user.name,
+        username=user.name,
         user_id=user.user_id,
         phone=account.phone or user.phone,
         recovery_email=account.recovery_email,

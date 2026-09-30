@@ -52,10 +52,11 @@
       location.href = me.role === 'business' ? '../Demo Trang Business/business-home.html' : '../dashboard.html';
       throw new Error('Tài khoản không phải người dùng.');
     }
-    document.querySelectorAll('.nav-name').forEach(el => { el.textContent = me.name; });
+    const username = me.username || me.name || '';
+    document.querySelectorAll('.nav-name').forEach(el => { el.textContent = username; });
     document.querySelectorAll('.nav-avatar').forEach(el => {
       if (me.avatar_url) el.innerHTML = `<img src="${escapeHTML(me.avatar_url)}" alt="Avatar" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
-      else el.textContent = me.name?.[0]?.toUpperCase() || '?';
+      else el.textContent = username[0]?.toUpperCase() || '?';
     });
     return me;
   }

@@ -64,7 +64,7 @@
     const [activity, categories, reviews, me] = await Promise.all([
       api.request(`/activities/${encodeURIComponent(id)}${origin.size ? `?${origin}` : ''}`), api.request('/categories'),
       api.request(`/activities/${encodeURIComponent(id)}/reviews`),
-      localStorage.getItem('token') ? api.request('/auth/me').catch(() => null) : null,
+      localStorage.getItem('token') ? api.requireUser().catch(() => null) : null,
     ]);
     const matched = categories.filter(item => (activity.category_ids || []).includes(item.category_id));
     text('activityName', activity.name); text('activityMeta', `${activity.business_name} · ${activity.address}${activity.avg_rating == null ? '' : ` · ★ ${activity.avg_rating} (${activity.review_count} đánh giá)`}`);
@@ -76,7 +76,14 @@
     document.getElementById('activityTags').innerHTML = matched.map(item => `<span class="tag">${api.escapeHTML(item.name)}</span>`).join('');
     renderGallery(activity); renderReviews(reviews, me); buildReviewForm(reviews.find(review => review.user_id === me?.user_id), me);
     const mapLink = document.getElementById('mapLink');
-    if (activity.google_maps_url) { mapLink.href = activity.google_maps_url; mapLink.target = '_blank'; mapLink.rel = 'noopener noreferrer'; mapLink.style.display = ''; }
+    if (activity.google_maps_url) {
+      mapLink.href = activity.google_maps_url;
+      mapLink.target = '_blank';
+      mapLink.rel = 'noopener noreferrer';
+      mapLink.style.display = '';
+      mapLink.dataset.googleMapsUrl = activity.google_maps_url;
+      mapLink.title = activity.google_maps_url;
+    }
     document.getElementById('detailSearchForm').addEventListener('submit', event => {
       event.preventDefault(); const keyword = document.getElementById('detailSearchInput').value.trim();
       location.href = `search.html${keyword ? `?q=${encodeURIComponent(keyword)}` : ''}`;

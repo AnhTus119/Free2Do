@@ -3,7 +3,6 @@
 
   const DEFAULT_POSITION = { latitude: 21.0285, longitude: 105.8542 };
   const TILE_SIZE = 256;
-  const TILE_CACHE = new Map();
 
   function validCoordinate(latitude, longitude) {
     return Number.isFinite(Number(latitude)) && Number.isFinite(Number(longitude))
@@ -51,21 +50,7 @@
     return { left: width / 2 + deltaX, top: height / 2 + point.y - origin.y };
   }
 
-  function loadTile(url) {
-    if (TILE_CACHE.has(url)) return TILE_CACHE.get(url);
-    const request = new Promise(resolve => {
-      const image = new Image();
-      image.crossOrigin = 'anonymous';
-      image.referrerPolicy = 'origin';
-      image.onload = () => resolve(image);
-      image.onerror = () => resolve(null);
-      image.src = url;
-    });
-    TILE_CACHE.set(url, request);
-    return request;
-  }
-
-  async function drawBaseMap(canvas, center, zoom, width, height, drawToken, currentToken) {
+  function drawBaseMap(tileLayer, center, zoom, width, height, drawToken, currentToken) {
     const origin = worldPoint(center.latitude, center.longitude, zoom);
     const topLeftX = origin.x - width / 2;
     const topLeftY = origin.y - height / 2;
@@ -74,27 +59,51 @@
     const startY = Math.floor(topLeftY / TILE_SIZE);
     const endY = Math.floor((topLeftY + height) / TILE_SIZE);
     const tilesPerAxis = 2 ** zoom;
-    const requests = [];
+    const viewport = document.createElement('div');
+    viewport.className = 'free2do-map-tile-viewport';
+    viewport.style.cssText = 'position:absolute;inset:0;overflow:hidden;';
+    let total = 0;
+    let settled = 0;
+    const previous = tileLayer.lastElementChild;
+
+    const finishTile = () => {
+      settled += 1;
+      if (drawToken !== currentToken()) return;
+      if (settled >= total && previous && previous !== viewport) previous.remove();
+    };
 
     for (let tileY = startY; tileY <= endY; tileY += 1) {
       if (tileY < 0 || tileY >= tilesPerAxis) continue;
       for (let tileX = startX; tileX <= endX; tileX += 1) {
         const wrappedX = ((tileX % tilesPerAxis) + tilesPerAxis) % tilesPerAxis;
-        requests.push(loadTile(`https://tile.openstreetmap.org/${zoom}/${wrappedX}/${tileY}.png`)
-          .then(image => ({ image, x: tileX * TILE_SIZE - topLeftX, y: tileY * TILE_SIZE - topLeftY })));
+        const image = document.createElement('img');
+        const url = `https://tile.openstreetmap.org/${zoom}/${wrappedX}/${tileY}.png`;
+        total += 1;
+        image.alt = '';
+        image.draggable = false;
+        image.loading = 'eager';
+        image.decoding = 'async';
+        image.style.cssText = `position:absolute;left:${Math.floor(tileX * TILE_SIZE - topLeftX)}px;top:${Math.floor(tileY * TILE_SIZE - topLeftY)}px;width:${TILE_SIZE + 1}px;height:${TILE_SIZE + 1}px;max-width:none;user-select:none;`;
+        let retry = 0;
+        image.addEventListener('load', finishTile, { once: true });
+        image.addEventListener('error', () => {
+          if (retry < 2 && drawToken === currentToken()) {
+            retry += 1;
+            setTimeout(() => { image.src = url; }, retry * 350);
+          } else finishTile();
+        });
+        image.src = url;
+        viewport.appendChild(image);
       }
     }
-
-    const tiles = await Promise.all(requests);
     if (drawToken !== currentToken()) return;
-    canvas.width = width;
-    canvas.height = height;
-    const context = canvas.getContext('2d');
-    context.fillStyle = '#e9e5d8';
-    context.fillRect(0, 0, width, height);
-    tiles.forEach(tile => {
-      if (tile.image) context.drawImage(tile.image, Math.round(tile.x), Math.round(tile.y), TILE_SIZE + 1, TILE_SIZE + 1);
-    });
+    tileLayer.appendChild(viewport);
+    // Giữ lớp tile trước ở phía dưới cho tới khi lớp mới hoàn tất; nhờ vậy
+    // zoom/pan không làm bản đồ biến thành các mảng nền trống.
+    if (previous) previous.style.opacity = '0.35';
+    setTimeout(() => {
+      if (drawToken === currentToken() && previous?.isConnected) previous.remove();
+    }, 5000);
   }
 
   function createMarker(activity, position, searchPosition) {
@@ -141,7 +150,7 @@
     const layer = document.createElement('div');
     layer.className = 'free2do-static-map';
     layer.style.cssText = 'position:absolute;inset:0;z-index:1;overflow:hidden;background:#e9e5d8;';
-    layer.innerHTML = '<canvas class="free2do-static-map-image" aria-label="Bản đồ hoạt động"></canvas><div class="free2do-static-map-markers"></div><div class="free2do-map-attribution"><a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap</a></div>';
+    layer.innerHTML = '<div class="free2do-static-map-image" role="img" aria-label="Bản đồ hoạt động"></div><div class="free2do-static-map-markers"></div><div class="free2do-map-attribution"><a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap</a></div>';
     container.prepend(layer);
 
     const mapImage = layer.querySelector('.free2do-static-map-image');
@@ -189,8 +198,7 @@
       if (nextBaseMapKey !== baseMapKey) {
         baseMapKey = nextBaseMapKey;
         const token = ++drawToken;
-        drawBaseMap(mapImage, viewCenter, zoom, displayWidth, displayHeight, token, () => drawToken)
-          .catch(error => console.warn('Không thể tải nền OpenStreetMap:', error));
+        drawBaseMap(mapImage, viewCenter, zoom, displayWidth, displayHeight, token, () => drawToken);
       }
 
       const currentPosition = markerPosition(center.latitude, center.longitude, viewCenter, zoom, displayWidth, displayHeight);

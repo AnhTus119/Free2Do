@@ -345,6 +345,7 @@ class MeResponse(BaseModel):
     account_type: str            # "user" | "operator"
     role: Optional[str] = None   # role_name nếu là user (vd "customer","business"), "operator" nếu là Operator
     name: str
+    username: str
     user_id: Optional[str] = None
     operator_id: Optional[str] = None
     phone: Optional[str] = None

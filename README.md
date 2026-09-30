@@ -192,13 +192,17 @@ python seed_activities.py
 
 `seed_activities.py` tạo/cập nhật 28 doanh nghiệp, 30 hoạt động và 15 tags theo mã nguồn. Một hoạt động có thể có nhiều tags trong bảng `activities_categories`; bộ lọc tìm kiếm khớp nếu hoạt động có ít nhất một tag người dùng chọn. `price_text` giữ nguyên chuỗi giá trong Excel, còn `price` dùng mức trần của khoảng giá để lọc ngân sách.
 
-Với database đã có dữ liệu, chỉ cần đồng bộ tags và bổ sung tọa độ còn thiếu mà không seed lại tài khoản/media:
+Với database đã có dữ liệu, đồng bộ tags và audit tọa độ mà không seed lại tài khoản/media:
 
 ```powershell
 python sync_activity_tags.py
+python sync_activity_locations.py
+python sync_activity_locations.py --apply
 ```
 
-Script có thể chạy lại an toàn. Nó cập nhật tags của 30 activity ID nguồn, sửa Onemore Workspace thành hoạt động `Cà phê`, và thử lấy latitude/longitude từ Google Maps cho các dòng đang thiếu.
+Các script có thể chạy lại an toàn. Script tags cập nhật quan hệ nhiều-nhiều và sửa
+Onemore Workspace thành hoạt động `Cà phê`. Script location mặc định chỉ in báo cáo;
+chỉ `--apply` mới ghi tọa độ Google Maps đã xác minh vào database.
 
 Tạo thông tin đăng nhập bằng số điện thoại cho các doanh nghiệp mẫu:
 
@@ -379,11 +383,17 @@ Script chạy lại an toàn; các URL đã thuộc Supabase Storage sẽ đư�
 không phá hợp đồng frontend. Search trên PostgreSQL dùng `ST_DWithin`; SQLite test dùng
 Haversine dự phòng.
 
-Khi tạo hoặc sửa hoạt động, backend tự lấy tọa độ từ link Google Maps nếu URL chứa
-`@lat,lng`, `!3d...!4d...`, tham số `q/query/ll/destination/center`, hoặc short link
-Google. Với link chỉ chứa place ID/tên địa điểm, backend đọc metadata tọa độ trong
-trang Google Maps đích; nếu Google thay đổi định dạng và không tìm được thì doanh
-nghiệp vẫn có thể nhập latitude/longitude trực tiếp.
+Khi tạo hoặc sửa hoạt động, link Google Maps là nguồn tọa độ ưu tiên kể cả khi
+request đồng thời có latitude/longitude cũ. Backend mở short link rồi đọc tọa độ
+`place` từ Google Embed công khai (không cần Google Maps API key), không lấy tâm
+viewport của trang preview. Nếu không có link, backend dùng tọa độ nhập tay hoặc
+geocode địa chỉ qua Nominatim với cache và giới hạn tối đa 1 request/giây.
+
+- `GET /search/location?query=...`: đổi địa chỉ hoặc link Google Maps do người dùng
+  nhập thành tọa độ cho bộ lọc.
+- `python sync_activity_locations.py`: audit tọa độ; thêm `--apply` để ghi vào DB.
+- Map customer hỗ trợ wheel/nhấp đúp để zoom, kéo để pan và nhấn vùng trống để chọn
+  tâm tìm kiếm mới. Khoảng cách ở trang chi tiết được backend tính theo tâm đó.
 
 ## 18. Deploy backend lên Render
 

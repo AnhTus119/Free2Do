@@ -154,8 +154,8 @@ class BackendCalculationTests(unittest.TestCase):
         results = search_activities(
             schemas.SearchParams(
                 keyword="Whimsical",
-                latitude=20.99614,
-                longitude=105.85003,
+                latitude=20.9971704,
+                longitude=105.8510251,
                 radius=2,
                 budget=250000,
                 free_time=60,

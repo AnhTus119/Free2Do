@@ -53,7 +53,7 @@ window.openForm = (mode, id = null) => {
   document.getElementById('f-close').value = toLocalInput(item?.time_close);
   document.getElementById('f-latitude').value = item?.latitude ?? '';
   document.getElementById('f-longitude').value = item?.longitude ?? '';
-  document.getElementById('f-source').value = item?.source_url || '';
+  document.getElementById('f-source').value = item?.google_maps_url || item?.source_url || '';
   document.getElementById('f-media').value = '';
   renderCategories(item?.category_ids || []);
   document.getElementById('form-overlay').classList.add('show');
@@ -81,6 +81,10 @@ async function submitActivity() {
     return value === '' ? null : Number(value);
   };
   const dateOrNull = id => document.getElementById(id).value ? new Date(document.getElementById(id).value).toISOString() : null;
+  const submittedLink = document.getElementById('f-source').value.trim();
+  const currentActivity = activities.find(activity => activity.activity_id === editingId);
+  const isGoogleMapsLink = /^https?:\/\/(?:[^/]+\.)?(?:google\.[^/]+|goo\.gl)\//i.test(submittedLink)
+    && /(?:\/maps|maps\.app\.goo\.gl)/i.test(submittedLink);
   const payload = {
     name,
     description: document.getElementById('f-description').value.trim() || null,
@@ -91,7 +95,8 @@ async function submitActivity() {
     time_close: dateOrNull('f-close'),
     latitude: numberOrNull('f-latitude'),
     longitude: numberOrNull('f-longitude'),
-    source_url: document.getElementById('f-source').value.trim() || null,
+    source_url: isGoogleMapsLink ? (currentActivity?.source_url || null) : (submittedLink || null),
+    google_maps_url: isGoogleMapsLink ? submittedLink : (currentActivity?.google_maps_url || null),
     category_ids: selectedCategoryIds()
   };
   try {

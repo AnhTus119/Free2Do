@@ -482,6 +482,14 @@ class ActivityPublicOut(ActivityDetail):
     """Hoạt động công khai kèm tên doanh nghiệp để frontend không phải dùng dữ liệu mẫu."""
     business_name: str
     business_avatar_url: Optional[str] = None
+    distance_km: Optional[float] = None
+
+
+class LocationResolveOut(BaseModel):
+    latitude: float
+    longitude: float
+    display_name: str
+    source: str
 
 class ActivityAdminOut(ActivityPublicOut):
     """Dùng cho danh sách Operator duyệt -- kèm tên doanh nghiệp và thông tin xác minh"""

@@ -13,6 +13,8 @@
   let position = DEFAULT_POSITION;
   let mapController;
   let searchTimer;
+  let locationResolveTimer;
+  let locationLabel = 'Vị trí hiện tại';
 
   const parseMoney = value => {
     const normalized = String(value || '').replace(/[^0-9]/g, '');
@@ -29,7 +31,11 @@
     || item.media?.find(media => media.media_type === 'image')?.media_url || null;
   function activityCard(item) {
     const image = activityImage(item);
-    return `<a class="activity-card" href="activity-detail.html?id=${encodeURIComponent(item.activity_id)}"><div class="activity-image">${image ? `<img src="${api.escapeHTML(image)}" alt="">` : '<span>Chưa có ảnh</span>'}</div><div class="activity-body"><div class="activity-title">${api.escapeHTML(item.name)}</div><div class="activity-meta">${api.escapeHTML(item.business_name)} · ${api.escapeHTML(item.address)}</div><div>${api.escapeHTML(api.priceLabel(item.price_text, item.price))} · ★ ${item.avg_rating ?? '—'} (${item.review_count})</div></div></a>`;
+    return `<a class="activity-card" href="${api.escapeHTML(detailHref(item))}"><div class="activity-image">${image ? `<img src="${api.escapeHTML(image)}" alt="">` : '<span>Chưa có ảnh</span>'}</div><div class="activity-body"><div class="activity-title">${api.escapeHTML(item.name)}</div><div class="activity-meta">${api.escapeHTML(item.business_name)} · ${api.escapeHTML(item.address)}</div><div>${api.escapeHTML(api.priceLabel(item.price_text, item.price))} · ★ ${item.avg_rating ?? '—'} (${item.review_count})</div></div></a>`;
+  }
+  function detailHref(item) {
+    const query = new URLSearchParams({ id: item.activity_id, latitude: position.latitude, longitude: position.longitude });
+    return `activity-detail.html?${query}`;
   }
   function paginate(box, nav, perPage) {
     let page = 1;
@@ -54,7 +60,7 @@
   }
   function renderMapResults(items) {
     mapCount.textContent = items.length;
-    mapResults.innerHTML = items.length ? items.map(item => { const icon = activityImage(item); return `<a class="map-side-item" data-activity-id="${api.escapeHTML(item.activity_id)}" href="activity-detail.html?id=${encodeURIComponent(item.activity_id)}"><div class="map-side-img">${icon ? `<img src="${api.escapeHTML(icon)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:8px">` : '✨'}</div><div class="map-side-info"><h4>${api.escapeHTML(item.name)}</h4><p>${item.distance_km ?? '—'} km · ${api.escapeHTML(api.priceLabel(item.price_text, item.price))} · ★ ${item.avg_rating ?? '—'}</p><span class="map-match-badge">${item.match_score}% phù hợp</span></div></a>`; }).join('') : '<p style="padding:20px;color:var(--muted);">Không có hoạt động phù hợp.</p>';
+    mapResults.innerHTML = items.length ? items.map(item => { const icon = activityImage(item); return `<a class="map-side-item" data-activity-id="${api.escapeHTML(item.activity_id)}" href="${api.escapeHTML(detailHref(item))}"><div class="map-side-img">${icon ? `<img src="${api.escapeHTML(icon)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:8px">` : '✨'}</div><div class="map-side-info"><h4>${api.escapeHTML(item.name)}</h4><p>${item.distance_km ?? '—'} km · ${api.escapeHTML(api.priceLabel(item.price_text, item.price))} · ★ ${item.avg_rating ?? '—'}</p><span class="map-match-badge">${item.match_score}% phù hợp</span></div></a>`; }).join('') : '<p style="padding:20px;color:var(--muted);">Không có hoạt động phù hợp.</p>';
     try { mapController?.render(position, Number(radiusSlider.value), items); }
     catch (error) { console.warn('Không thể vẽ bản đồ:', error); }
   }
@@ -75,7 +81,28 @@
   function bindFilters() {
     radiusSlider.addEventListener('input', () => { radiusValue.textContent = radiusSlider.value; queueSearch(); });
     ['freeHours', 'freeMinutes', 'budgetInput'].forEach(id => document.getElementById(id).addEventListener('input', queueSearch));
-    document.getElementById('locationInput').addEventListener('input', () => { mapLocation.textContent = document.getElementById('locationInput').value.trim() || 'Vị trí hiện tại'; });
+    const locationInput = document.getElementById('locationInput');
+    const resolveTypedLocation = async () => {
+      const query = locationInput.value.trim();
+      if (!query || query === 'Vị trí hiện tại') return;
+      const result = await api.request(`/search/location?query=${encodeURIComponent(query)}`);
+      position = { latitude: result.latitude, longitude: result.longitude };
+      locationLabel = result.display_name || query;
+      mapLocation.textContent = locationLabel;
+      await searchNearby(false);
+    };
+    locationInput.addEventListener('input', () => {
+      mapLocation.textContent = locationInput.value.trim() || locationLabel;
+      clearTimeout(locationResolveTimer);
+    });
+    locationInput.addEventListener('keydown', event => {
+      if (event.key !== 'Enter') return;
+      event.preventDefault();
+      resolveTypedLocation().catch(error => alert(error.message));
+    });
+    locationInput.addEventListener('change', () => {
+      locationResolveTimer = setTimeout(() => resolveTypedLocation().catch(error => alert(error.message)), 0);
+    });
     interestBox.addEventListener('click', event => {
       const chip = event.target.closest('[data-category-id]');
       if (!chip) return;
@@ -86,12 +113,20 @@
       try {
         position = await window.Free2DoMap.getCurrentPosition();
         document.getElementById('locationInput').value = 'Vị trí hiện tại';
+        locationLabel = 'Vị trí hiện tại';
         mapLocation.textContent = 'Vị trí hiện tại';
         await searchNearby(false);
       } catch (error) { alert(error.message); }
     });
     mapResults.addEventListener('pointerover', event => { const item = event.target.closest('[data-activity-id]'); if (item) mapController?.highlight(item.dataset.activityId, true); });
     mapResults.addEventListener('pointerout', event => { const item = event.target.closest('[data-activity-id]'); if (item) mapController?.highlight(item.dataset.activityId, false); });
+    mapController?.onSelectPosition(async selected => {
+      position = selected;
+      locationLabel = 'Vị trí đã chọn trên bản đồ';
+      locationInput.value = locationLabel;
+      mapLocation.textContent = locationLabel;
+      await searchNearby(false).catch(error => alert(error.message));
+    });
   }
   async function load() {
     await api.requireUser();
@@ -103,13 +138,21 @@
     businessesBox.innerHTML = businesses.length ? businesses.map(item => `<a class="activity-card" href="business-detail.html?id=${encodeURIComponent(item.user_id)}"><div class="activity-image">${item.avatar_url ? `<img src="${api.escapeHTML(item.avatar_url)}" alt="Logo ${api.escapeHTML(item.business_name)}">` : '<span>Chưa có logo</span>'}</div><div class="activity-body"><div class="activity-title">${api.escapeHTML(item.business_name)}</div><div class="activity-meta">${api.escapeHTML(item.business_address)}</div><p>${api.escapeHTML(item.description || 'Chưa có mô tả.')}</p><b>${item.activity_count} hoạt động đang mở</b></div></a>`).join('') : '<div class="empty-state">Hiện chưa có doanh nghiệp có hoạt động đang mở.</div>';
     interestBox.innerHTML = categories.map(item => `<div class="chip" data-category-id="${api.escapeHTML(item.category_id)}">${api.escapeHTML(item.name)}</div>`).join('');
     bindFilters();
-    try { position = await window.Free2DoMap.getCurrentPosition(); mapLocation.textContent = 'Vị trí hiện tại'; }
-    catch (_) { mapLocation.textContent = 'Hà Nội (mặc định)'; }
+    try { position = await window.Free2DoMap.getCurrentPosition(); locationLabel = 'Vị trí hiện tại'; mapLocation.textContent = locationLabel; }
+    catch (_) { locationLabel = 'Hà Nội (mặc định)'; mapLocation.textContent = locationLabel; }
     await searchNearby(false);
   }
-  document.getElementById('searchActivitiesButton').addEventListener('click', event => {
+  document.getElementById('searchActivitiesButton').addEventListener('click', async event => {
     event.preventDefault();
-    const params = new URLSearchParams({ latitude: position.latitude, longitude: position.longitude,
+    const typedLocation = document.getElementById('locationInput').value.trim();
+    if (typedLocation && !['Vị trí hiện tại', 'Vị trí đã chọn trên bản đồ'].includes(typedLocation)) {
+      try {
+        const resolved = await api.request(`/search/location?query=${encodeURIComponent(typedLocation)}`);
+        position = { latitude: resolved.latitude, longitude: resolved.longitude };
+        locationLabel = resolved.display_name || typedLocation;
+      } catch (error) { alert(error.message); return; }
+    }
+    const params = new URLSearchParams({ latitude: position.latitude, longitude: position.longitude, location_label: locationLabel,
       radius: radiusSlider.value, hours: document.getElementById('freeHours').value || '0',
       minutes: document.getElementById('freeMinutes').value || '0', budget: document.getElementById('budgetInput').value.trim(),
       categories: selectedCategoryIds().join('|') });

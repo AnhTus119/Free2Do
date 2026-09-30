@@ -6,11 +6,10 @@ Không sửa tài khoản, giá, media hoặc trạng thái. Có thể chạy l�
 
 from app import models
 from app.database import SessionLocal
-from app.utils.google_maps import coordinates_from_google_maps_url
 from seed_activities import ACTIVITY_TAGS
 
 
-def sync_activity_tags(db, resolve_coordinates: bool = False) -> tuple[int, list[str]]:
+def sync_activity_tags(db) -> tuple[int, list[str]]:
     category_by_name = {}
     for name in sorted({tag for tags in ACTIVITY_TAGS.values() for tag in tags}):
         category = db.query(models.Category).filter(models.Category.name == name).first()
@@ -38,18 +37,6 @@ def sync_activity_tags(db, resolve_coordinates: bool = False) -> tuple[int, list
         if activity_id == "A023":
             activity.name = "Cà phê"
             activity.description = "Không gian cà phê yên tĩnh phù hợp để làm việc và thư giãn"
-        if (
-            resolve_coordinates
-            and (activity.latitude is None or activity.longitude is None)
-            and activity.google_maps_url
-        ):
-            try:
-                coordinates = coordinates_from_google_maps_url(activity.google_maps_url)
-            except Exception as exc:
-                print(f"Could not resolve coordinates for {activity_id}: {exc}")
-                coordinates = None
-            if coordinates:
-                activity.latitude, activity.longitude = coordinates
         updated += 1
     db.commit()
     return updated, missing
@@ -58,7 +45,7 @@ def sync_activity_tags(db, resolve_coordinates: bool = False) -> tuple[int, list
 def main() -> None:
     db = SessionLocal()
     try:
-        updated, missing = sync_activity_tags(db, resolve_coordinates=True)
+        updated, missing = sync_activity_tags(db)
         print(f"Updated tags for {updated} activities.")
         if missing:
             print(f"Skipped missing activity IDs: {', '.join(missing)}")

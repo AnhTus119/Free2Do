@@ -8,20 +8,35 @@ from app.database import get_db
 from app import models, schemas
 from app.auth import get_current_business_user, get_current_operator
 from app.utils.email import send_activity_approved_email, send_activity_hidden_email
-from app.utils.google_maps import coordinates_from_google_maps_url
+from app.utils.geocoding import geocode_address, resolve_location
+from app.utils.distance import haversine_km
 from app.services.supabase_storage import delete_asset
 
 router = APIRouter(prefix="/activities", tags=["activities"])
 
 
-def _coordinates(latitude, longitude, google_maps_url):
+def _coordinates(latitude, longitude, google_maps_url, address=None):
+    # A Google Maps link is the authoritative source even when stale manual
+    # coordinates were also submitted.
+    if google_maps_url:
+        resolved = resolve_location(google_maps_url, address)
+        if resolved:
+            return resolved[0], resolved[1]
     if latitude is not None and longitude is not None:
         return latitude, longitude
-    extracted = coordinates_from_google_maps_url(google_maps_url) if google_maps_url else None
-    return extracted if extracted else (latitude, longitude)
+    if address:
+        resolved = geocode_address(address)
+        if resolved:
+            return resolved[0], resolved[1]
+    return latitude, longitude
 
 
-def _to_detail(db: Session, activity: models.Activity) -> schemas.ActivityPublicOut:
+def _to_detail(
+    db: Session,
+    activity: models.Activity,
+    origin_latitude: float | None = None,
+    origin_longitude: float | None = None,
+) -> schemas.ActivityPublicOut:
     avg_rating = (
         db.query(func.avg(models.Review.rating))
         .filter(models.Review.activity_id == activity.activity_id)
@@ -40,6 +55,12 @@ def _to_detail(db: Session, activity: models.Activity) -> schemas.ActivityPublic
         media=[schemas.ActivityMedia.model_validate(m) for m in activity.media],
         avg_rating=round(avg_rating, 1) if avg_rating else None,
         review_count=review_count or 0,
+        distance_km=(
+            round(haversine_km(origin_latitude, origin_longitude, activity.latitude, activity.longitude), 2)
+            if isinstance(origin_latitude, (int, float)) and isinstance(origin_longitude, (int, float))
+            and activity.latitude is not None and activity.longitude is not None
+            else None
+        ),
     )
 
 
@@ -71,11 +92,16 @@ def list_public_activities(
 
 
 @router.get("/{activity_id}", response_model=schemas.ActivityPublicOut)
-def get_activity(activity_id: str, db: Session = Depends(get_db)):
+def get_activity(
+    activity_id: str,
+    latitude: float | None = Query(None, ge=-90, le=90),
+    longitude: float | None = Query(None, ge=-180, le=180),
+    db: Session = Depends(get_db),
+):
     activity = db.query(models.Activity).filter(models.Activity.activity_id == activity_id).first()
     if not activity or activity.status not in ("active", "pending"):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Không tìm thấy hoạt động")
-    return _to_detail(db, activity)
+    return _to_detail(db, activity, latitude, longitude)
 
 
 # ---------------------------------------------------------------------------
@@ -88,7 +114,12 @@ def create_activity(
     business: models.BusinessProfile = Depends(get_current_business_user),
 ):
     now = datetime.utcnow()
-    latitude, longitude = _coordinates(payload.latitude, payload.longitude, payload.google_maps_url)
+    try:
+        latitude, longitude = _coordinates(
+            payload.latitude, payload.longitude, payload.google_maps_url, payload.address
+        )
+    except Exception as exc:
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, "Không thể xác định vị trí hoạt động") from exc
     activity = models.Activity(
         business_id=business.user_id,
         name=payload.name,
@@ -125,8 +156,14 @@ def update_activity(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Không tìm thấy hoạt động")
 
     data = payload.model_dump(exclude_unset=True, exclude={"category_ids"})
-    if "google_maps_url" in data and "latitude" not in data and "longitude" not in data:
-        coordinates = _coordinates(None, None, data["google_maps_url"])
+    if "google_maps_url" in data:
+        try:
+            coordinates = _coordinates(
+                data.get("latitude"), data.get("longitude"), data["google_maps_url"],
+                data.get("address", activity.address),
+            )
+        except Exception as exc:
+            raise HTTPException(status.HTTP_502_BAD_GATEWAY, "Không thể xác định vị trí hoạt động") from exc
         if coordinates != (None, None):
             data["latitude"], data["longitude"] = coordinates
     for field, value in data.items():
@@ -258,8 +295,14 @@ def update_activity_as_operator(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Không tìm thấy hoạt động")
 
     data = payload.model_dump(exclude_unset=True, exclude={"category_ids"})
-    if "google_maps_url" in data and "latitude" not in data and "longitude" not in data:
-        coordinates = _coordinates(None, None, data["google_maps_url"])
+    if "google_maps_url" in data:
+        try:
+            coordinates = _coordinates(
+                data.get("latitude"), data.get("longitude"), data["google_maps_url"],
+                data.get("address", activity.address),
+            )
+        except Exception as exc:
+            raise HTTPException(status.HTTP_502_BAD_GATEWAY, "Không thể xác định vị trí hoạt động") from exc
         if coordinates != (None, None):
             data["latitude"], data["longitude"] = coordinates
     for field, value in data.items():

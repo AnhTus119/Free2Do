@@ -1,7 +1,8 @@
 (function () {
   'use strict';
   const api = window.CustomerAPI;
-  const id = new URLSearchParams(location.search).get('id');
+  const params = new URLSearchParams(location.search);
+  const id = params.get('id');
   const text = (key, value) => { const node = document.getElementById(key); if (node) node.textContent = value; };
   const mediaHTML = (item, own = false) => {
     const url = api.escapeHTML(item.media_url);
@@ -55,16 +56,21 @@
   }
   async function run() {
     if (!id) throw new Error('Thiếu mã hoạt động.');
+    const origin = new URLSearchParams();
+    if (params.has('latitude') && params.has('longitude')) {
+      origin.set('latitude', params.get('latitude'));
+      origin.set('longitude', params.get('longitude'));
+    }
     const [activity, categories, reviews, me] = await Promise.all([
-      api.request(`/activities/${encodeURIComponent(id)}`), api.request('/categories'),
+      api.request(`/activities/${encodeURIComponent(id)}${origin.size ? `?${origin}` : ''}`), api.request('/categories'),
       api.request(`/activities/${encodeURIComponent(id)}/reviews`),
       localStorage.getItem('token') ? api.request('/auth/me').catch(() => null) : null,
     ]);
     const matched = categories.filter(item => (activity.category_ids || []).includes(item.category_id));
     text('activityName', activity.name); text('activityMeta', `${activity.business_name} · ${activity.address}${activity.avg_rating == null ? '' : ` · ★ ${activity.avg_rating} (${activity.review_count} đánh giá)`}`);
     text('activityPrice', api.priceLabel(activity.price_text, activity.price)); text('activityDuration', 'Theo khung giờ');
-    text('activityHours', api.hours(activity.time_open, activity.time_close)); text('activityDistance', 'Tính tại trang tìm kiếm');
-    text('activityDescription', activity.description || 'Chưa có mô tả.'); text('activityMapPin', activity.name);
+    text('activityHours', api.hours(activity.time_open, activity.time_close)); text('activityDistance', activity.distance_km == null ? 'Chưa chọn vị trí tìm kiếm' : `${activity.distance_km} km`);
+    text('activityDescription', activity.description || 'Chưa có mô tả.'); text('activityMapPin', `${activity.name} · ${activity.address}`);
     text('sideActivityPrice', api.priceLabel(activity.price_text, activity.price)); text('sideActivityMeta', api.hours(activity.time_open, activity.time_close));
     text('reviewsTitle', `Đánh giá (${reviews.length})`);
     document.getElementById('activityTags').innerHTML = matched.map(item => `<span class="tag">${api.escapeHTML(item.name)}</span>`).join('');

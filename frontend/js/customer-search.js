@@ -20,6 +20,7 @@
   let timer;
   let requestSequence = 0;
   let mapSideView = 'list';
+  let locationLabel = params.get('location_label') || 'Vị trí hiện tại';
 
   const parseMoney = value => {
     const normalized = String(value || '').replace(/[^0-9]/g, '');
@@ -42,14 +43,18 @@
   function imageHTML(item) {
     return item.image_url ? `<img src="${api.escapeHTML(item.image_url)}" alt="" style="width:100%;height:100%;object-fit:cover">` : '✨';
   }
+  function detailHref(item) {
+    const query = new URLSearchParams({ id: item.activity_id, latitude: position.latitude, longitude: position.longitude });
+    return `activity-detail.html?${query}`;
+  }
   function listRow(item) {
-    return `<a href="activity-detail.html?id=${encodeURIComponent(item.activity_id)}" class="activity-list-row"><span><span class="activity-title">${api.escapeHTML(item.name)}</span><span class="activity-biz">${api.escapeHTML(item.business_name)}</span></span><span class="activity-list-address" title="${api.escapeHTML(item.address)}">${api.escapeHTML(item.address)}</span><span class="activity-list-rating">★ ${item.avg_rating ?? '—'}</span><span class="activity-list-price">${api.escapeHTML(api.priceLabel(item.price_text, item.price))}</span><span class="activity-list-distance">${item.distance_km ?? '—'} km</span></a>`;
+    return `<a href="${api.escapeHTML(detailHref(item))}" class="activity-list-row"><span><span class="activity-title">${api.escapeHTML(item.name)}</span><span class="activity-biz">${api.escapeHTML(item.business_name)}</span></span><span class="activity-list-address" title="${api.escapeHTML(item.address)}">${api.escapeHTML(item.address)}</span><span class="activity-list-rating">★ ${item.avg_rating ?? '—'}</span><span class="activity-list-price">${api.escapeHTML(api.priceLabel(item.price_text, item.price))}</span><span class="activity-list-distance">${item.distance_km ?? '—'} km</span></a>`;
   }
   function detailCard(item) {
-    return `<a href="activity-detail.html?id=${encodeURIComponent(item.activity_id)}" class="activity-card"><div class="activity-img" style="background:#F3D9A6;overflow:hidden">${imageHTML(item)}<span class="match-badge">${item.match_score}% phù hợp</span></div><div class="activity-body"><div class="activity-title">${api.escapeHTML(item.name)}</div><div class="activity-biz">${api.escapeHTML(item.business_name)} · ${api.escapeHTML(item.address)}</div><div class="activity-meta">★ ${item.avg_rating ?? '—'} · <span class="activity-price">${api.escapeHTML(api.priceLabel(item.price_text, item.price))}</span> · ${item.distance_km ?? '—'} km · ${api.escapeHTML(api.hours(item.time_open, item.time_close))}</div><div class="why-match">Phù hợp với tiêu chí bạn đã chọn</div></div></a>`;
+    return `<a href="${api.escapeHTML(detailHref(item))}" class="activity-card"><div class="activity-img" style="background:#F3D9A6;overflow:hidden">${imageHTML(item)}<span class="match-badge">${item.match_score}% phù hợp</span></div><div class="activity-body"><div class="activity-title">${api.escapeHTML(item.name)}</div><div class="activity-biz">${api.escapeHTML(item.business_name)} · ${api.escapeHTML(item.address)}</div><div class="activity-meta">★ ${item.avg_rating ?? '—'} · <span class="activity-price">${api.escapeHTML(api.priceLabel(item.price_text, item.price))}</span> · ${item.distance_km ?? '—'} km · ${api.escapeHTML(api.hours(item.time_open, item.time_close))}</div><div class="why-match">Phù hợp với tiêu chí bạn đã chọn</div></div></a>`;
   }
   function sideRow(item) {
-    return `<a class="map-side-item" data-activity-id="${api.escapeHTML(item.activity_id)}" href="activity-detail.html?id=${encodeURIComponent(item.activity_id)}"><div class="map-side-img">${imageHTML(item)}</div><div class="map-side-info"><h4>${api.escapeHTML(item.name)}</h4><p>${item.distance_km ?? '—'} km · ${api.escapeHTML(api.priceLabel(item.price_text, item.price))} · ★ ${item.avg_rating ?? '—'}</p><span class="map-match-badge">${item.match_score}% phù hợp</span></div></a>`;
+    return `<a class="map-side-item" data-activity-id="${api.escapeHTML(item.activity_id)}" href="${api.escapeHTML(detailHref(item))}"><div class="map-side-img">${imageHTML(item)}</div><div class="map-side-info"><h4>${api.escapeHTML(item.name)}</h4><p>${item.distance_km ?? '—'} km · ${api.escapeHTML(api.priceLabel(item.price_text, item.price))} · ★ ${item.avg_rating ?? '—'}</p><span class="map-match-badge">${item.match_score}% phù hợp</span></div></a>`;
   }
   function render(items) {
     resultCount.textContent = items.length;
@@ -65,6 +70,7 @@
   function syncQuery() {
     params.set('latitude', position.latitude);
     params.set('longitude', position.longitude);
+    params.set('location_label', locationLabel);
     params.set('radius', radiusSlider.value);
     params.set('hours', document.getElementById('freeHours').value || '0');
     params.set('minutes', document.getElementById('freeMinutes').value || '0');
@@ -150,14 +156,20 @@
     await api.requireUser();
     restoreFilters();
     mapController = await window.Free2DoMap.create('searchMap', position);
+    mapController.onSelectPosition(async selected => {
+      position = selected;
+      locationLabel = 'Vị trí đã chọn trên bản đồ';
+      mapLocation.textContent = locationLabel;
+      await search(false).catch(error => { mapResults.innerHTML = `<p style="padding:20px;">${api.escapeHTML(error.message)}</p>`; });
+    });
     const categories = await api.request('/categories');
     const initial = new Set((params.get('categories') || '').split('|').filter(Boolean));
     categoryBox.innerHTML = categories.map(item => `<div class="chip ${initial.has(item.category_id) ? 'active' : ''}" data-category-id="${api.escapeHTML(item.category_id)}">${api.escapeHTML(item.name)}</div>`).join('');
     bind();
     if (!params.has('latitude')) {
-      try { position = await window.Free2DoMap.getCurrentPosition(); mapLocation.textContent = 'Vị trí hiện tại'; }
+      try { position = await window.Free2DoMap.getCurrentPosition(); locationLabel = 'Vị trí hiện tại'; mapLocation.textContent = locationLabel; }
       catch (_) { mapLocation.textContent = 'Hà Nội (mặc định)'; }
-    }
+    } else mapLocation.textContent = locationLabel;
     await search(true);
     setView(matchMedia('(max-width:900px)').matches ? 'details' : 'list');
   }

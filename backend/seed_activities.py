@@ -119,6 +119,41 @@ GOOGLE_MAP_URLS = {
     "A031": "https://maps.app.goo.gl/ptaDBG6wUeUEUrSC9?g_st=ic",
 }
 
+# Tọa độ địa điểm thực được audit ngày 2026-09-30 từ từng link Google Maps
+# bằng payload place của Google Embed (không dùng tâm viewport của trang preview).
+VERIFIED_COORDINATES = {
+    "A001": (20.9971704, 105.8510251),
+    "A002": (21.0137444, 105.8511461),
+    "A003": (21.0013473, 105.8508814),
+    "A004": (20.9884887, 105.8413674),
+    "A005": (21.0318889, 105.7980110),
+    "A006": (21.0473894, 105.8069540),
+    "A007": (21.0015068, 105.8620123),
+    "A009": (21.0006342, 105.8352862),
+    "A010": (20.9975624, 105.8460967),
+    "A011": (20.9984530, 105.8479236),
+    "A012": (20.9977702, 105.8385364),
+    "A013": (21.0070417, 105.8448791),
+    "A014": (20.9955328, 105.8449465),
+    "A015": (21.0016739, 105.8436883),
+    "A016": (21.0016739, 105.8436883),
+    "A017": (21.0037635, 105.8467284),
+    "A018": (20.9857949, 105.8402218),
+    "A019": (20.9999719, 105.8298892),
+    "A020": (21.0043193, 105.8325654),
+    "A021": (20.9978928, 105.8375170),
+    "A022": (20.9970953, 105.8370296),
+    "A023": (20.9996541, 105.8483739),
+    "A024": (20.9901818, 105.8412118),
+    "A025": (20.9981947, 105.8442692),
+    "A026": (20.9977002, 105.8466709),
+    "A027": (20.9934411, 105.8446009),
+    "A028": (20.9923676, 105.8448215),
+    "A029": (20.9946559, 105.8440166),
+    "A030": (21.0002404, 105.8473438),
+    "A031": (21.0018347, 105.8492663),
+}
+
 
 def _as_datetime(value, closing=False):
     if not value:
@@ -200,6 +235,7 @@ def main():
         for row in ACTIVITIES:
             (activity_id, business_id, _, _, name, description, price, price_text, address,
              latitude, longitude, time_open, time_close, _legacy_category, source_url) = row
+            latitude, longitude = VERIFIED_COORDINATES.get(activity_id, (latitude, longitude))
             activity = db.query(models.Activity).filter(models.Activity.activity_id == activity_id).first()
             values = dict(
                 business_id=business_id,

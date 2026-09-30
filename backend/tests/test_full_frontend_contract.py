@@ -109,7 +109,7 @@ class FullFrontendContractTests(unittest.TestCase):
         self.assertGreaterEqual(len(filenames), 14)
         for filename in filenames:
             self.assertTrue((self.frontend / "img" / "map-icons" / filename).is_file(), filename)
-        for marker in ("zoomBy", "addEventListener('wheel'", "addEventListener('dblclick'", "addEventListener('touchmove'"):
+        for marker in ("zoomBy", "addEventListener('wheel'", "addEventListener('dblclick'", "addEventListener('touchmove'", "addEventListener('pointermove'", "onSelectPosition"):
             self.assertIn(marker, map_source)
         self.assertNotIn("leaflet", map_source.lower())
 

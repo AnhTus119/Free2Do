@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 from typing import Optional
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, or_, text
 from sqlalchemy.orm import Session, selectinload
 
@@ -10,8 +10,30 @@ from app.auth import get_current_user
 from app.config import settings
 from app.database import get_db
 from app.utils.distance import haversine_km
+from app.utils.geocoding import resolve_location
 
 router = APIRouter(prefix="/search", tags=["search"])
+
+
+@router.get("/location", response_model=schemas.LocationResolveOut)
+def resolve_search_location(
+    query: str = Query(..., min_length=3, max_length=1000),
+    _user: models.User = Depends(get_current_user),
+):
+    """Resolve one explicit address/Google Maps link; this is not autocomplete."""
+    try:
+        result = resolve_location(query)
+    except Exception as exc:
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, "Không thể kết nối dịch vụ bản đồ") from exc
+    if not result:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Không tìm thấy địa chỉ này")
+    latitude, longitude, display_name, source = result
+    return schemas.LocationResolveOut(
+        latitude=latitude,
+        longitude=longitude,
+        display_name=display_name,
+        source=source,
+    )
 
 
 def _postgis_available(db: Session) -> bool:

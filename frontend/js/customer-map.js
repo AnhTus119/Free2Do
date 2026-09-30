@@ -34,6 +34,14 @@
     };
   }
 
+  function coordinateFromWorldPoint(x, y, zoom) {
+    const size = TILE_SIZE * (2 ** zoom);
+    const longitude = x / size * 360 - 180;
+    const mercator = Math.PI * (1 - 2 * y / size);
+    const latitude = Math.atan(Math.sinh(mercator)) * 180 / Math.PI;
+    return { latitude: clamp(latitude, -85.05112878, 85.05112878), longitude };
+  }
+
   function markerPosition(latitude, longitude, center, zoom, width, height) {
     const point = worldPoint(latitude, longitude, zoom);
     const origin = worldPoint(center.latitude, center.longitude, zoom);
@@ -89,11 +97,16 @@
     });
   }
 
-  function createMarker(activity, position) {
+  function createMarker(activity, position, searchPosition) {
     const link = document.createElement('a');
     link.className = 'free2do-static-map-marker';
     link.dataset.activityId = String(activity.activity_id);
-    link.href = `activity-detail.html?id=${encodeURIComponent(activity.activity_id)}`;
+    const query = new URLSearchParams({ id: activity.activity_id });
+    if (validCoordinate(searchPosition?.latitude, searchPosition?.longitude)) {
+      query.set('latitude', searchPosition.latitude);
+      query.set('longitude', searchPosition.longitude);
+    }
+    link.href = `activity-detail.html?${query}`;
     link.title = activity.name || 'Hoạt động';
     link.setAttribute('aria-label', activity.name || 'Xem hoạt động');
     link.style.left = `${position.left}px`;
@@ -144,6 +157,11 @@
     let wheelAccumulator = 0;
     let pinchStartDistance = null;
     let pinchLastDistance = null;
+    let viewCenter = { ...DEFAULT_POSITION };
+    let selectPositionHandler = null;
+    let dragStart = null;
+    let dragging = false;
+    let selectionTimer = null;
 
     function render(userPosition, radiusKm, activities) {
       const center = {
@@ -164,17 +182,18 @@
       if (nextViewportKey !== viewportKey) {
         viewportKey = nextViewportKey;
         zoomOffset = 0;
+        viewCenter = { ...center };
       }
       const zoom = clamp(currentBaseZoom + zoomOffset, 3, 18);
-      const nextBaseMapKey = `${center.latitude.toFixed(5)}:${center.longitude.toFixed(5)}:${zoom}:${displayWidth}:${displayHeight}`;
+      const nextBaseMapKey = `${viewCenter.latitude.toFixed(6)}:${viewCenter.longitude.toFixed(6)}:${zoom}:${displayWidth}:${displayHeight}`;
       if (nextBaseMapKey !== baseMapKey) {
         baseMapKey = nextBaseMapKey;
         const token = ++drawToken;
-        drawBaseMap(mapImage, center, zoom, displayWidth, displayHeight, token, () => drawToken)
+        drawBaseMap(mapImage, viewCenter, zoom, displayWidth, displayHeight, token, () => drawToken)
           .catch(error => console.warn('Không thể tải nền OpenStreetMap:', error));
       }
 
-      const currentPosition = markerPosition(center.latitude, center.longitude, center, zoom, displayWidth, displayHeight);
+      const currentPosition = markerPosition(center.latitude, center.longitude, viewCenter, zoom, displayWidth, displayHeight);
       const userMarker = document.createElement('span');
       userMarker.className = 'free2do-static-map-user';
       userMarker.title = 'Vị trí của bạn';
@@ -184,9 +203,9 @@
 
       latestRender.activities.forEach(activity => {
         if (!validCoordinate(activity.latitude, activity.longitude)) return;
-        const position = markerPosition(Number(activity.latitude), Number(activity.longitude), center, zoom, displayWidth, displayHeight);
+        const position = markerPosition(Number(activity.latitude), Number(activity.longitude), viewCenter, zoom, displayWidth, displayHeight);
         if (position.left < -30 || position.left > displayWidth + 30 || position.top < -30 || position.top > displayHeight + 30) return;
-        const marker = createMarker(activity, position);
+        const marker = createMarker(activity, position, center);
         markerLayer.appendChild(marker);
         markers.set(String(activity.activity_id), marker);
       });
@@ -218,7 +237,69 @@
     }, { passive: false });
     container.addEventListener('dblclick', event => {
       event.preventDefault();
+      clearTimeout(selectionTimer);
       zoomBy(1);
+    });
+    layer.style.cursor = 'grab';
+    layer.style.touchAction = 'none';
+    layer.addEventListener('pointerdown', event => {
+      if (event.button !== 0 || event.target.closest('.free2do-static-map-marker')) return;
+      const zoom = clamp(currentBaseZoom + zoomOffset, 3, 18);
+      dragStart = {
+        x: event.clientX,
+        y: event.clientY,
+        centerPoint: worldPoint(viewCenter.latitude, viewCenter.longitude, zoom),
+        zoom,
+      };
+      dragging = false;
+      layer.setPointerCapture?.(event.pointerId);
+      layer.style.cursor = 'grabbing';
+    });
+    layer.addEventListener('pointermove', event => {
+      if (!dragStart) return;
+      const dx = event.clientX - dragStart.x;
+      const dy = event.clientY - dragStart.y;
+      if (Math.hypot(dx, dy) > 4) dragging = true;
+      if (!dragging) return;
+      mapImage.style.transform = `translate(${dx}px, ${dy}px)`;
+      markerLayer.style.transform = `translate(${dx}px, ${dy}px)`;
+    });
+    const finishPointer = event => {
+      if (!dragStart) return;
+      const dx = event.clientX - dragStart.x;
+      const dy = event.clientY - dragStart.y;
+      mapImage.style.transform = '';
+      markerLayer.style.transform = '';
+      layer.style.cursor = 'grab';
+      if (dragging) {
+        viewCenter = coordinateFromWorldPoint(
+          dragStart.centerPoint.x - dx,
+          dragStart.centerPoint.y - dy,
+          dragStart.zoom,
+        );
+        baseMapKey = '';
+        render(latestRender.userPosition, latestRender.radiusKm, latestRender.activities);
+      } else if (selectPositionHandler) {
+        const rect = container.getBoundingClientRect();
+        const viewPoint = worldPoint(viewCenter.latitude, viewCenter.longitude, dragStart.zoom);
+        const selected = coordinateFromWorldPoint(
+          viewPoint.x + event.clientX - rect.left - rect.width / 2,
+          viewPoint.y + event.clientY - rect.top - rect.height / 2,
+          dragStart.zoom,
+        );
+        clearTimeout(selectionTimer);
+        selectionTimer = setTimeout(() => selectPositionHandler(selected), 220);
+      }
+      dragStart = null;
+      dragging = false;
+    };
+    layer.addEventListener('pointerup', finishPointer);
+    layer.addEventListener('pointercancel', () => {
+      mapImage.style.transform = '';
+      markerLayer.style.transform = '';
+      layer.style.cursor = 'grab';
+      dragStart = null;
+      dragging = false;
     });
     container.addEventListener('touchstart', event => {
       if (event.touches.length !== 2) return;
@@ -248,7 +329,14 @@
 
     if ('ResizeObserver' in window) new ResizeObserver(invalidate).observe(container);
     window.addEventListener('resize', invalidate);
-    return { render, highlight, invalidate, zoomIn: () => zoomBy(1), zoomOut: () => zoomBy(-1) };
+    return {
+      render,
+      highlight,
+      invalidate,
+      zoomIn: () => zoomBy(1),
+      zoomOut: () => zoomBy(-1),
+      onSelectPosition: handler => { selectPositionHandler = typeof handler === 'function' ? handler : null; },
+    };
   }
 
   function getCurrentPosition() {

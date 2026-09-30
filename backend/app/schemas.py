@@ -165,6 +165,7 @@ class ActivityWithScore(Activity):
     distance_km: Optional[float] = None
     business_name: str
     category_ids: list[str] = Field(default_factory=list)
+    category_names: list[str] = Field(default_factory=list)
     avg_rating: Optional[float] = None
     review_count: int = 0
     image_url: Optional[str] = None

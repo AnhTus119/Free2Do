@@ -57,7 +57,8 @@
     listResults.innerHTML = items.length ? items.map(listRow).join('') : '<p>Không tìm thấy hoạt động phù hợp với thông tin bạn đã chọn.</p>';
     detailResults.innerHTML = items.length ? items.map(detailCard).join('') : '<p>Không tìm thấy hoạt động phù hợp với thông tin bạn đã chọn.</p>';
     mapResults.innerHTML = items.length ? items.map(mapSideView === 'details' ? detailCard : sideRow).join('') : '<p style="padding:20px;">Không có hoạt động phù hợp.</p>';
-    mapController?.render(position, Number(radiusSlider.value), items);
+    try { mapController?.render(position, Number(radiusSlider.value), items); }
+    catch (error) { console.warn('Không thể vẽ bản đồ:', error); }
     const categoryNames = [...categoryBox.querySelectorAll('[data-category-id].active')].map(item => item.textContent.trim());
     summary.textContent = `Đang lọc theo: rảnh ${availableMinutes() ?? 0} phút · bán kính ${radiusSlider.value} km · ngân sách ${selectedBudget() == null ? 'không giới hạn' : api.price(selectedBudget())} · sở thích: ${categoryNames.join(', ') || 'tất cả'}`;
   }
@@ -113,6 +114,7 @@
     document.getElementById('view-list').style.display = 'none';
     document.getElementById('view-details').style.display = view === 'details' ? 'block' : 'none';
     document.querySelectorAll('#viewSwitchMobile button').forEach(button => button.classList.toggle('active', button.dataset.view === view));
+    if (view !== 'details') setTimeout(() => mapController?.invalidate(), 0);
   }
   function bind() {
     radiusSlider.addEventListener('input', () => { radiusValue.textContent = radiusSlider.value; mapRadius.textContent = radiusSlider.value; queueSearch(); });

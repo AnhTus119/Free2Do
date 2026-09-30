@@ -83,7 +83,7 @@ def search_activities(
     """Lọc và xếp hạng hoạt động ở backend; frontend chỉ hiển thị kết quả đã tính."""
     use_postgis = _postgis_available(db)
     query = db.query(models.Activity).options(
-        selectinload(models.Activity.categories),
+        selectinload(models.Activity.categories).selectinload(models.ActivityCategory.category),
         selectinload(models.Activity.media),
         selectinload(models.Activity.business),
     ).filter(
@@ -155,6 +155,7 @@ def search_activities(
                 distance_km=round(distance_km, 2),
                 business_name=activity.business.business_name,
                 category_ids=[item.category_id for item in activity.categories],
+                category_names=[item.category.name for item in activity.categories if item.category],
                 avg_rating=round(float(avg_rating), 1) if avg_rating is not None else None,
                 review_count=review_count or 0,
                 image_url=image,

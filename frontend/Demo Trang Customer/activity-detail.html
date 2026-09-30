@@ -2,6 +2,7 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>FREE2DO — Chi tiết hoạt động</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="app-style.css">
@@ -10,6 +11,55 @@
   .gallery div{display:flex;align-items:center;justify-content:center;font-size:36px;}
   .gallery .g1{grid-row:1/3;background:#F3D9A6;}
   .detail-grid{display:grid;grid-template-columns:1.6fr 1fr;gap:32px;align-items:start;}
+</style>
+<style>
+/* ===== Font ===== */
+html,body,input,button,select,textarea{font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif}
+
+/* ===== Navbar: link ở giữa ===== */
+.navbar .nav-left,.navbar .nav-right{flex:1 1 0;min-width:0}
+.navbar .nav-right{display:flex;justify-content:flex-end;align-items:center}
+.navbar .nav-center{display:flex;align-items:center;justify-content:center;gap:44px;flex:0 0 auto}
+.mobile-menu-btn{display:none;background:none;border:0;padding:6px;cursor:pointer;color:inherit;align-items:center;position:relative;z-index:5;-webkit-tap-highlight-color:transparent}
+
+/* ===== Menu trượt (hamburger) ===== */
+.mobile-nav-panel{display:none !important;position:fixed;top:0;right:0;bottom:0;left:0;z-index:2000;background:rgba(0,0,0,.4)}
+.mobile-nav-panel.show{display:block !important}
+.mobile-nav-content{position:absolute;top:0;left:0;bottom:0;width:260px;max-width:80%;background:#fff;padding:64px 16px 20px;display:flex;flex-direction:column;gap:6px;box-shadow:4px 0 24px rgba(0,0,0,.15);overflow-y:auto}
+.mobile-nav-close{position:absolute;top:10px;right:14px;width:40px;height:40px;background:none;border:0;font-size:30px;line-height:1;cursor:pointer;color:inherit}
+.mobile-nav-link{display:block;padding:12px 14px;border-radius:10px;text-decoration:none;color:inherit;font-weight:600;font-size:15px}
+.mobile-nav-link.active{background:#FDEDEF;color:var(--rose,#DB6680)}
+@media(min-width:769px){.mobile-nav-panel,.mobile-nav-panel.show{display:none !important}}
+@media(max-width:768px){
+  .mobile-menu-btn{display:inline-flex !important}
+  .navbar .nav-center,.navbar .nav-search{display:none !important}
+  .navbar .nav-right>.logout{display:none !important}
+}
+@media(max-width:600px){
+  .nav-logo{font-size:16px}
+  .navbar .nav-name{display:none}
+  .navbar{padding-left:12px;padding-right:12px}
+}
+
+/* ===== Map (dùng chung) ===== */
+@media(max-width:900px){
+  .map-section-layout{display:flex !important;flex-direction:column;gap:16px}
+  .map-box{width:100% !important}
+  .map-side-panel{width:100% !important;max-width:none !important;max-height:none !important}
+  .map-side-list{max-height:360px;overflow-y:auto}
+}
+
+@media(max-width:900px){
+  .detail-grid{grid-template-columns:1fr;gap:20px}
+  .detail-grid [style*="sticky"]{position:static !important}
+  .gallery{height:260px}
+  #activityName{font-size:22px !important}
+}
+@media(max-width:600px){
+  .gallery{grid-template-columns:2fr 1fr;height:200px;border-radius:14px}
+  .gallery>div:nth-child(n+4){display:none}
+  .gallery .g1{font-size:44px}
+}
 </style>
 </head>
 <body>
@@ -26,18 +76,20 @@
 </svg>
 
 <div class="navbar">
-  <div class="nav-left">
+  <div class="nav-left"><button class="mobile-menu-btn" type="button" aria-label="Mở menu" onclick="toggleMobileMenu()"><svg class="icon icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
     <a href="home.html" class="nav-logo" style="text-decoration:none; color:inherit;"><img src="Logo.svg" alt="logo" style="width:38px;height:auto;">FREE2DO</a>
     <form class="nav-search" id="detailSearchForm">
       <svg class="icon"><use href="#icon-search"></use></svg>
       <input id="detailSearchInput" type="search" placeholder="Tìm hoạt động, địa điểm...">
     </form>
   </div>
-  <div class="nav-right">
-    <div class="nav-center">
+  <div class="nav-center">
       <a href="home.html" class="nav-link">Trang chủ</a>
+      <a class="nav-link" href="search.html">Tìm kiếm</a>
       <a href="account.html#yeuthich" class="nav-link">Yêu thích</a>
     </div>
+  <div class="nav-right">
+    
     <div class="nav-icon"><svg class="icon"><use href="#icon-bell"></use></svg><span class="dot-badge"></span></div>
     <div class="nav-who" onclick="toggleUserMenu(event)">
       <div class="nav-avatar">?</div><div class="nav-name">Khách</div>
@@ -51,7 +103,7 @@
 </div>
 
 <div class="wrap" style="padding-top:28px;padding-bottom:60px;">
-  <a href="search.html" style="font-size:13px;color:var(--muted);text-decoration:none;">← Quay lại</a>
+  <a href="search.html" data-back style="font-size:13px;color:var(--muted);text-decoration:none;">← Quay lại</a>
 
   <div class="gallery" id="activityGallery" style="margin-top:16px;">
     <div class="g1" id="galleryIcon">✨</div>
@@ -104,6 +156,35 @@
   </div>
 </div>
 
+<div class="mobile-nav-panel" id="mobile-nav">
+  <div class="mobile-nav-content">
+    <button class="mobile-nav-close" type="button" onclick="toggleMobileMenu()">&times;</button>
+    <a href="home.html" class="mobile-nav-link">Trang chủ</a><a href="search.html" class="mobile-nav-link">Tìm kiếm</a><a href="account.html#yeuthich" class="mobile-nav-link">Yêu thích</a>
+  </div>
+</div>
+<script>
+function toggleMobileMenu(){
+  var panel=document.getElementById('mobile-nav');
+  if(panel) panel.classList.toggle('show');
+}
+(function(){
+  var panel=document.getElementById('mobile-nav');
+  if(!panel) return;
+  panel.addEventListener('click',function(e){
+    if(e.target===panel || e.target.closest('.mobile-nav-link')) panel.classList.remove('show');
+  });
+})();
+</script>
+<script>
+/* Nút "Quay lại": về đúng trang ngay trước đó; nếu không có (mở trực tiếp) thì dùng link mặc định */
+document.addEventListener('click', function (e) {
+  var a = e.target.closest ? e.target.closest('[data-back]') : null;
+  if (!a) return;
+  var sameSite = false;
+  try { sameSite = document.referrer && new URL(document.referrer).origin === location.origin; } catch (err) {}
+  if (history.length > 1 && sameSite) { e.preventDefault(); history.back(); }
+});
+</script>
 <script src="../js/config.js"></script>
 <script src="../js/customer-api.js"></script>
 <script src="../js/customer-detail.js"></script>

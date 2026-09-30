@@ -1,14 +1,306 @@
-<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>FREE2DO — Tìm hoạt động</title><link rel="stylesheet" href="app-style.css">
-<style>.search-layout{display:grid;grid-template-columns:280px 1fr;gap:24px;padding:28px 0}.filters,.result{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px}.filters{display:grid;gap:14px;align-self:start}.field label{display:block;font-weight:700;margin-bottom:6px}.field input,.field select{width:100%;padding:10px;border:1px solid var(--line);border-radius:10px}.category-list{display:grid;gap:7px}.result{margin-bottom:12px}.result h3{margin:0 0 7px}.meta{color:var(--muted);font-size:13px}.score{color:var(--rose);font-weight:800}.message{padding:18px;background:#fff;border:1px solid var(--line);border-radius:14px}@media(max-width:760px){.search-layout{grid-template-columns:1fr}}</style></head><body>
-<nav class="navbar"><div class="nav-left"><a class="nav-logo" href="home.html"><img src="Logo.svg" alt="FREE2DO" style="width:38px">FREE2DO</a></div><div class="nav-right"><a class="nav-link" href="home.html">Trang chủ</a><a class="nav-link" href="account.html#yeuthich">Yêu thích</a><div class="nav-who"><div class="nav-avatar">?</div><span class="nav-name"></span></div><a class="logout nav-link" href="#">Đăng xuất</a></div></nav>
-<main class="wrap"><div class="search-layout"><form id="searchForm" class="filters">
-<h2>Tìm hoạt động</h2><div class="field"><label for="keyword">Từ khóa</label><input id="keyword" autocomplete="off"></div>
-<div class="field"><label for="radius">Bán kính (km)</label><input id="radius" type="number" min="0.1" step="0.1" value="5" required></div>
-<div class="field"><label for="budget">Ngân sách tối đa</label><input id="budget" type="number" min="0" step="1000"></div>
-<div class="field"><label for="freeTime">Thời gian rảnh (phút)</label><input id="freeTime" type="number" min="30" step="30"></div>
-<div class="field"><label for="sortBy">Sắp xếp</label><select id="sortBy"><option value="match">Phù hợp nhất</option><option value="distance">Gần nhất</option><option value="price">Giá thấp nhất</option><option value="rating">Đánh giá cao nhất</option></select></div>
-<div><b>Danh mục</b><div id="categoryList" class="category-list"></div></div>
-<button class="btn btn-primary" type="submit">Tìm bằng vị trí hiện tại</button></form>
-<section><h1>Kết quả từ hệ thống</h1><p id="locationStatus" class="meta">Cho phép truy cập vị trí để backend tính khoảng cách.</p><div id="results" class="message">Chưa tìm kiếm.</div></section></div></main>
-<script src="../js/config.js"></script><script src="../js/customer-api.js"></script><script src="../js/customer-search.js"></script></body></html>
+<!doctype html>
+<html lang="vi">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width,initial-scale=1">
+        <title>FREE2DO — Tìm hoạt động</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="app-style.css">
+<style>html,body,input,button,select,textarea{font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif}
+.search-layout{display:grid;grid-template-columns:280px 1fr;gap:24px;padding:28px 0}.filters,.result{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px}.filters{display:grid;gap:14px;align-self:start}.field label{display:block;font-weight:700;margin-bottom:6px}.field input,.field select{width:100%;padding:10px;border:1px solid var(--line);border-radius:10px}.category-list{display:grid;gap:7px}.result{margin-bottom:12px}.result h3{margin:0 0 7px}.meta{color:var(--muted);font-size:13px}.score{color:var(--rose);font-weight:800}.message{padding:18px;background:#fff;border:1px solid var(--line);border-radius:14px}@media(max-width:760px){.search-layout{grid-template-columns:1fr}}
+/* Giữ khối cũ trong DOM (để customer-search.js không lỗi) nhưng ẩn đi */
+.legacy-hidden{display:none !important}
+/* filter-box và map-view cùng lề trên */
+.search-layout{align-items:start;padding-top:0}
+.search-layout .filter-box,#view-map,#view-map .map-section-layout,#view-map .map-box,#view-map .map-side-panel{margin-top:0}
+/* Nút "Map" được ẩn: map đã nằm trong chế độ List */
+#btn-map{display:none !important}</style>
+<style>
+/* ===== Font ===== */
+html,body,input,button,select,textarea{font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif}
+
+/* ===== Navbar: link ở giữa ===== */
+.navbar .nav-left,.navbar .nav-right{flex:1 1 0;min-width:0}
+.navbar .nav-right{display:flex;justify-content:flex-end;align-items:center}
+.navbar .nav-center{display:flex;align-items:center;justify-content:center;gap:44px;flex:0 0 auto}
+.mobile-menu-btn{display:none;background:none;border:0;padding:6px;cursor:pointer;color:inherit;align-items:center;position:relative;z-index:5;-webkit-tap-highlight-color:transparent}
+
+/* ===== Menu trượt (hamburger) ===== */
+.mobile-nav-panel{display:none !important;position:fixed;top:0;right:0;bottom:0;left:0;z-index:2000;background:rgba(0,0,0,.4)}
+.mobile-nav-panel.show{display:block !important}
+.mobile-nav-content{position:absolute;top:0;left:0;bottom:0;width:260px;max-width:80%;background:#fff;padding:64px 16px 20px;display:flex;flex-direction:column;gap:6px;box-shadow:4px 0 24px rgba(0,0,0,.15);overflow-y:auto}
+.mobile-nav-close{position:absolute;top:10px;right:14px;width:40px;height:40px;background:none;border:0;font-size:30px;line-height:1;cursor:pointer;color:inherit}
+.mobile-nav-link{display:block;padding:12px 14px;border-radius:10px;text-decoration:none;color:inherit;font-weight:600;font-size:15px}
+.mobile-nav-link.active{background:#FDEDEF;color:var(--rose,#DB6680)}
+@media(min-width:769px){.mobile-nav-panel,.mobile-nav-panel.show{display:none !important}}
+@media(max-width:768px){
+  .mobile-menu-btn{display:inline-flex !important}
+  .navbar .nav-center,.navbar .nav-search{display:none !important}
+  .navbar .nav-right>.logout{display:none !important}
+}
+@media(max-width:600px){
+  .nav-logo{font-size:16px}
+  .navbar .nav-name{display:none}
+  .navbar{padding-left:12px;padding-right:12px}
+}
+
+/* ===== Map (dùng chung) ===== */
+@media(max-width:900px){
+  .map-section-layout{display:flex !important;flex-direction:column;gap:16px}
+  .map-box{width:100% !important}
+  .map-side-panel{width:100% !important;max-width:none !important;max-height:none !important}
+  .map-side-list{max-height:360px;overflow-y:auto}
+}
+
+@media(max-width:900px){
+  .search-layout{grid-template-columns:1fr !important;gap:16px}
+  .search-layout .filter-box{width:100%}
+  .result-head{flex-wrap:wrap;gap:10px}
+}
+@media(max-width:600px){
+  .map-box{height:320px !important}
+  .rich-map-pin .pin-content{display:none}
+  .result-head>div{width:100%}
+  .sort-select{width:100%}
+}
+</style>
+<style>
+/* ===== Bảng lọc nằm ngang + kết quả bên dưới (iPad / điện thoại) ===== */
+.view-switch-mobile{display:none;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff;flex:0 0 auto}
+.view-switch-mobile button{border:0;background:transparent;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;color:inherit}
+.view-switch-mobile button.active{background:var(--rose,#DB6680);color:#fff}
+@media(max-width:900px){
+  .search-page{display:flex !important;flex-direction:column}
+  .search-page>.search-layout{display:contents}
+  /* filter-box: hết sticky (nguyên nhân map đè lên bộ lọc), xếp các nhóm theo hàng ngang */
+  .search-page .filter-box{order:1;position:static !important;top:auto !important;height:auto !important;max-height:none !important;overflow:visible !important;width:100% !important;box-sizing:border-box;
+    display:grid !important;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px 20px;padding:16px !important;margin:0 0 16px !important}
+  .search-page .filter-box .filter-group{margin:0 !important;min-width:0}
+  .search-page .filter-box .filter-group:nth-child(4){order:10;grid-column:1/-1}
+  .search-page .filter-box input[type="date"],.search-page .filter-box input[type="number"]{width:100%;box-sizing:border-box}
+  .search-page>.result-head{order:2;margin-bottom:14px !important}
+  .search-page .search-results-col{order:3;min-width:0}
+  .view-switch-mobile{display:inline-flex}
+  /* chế độ List: danh sách hoạt động ở trên, map ở dưới */
+  #view-map .map-section-layout{flex-direction:column-reverse !important}
+  #view-map .map-side-switch{display:none}
+  .map-side-list{max-height:420px}
+  /* chế độ Details: thẻ hoạt động 2 cột */
+  #detailResults{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+}
+@media(max-width:600px){
+  .search-page .filter-box{grid-template-columns:1fr;gap:14px}
+  .result-head>div:last-child{display:flex;gap:10px}
+  .sort-select{width:auto !important;flex:1;min-width:0}
+  #detailResults{grid-template-columns:1fr}
+}
+</style>
+<style>
+.view-switch-mobile{position:relative;z-index:3;touch-action:manipulation}
+.view-switch-mobile button{min-height:38px;min-width:72px;-webkit-tap-highlight-color:transparent}
+.search-page>.result-head{position:relative;z-index:3}
+.time-duration-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:10px}
+.time-duration-fields label{display:grid;gap:5px;color:var(--muted);font-size:12px;font-weight:600}
+.time-duration-fields input{width:100%;min-width:0;height:40px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);font:inherit}
+.time-duration-fields input:focus{outline:2px solid var(--rose);outline-offset:1px}
+/* Không gian rộng hơn cho bộ lọc, bản đồ và danh sách bên phải. */
+.search-page{max-width:1600px;padding-left:50px;padding-right:50px}
+.search-page>.search-layout{grid-template-columns:270px minmax(0,1fr);gap:24px}
+.search-page .search-results-col{min-width:0}
+#view-map .search-map-layout{height:620px;gap:24px}
+#view-map .map-side-panel{flex:0 0 clamp(290px,23vw,340px)}
+@media(max-width:1100px){
+  .search-page>.search-layout{grid-template-columns:minmax(0,1fr)}
+  .search-page .filter-box{position:static}
+}
+@media(max-width:900px){
+  .search-page{padding-left:20px;padding-right:20px}
+  #view-map .search-map-layout{height:auto}
+  #view-map .map-box{height:400px}
+  #view-map .map-side-panel{flex:auto;min-height:320px}
+}
+</style>
+</head>
+<body>
+<svg style="display:none" aria-hidden="true">
+  <symbol id="icon-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></symbol>
+  <symbol id="icon-bell" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M10 21a2 2 0 0 0 4 0"/></symbol>
+  <symbol id="icon-chevron-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></symbol>
+  <symbol id="icon-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></symbol>
+  <symbol id="icon-log-out" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></symbol>
+  <symbol id="icon-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></symbol>
+  <symbol id="icon-map" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 6 9 4 15 6 21 4 21 18 15 20 9 18 3 20 3 6"/><line x1="9" y1="4" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="20"/></symbol>
+  <symbol id="icon-alert-triangle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 1 21h22L12 3z"/><line x1="12" y1="9" x2="12" y2="14"/><line x1="12" y1="17" x2="12.01" y2="17"/></symbol>
+  <symbol id="icon-star" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15 9 22 9.5 16.5 14 18 21 12 17.3 6 21 7.5 14 2 9.5 9 9 12 2"/></symbol>
+  <symbol id="icon-map-pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.5 7-11a7 7 0 0 0-14 0c0 4.5 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></symbol>
+</svg>
+
+<!-- Navbar theo giao diện mới (giữ các class nav-avatar, nav-name, logout để JS cũ vẫn hoạt động) -->
+<div class="navbar">
+  <div class="nav-left"><button class="mobile-menu-btn" type="button" aria-label="Mở menu" onclick="toggleMobileMenu()"><svg class="icon icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+    <a href="home.html" class="nav-logo" style="text-decoration:none; color:inherit;"><img src="Logo.svg" alt="FREE2DO" style="width:38px;height:auto;">FREE2DO</a>
+    <div class="nav-search">
+      <svg class="icon"><use href="#icon-search"></use></svg>
+      <input type="text" placeholder="Tìm hoạt động, địa điểm...">
+    </div>
+  </div>
+  <div class="nav-center">
+      <a href="home.html" class="nav-link">Trang chủ</a>
+      <a class="nav-link active" href="search.html">Tìm kiếm</a>
+      <a href="account.html#yeuthich" class="nav-link">Yêu thích</a>
+    </div>
+  <div class="nav-right">
+    
+    <div class="nav-icon"><svg class="icon"><use href="#icon-bell"></use></svg><span class="dot-badge"></span></div>
+    <div class="nav-who" onclick="toggleUserMenu(event)">
+      <div class="nav-avatar">?</div><div class="nav-name"></div>
+      <svg class="icon icon-sm"><use href="#icon-chevron-down"></use></svg>
+      <div class="nav-dropdown" id="user-dropdown">
+        <a href="account.html#hoso"><svg class="icon"><use href="#icon-user"></use></svg>Hồ sơ cá nhân</a>
+        <a href="#" class="logout"><svg class="icon"><use href="#icon-log-out"></use></svg>Đăng xuất</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Giao diện mới -->
+<div class="wrap search-page" style="padding-top:32px;padding-bottom:60px;">
+  <div class="section-title">Khám phá hoạt động</div>
+  <div class="section-sub" id="searchSummary">Đang lọc theo thông tin bạn đã chọn</div>
+
+      <div class="result-head" style="margin-bottom:16px;">
+        <div class="result-count">Tìm thấy <b id="resultCount">0</b> hoạt động phù hợp</div>
+        <div style="display:flex;gap:12px;align-items:center;">
+          <div class="view-switch-mobile" id="viewSwitchMobile"><button type="button" data-view="details" class="active">Details</button><button type="button" data-view="list">List</button></div>
+          <select class="sort-select" id="sortSelect">
+            <option value="match">Phù hợp nhất</option>
+            <option value="distance">Gần nhất</option>
+            <option value="price">Giá thấp nhất</option>
+            <option value="rating">Đánh giá cao</option>
+          </select>
+          <div class="view-toggle" style="display:none;">
+            <select class="view-select" id="viewSelect" aria-label="Kiểu hiển thị kết quả">
+              <option value="list">List</option>
+              <option value="details">Details</option>
+            </select>
+            <button onclick="toggleMapView()" id="btn-map" style="display:none;"><svg class="icon"><use href="#icon-map"></use></svg> <span id="mapButtonLabel">Map</span></button>
+          </div>
+        </div>
+      </div>
+
+  <div class="search-layout">
+    <!-- FILTER SIDEBAR -->
+    <div class="filter-box">
+      <div class="filter-group">
+        <h4>Thời gian</h4>
+        <div class="radio-row">
+          <label><input type="radio" name="time" id="todayTime" checked> <span id="timeFilterLabel">Hôm nay, rảnh 0 giờ 0 phút</span></label>
+          <label><input type="radio" name="time" id="otherTime"> Chọn ngày khác</label>
+          <input type="date" id="dateFilter" class="filter-input" hidden>
+        </div>
+        <div class="time-duration-fields">
+          <label for="freeHours">Số giờ rảnh
+            <input type="number" id="freeHours" min="0" max="24" step="1" value="0" inputmode="numeric">
+          </label>
+          <label for="freeMinutes">Số phút rảnh
+            <input type="number" id="freeMinutes" min="0" max="59" step="1" value="0" inputmode="numeric">
+          </label>
+        </div>
+      </div>
+      <div class="filter-group">
+        <h4>Vị trí</h4>
+        <div class="radio-row">
+          <label><input type="radio" name="loc" checked> <span id="locationFilterLabel">Quanh vị trí hiện tại</span></label>
+        </div>
+        <label style="font-size:12px;color:var(--muted);display:block;margin-top:8px;">Bán kính: <span id="searchRadiusValue">5</span> km</label>
+        <input type="range" min="1" max="20" value="5" class="slider" id="searchRadiusSlider">
+      </div>
+      <div class="filter-group">
+        <h4>Ngân sách</h4>
+        <div class="radio-row">
+          <label><input type="radio" name="budget" value="free"> Miễn phí</label>
+          <label><input type="radio" name="budget" value="200000" id="budget200000"> Dưới 200.000 ₫</label>
+          <label><input type="radio" name="budget" value="500000"> Dưới 500.000 ₫</label>
+          <label><input type="radio" name="budget" value="custom"> Tùy chỉnh</label>
+          <input type="number" id="customBudgetInput" class="filter-input" min="0" step="1000" placeholder="Nhập ngân sách tối đa (₫)" hidden>
+        </div>
+      </div>
+      <div class="filter-group">
+        <h4>Loại hoạt động</h4>
+        <div class="chip-row" id="interestFilters"></div>
+      </div>
+      <div class="filter-group">
+        <h4>Hình thức</h4>
+        <div class="radio-row">
+          <label><input type="radio" name="mode" value="all" id="modeAll" checked> Tất cả</label>
+          <label><input type="radio" name="mode" value="offline"> Offline</label>
+          <label><input type="radio" name="mode" value="online"> Online</label>
+        </div>
+      </div>
+      <div class="filter-group">
+        <h4>Đối tượng tham gia</h4>
+        <div class="radio-row">
+          <label><input type="checkbox" name="audience" value="individual" checked> Cá nhân</label>
+          <label><input type="checkbox" name="audience" value="group"> Nhóm bạn</label>
+          <label><input type="checkbox" name="audience" value="family"> Gia đình</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- RESULTS -->
+    <div class="search-results-col">
+      <!-- MAP VIEW (nay là nội dung của chế độ "List") -->
+      <div id="view-map">
+        <div class="map-section-layout search-map-layout">
+          <div class="map-box" id="searchMap">
+            <div class="map-grid-bg"></div>
+            <div class="map-overlay-left"><svg class="icon" style="color:var(--rose);"><use href="#icon-map-pin"></use></svg><div>Vị trí của bạn<span class="map-overlay-left-sub" id="mapLocationLabel">Vị trí hiện tại</span></div></div>
+            <div class="map-overlay-bottom-left"><svg class="icon"><use href="#icon-map-pin"></use></svg> Hoạt động trong bán kính <span id="mapRadiusLabel">5</span> km</div>
+            <div id="mapPins"></div>
+          </div>
+          <div class="map-side-panel">
+            <div class="map-side-panel-header">
+              <div class="map-side-switch"><button class="active" type="button" id="map-list-button">List</button><button type="button" id="map-details-button">Details</button></div>
+              <p><span id="mapResultCount">0</span> hoạt động</p>
+            </div>
+            <div class="map-side-list" id="mapSideResults"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bảng list cũ: giữ trong DOM nhưng không hiển thị (map đã thay thế) -->
+      <div id="view-list" style="display:none;">
+        <div class="activity-list-head"><span>Hoạt động</span><span>Địa chỉ</span><span>Đánh giá</span><span>Giá tiền</span><span>Km</span></div>
+        <div class="activity-list" id="searchResults"></div>
+      </div>
+
+      <div id="view-details" style="display:none;"><div class="activity-details" id="detailResults"></div></div>
+    </div>
+  </div>
+</div>
+
+<div class="mobile-nav-panel" id="mobile-nav">
+  <div class="mobile-nav-content">
+    <button class="mobile-nav-close" type="button" onclick="toggleMobileMenu()">&times;</button>
+    <a href="home.html" class="mobile-nav-link">Trang chủ</a><a href="search.html" class="mobile-nav-link active">Tìm kiếm</a><a href="account.html#yeuthich" class="mobile-nav-link">Yêu thích</a>
+  </div>
+</div>
+<script>
+function toggleMobileMenu(){
+  var panel=document.getElementById('mobile-nav');
+  if(panel) panel.classList.toggle('show');
+}
+(function(){
+  var panel=document.getElementById('mobile-nav');
+  if(!panel) return;
+  panel.addEventListener('click',function(e){
+    if(e.target===panel || e.target.closest('.mobile-nav-link')) panel.classList.remove('show');
+  });
+})();
+</script>
+<script src="../js/config.js"></script><script src="../js/customer-api.js"></script><script src="../js/customer-map.js"></script><script src="../js/customer-search.js"></script>
+
+</body>
+</html>
+

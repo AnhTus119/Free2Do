@@ -1,6 +1,225 @@
-<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>FREE2DO</title><link rel="stylesheet" href="app-style.css"><style>.hero{padding:54px 0 30px;text-align:center}.hero h1{font-size:38px;margin:0 0 12px}.search-box{display:flex;max-width:650px;margin:24px auto;gap:8px}.search-box input{flex:1;padding:14px;border:1px solid var(--line);border-radius:12px}.activity-grid{margin:20px 0 60px}.activity-image{height:160px;background:#f3efe4;display:grid;place-items:center;overflow:hidden}.activity-image img{width:100%;height:100%;object-fit:cover}.activity-body{padding:16px}.activity-card{overflow:hidden}.activity-title{font-weight:800;font-size:17px}.activity-meta{color:var(--muted);font-size:13px;margin:7px 0}.empty-state{padding:22px;background:#fff;border:1px solid var(--line);border-radius:14px}</style></head><body>
-<nav class="navbar"><div class="nav-left"><a class="nav-logo" href="home.html"><img src="Logo.svg" alt="FREE2DO" style="width:38px">FREE2DO</a></div><div class="nav-right"><a class="nav-link active" href="home.html">Trang chủ</a><a class="nav-link" href="search.html">Tìm kiếm</a><a class="nav-link" href="account.html#yeuthich">Yêu thích</a><div id="identity"><a class="btn btn-secondary" href="../log-in.html">Đăng nhập</a></div></div></nav>
-<main class="wrap"><section class="hero"><h1>Khám phá thời gian rảnh của bạn</h1><p>Dữ liệu hoạt động được tải trực tiếp từ hệ thống.</p><form id="quickSearch" class="search-box"><input id="quickKeyword" placeholder="Tên hoạt động hoặc địa điểm"><button class="btn btn-primary">Tìm kiếm</button></form></section>
-<section><div class="section-title">Hoạt động đang mở</div><div id="activities" class="activity-grid"><div class="empty-state">Đang tải dữ liệu…</div></div></section><section><div class="section-title">Doanh nghiệp trên hệ thống</div><div id="businesses" class="activity-grid"><div class="empty-state">Đang tải dữ liệu…</div></div></section></main>
+<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>FREE2DO</title>
+<!-- [SỬA FONT] nạp font Inter (có hỗ trợ tiếng Việt) -->
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app-style.css"><style>
+/* [SỬA FONT] ép input/button dùng cùng font với trang */
+html,body,input,button,select,textarea{font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif}
+.hero{padding:54px 0 30px;text-align:center}.hero h1{font-size:38px;margin:0 0 12px}.search-box{display:flex;max-width:650px;margin:24px auto;gap:8px}.search-box input{flex:1;padding:14px;border:1px solid var(--line);border-radius:12px}.activity-grid{margin:20px 0 60px}.activity-image{height:160px;background:#f3efe4;display:grid;place-items:center;overflow:hidden}.activity-image img{width:100%;height:100%;object-fit:cover}.activity-body{padding:16px}.activity-card{overflow:hidden}.activity-title{font-weight:800;font-size:17px}.activity-meta{color:var(--muted);font-size:13px;margin:7px 0}.empty-state{padding:22px;background:#fff;border:1px solid var(--line);border-radius:14px}
+
+/* Ô tìm kiếm cũ được giữ trong DOM (để customer-home.js không lỗi) nhưng ẩn đi */
+#quickSearch{display:none}
+
+/* Bảng 3 cột x 2 hàng có phân trang */
+.table-panel{background:#fff;border:1px solid var(--line);border-radius:16px;padding:20px;margin:20px 0 60px}
+.table-panel .activity-grid{margin:0}
+#activities,#businesses{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;margin:0}
+#activities .empty-state,#businesses .empty-state{grid-column:1/-1}
+@media(max-width:900px){#activities,#businesses{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){#activities,#businesses{grid-template-columns:1fr}}
+.pager{display:flex;justify-content:center;align-items:center;gap:6px;margin-top:20px;flex-wrap:wrap}
+.pager button{min-width:38px;height:38px;padding:0 10px;border:1px solid var(--line);background:#fff;border-radius:10px;cursor:pointer;font-weight:600}
+.pager button.active{background:var(--rose,#e11d48);border-color:var(--rose,#e11d48);color:#fff}
+.pager button:disabled{opacity:.4;cursor:not-allowed}
+.map-section-wrap{margin:20px 0 60px}
+
+/* ===== Navbar: 3 link ở giữa ===== */
+.navbar .nav-left,.navbar .nav-right{flex:1 1 0;min-width:0}
+.navbar .nav-right{display:flex;justify-content:flex-end;align-items:center}
+.navbar .nav-center{display:flex;align-items:center;justify-content:center;gap:44px;flex:0 0 auto}
+.mobile-menu-btn{display:none;background:none;border:0;padding:6px;cursor:pointer;color:inherit;align-items:center}
+.navbar #identity{display:none !important}
+
+/* ===== iPad / tablet (<= 900px) ===== */
+@media(max-width:900px){
+  .hero{padding:40px 0 24px}
+  .hero h1{font-size:32px}
+  .match-grid{grid-template-columns:repeat(2,minmax(0,1fr)) !important}
+  .table-panel{padding:16px;margin-bottom:40px}
+  .map-section-wrap{margin-bottom:40px}
+  .map-section-layout{display:flex !important;flex-direction:column;gap:16px}
+  .map-box{width:100% !important;height:400px !important;min-height:0}
+  .map-side-panel{width:100% !important;max-width:none !important;max-height:none !important}
+  .map-side-list{max-height:360px;overflow-y:auto}
+}
+
+/* ===== Menu hamburger (<= 768px), giống trang Dashboard ===== */
+@media(max-width:768px){
+  .navbar .nav-center{display:none}
+  .mobile-menu-btn{display:inline-flex}
+}
+
+/* ===== Điện thoại (<= 600px) ===== */
+@media(max-width:600px){
+  .hero{padding:28px 0 18px}
+  .hero h1{font-size:24px;line-height:1.3}
+  .hero p{font-size:13.5px}
+  .match-card{padding:16px !important}
+  .match-grid{grid-template-columns:1fr !important;gap:14px}
+  .time-select-row{flex-wrap:wrap}
+  .match-actions{flex-direction:column;gap:10px}
+  .match-actions .btn{width:100%;justify-content:center}
+  .section-title{font-size:17px}
+  .table-panel{padding:12px;border-radius:14px}
+  #activities,#businesses{gap:14px}
+  .activity-image{height:140px}
+  .activity-body{padding:14px}
+  .pager button{min-width:34px;height:34px;padding:0 8px}
+  .map-box{height:320px !important}
+  .rich-map-pin .pin-content{display:none}
+  .map-overlay-left{font-size:12px;max-width:80%}
+  .navbar .nav-name{display:none}
+  .navbar .nav-right{gap:14px}
+  .nav-logo{font-size:16px}
+  footer{padding:18px 12px !important;font-size:13px;line-height:2}
+}
+
+/* ===== Menu trượt (hamburger) ===== */
+.mobile-menu-btn{position:relative;z-index:5;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.mobile-nav-panel{display:none !important;position:fixed;top:0;right:0;bottom:0;left:0;z-index:2000;background:rgba(0,0,0,.4)}
+.mobile-nav-panel.show{display:block !important}
+.mobile-nav-content{position:absolute;top:0;left:0;bottom:0;width:260px;max-width:80%;background:#fff;padding:64px 16px 20px;display:flex;flex-direction:column;gap:6px;box-shadow:4px 0 24px rgba(0,0,0,.15);overflow-y:auto}
+.mobile-nav-close{position:absolute;top:10px;right:14px;width:40px;height:40px;background:none;border:0;font-size:30px;line-height:1;cursor:pointer;color:inherit}
+.mobile-nav-link{display:block;padding:12px 14px;border-radius:10px;text-decoration:none;color:inherit;font-weight:600;font-size:15px}
+.mobile-nav-link.active{background:#FDEDEF;color:var(--rose,#DB6680)}
+@media(min-width:769px){.mobile-nav-panel,.mobile-nav-panel.show{display:none !important}}
+@media(max-width:768px){.mobile-menu-btn{display:inline-flex !important}.navbar .nav-center{display:none !important}}
+</style></head><body>
+
+<!-- Sprite icon dùng cho form và map -->
+<svg style="display:none" aria-hidden="true">
+  <symbol id="icon-bell" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M10 21a2 2 0 0 0 4 0"/></symbol>
+  <symbol id="icon-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></symbol>
+  <symbol id="icon-log-out" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></symbol>
+  <symbol id="icon-chevron-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></symbol>
+  <symbol id="icon-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/></symbol>
+  <symbol id="icon-map-pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.5 7-11a7 7 0 0 0-14 0c0 4.5 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></symbol>
+  <symbol id="icon-target" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="icon-radius" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="icon-wallet" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h13a1 1 0 0 1 1 1v2"/><rect x="3" y="7" width="18" height="12" rx="2"/><circle cx="16" cy="13" r="1.2" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="icon-sparkles" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3z"/><path d="M19 15l.7 2.1L22 18l-2.3.9L19 21l-.7-2.1L16 18l2.3-.9L19 15z"/></symbol>
+  <symbol id="icon-users" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.5"/><path d="M15.5 14.2c2.3.4 4 2.4 4 5.8"/></symbol>
+  <symbol id="icon-star" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15 9 22 9.5 16.5 14 18 21 12 17.3 6 21 7.5 14 2 9.5 9 9 12 2"/></symbol>
+</svg>
+
+<nav class="navbar">
+  <div class="nav-left" style="display:flex;align-items:center;gap:12px;">
+    <button class="mobile-menu-btn" type="button" aria-label="Mở menu" onclick="toggleMobileMenu()"><svg class="icon icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+    <a class="nav-logo" href="home.html"><img src="Logo.svg" alt="FREE2DO" style="width:38px">FREE2DO</a>
+  </div>
+  <div class="nav-center">
+    <a class="nav-link active" href="home.html">Trang chủ</a>
+    <a class="nav-link" href="search.html">Tìm kiếm</a>
+    <a class="nav-link" href="account.html#yeuthich">Yêu thích</a>
+  </div>
+  <div class="nav-right">
+    <div class="nav-icon" aria-label="Thông báo"><svg class="icon"><use href="#icon-bell"></use></svg><span class="dot-badge"></span></div>
+    <div class="nav-who" onclick="toggleUserMenu(event)">
+      <div class="nav-avatar">?</div><div class="nav-name"></div>
+      <svg class="icon icon-sm"><use href="#icon-chevron-down"></use></svg>
+      <div class="nav-dropdown" id="user-dropdown">
+        <a href="account.html#hoso"><svg class="icon"><use href="#icon-user"></use></svg>Hồ sơ cá nhân</a>
+        <a href="#" class="logout"><svg class="icon"><use href="#icon-log-out"></use></svg>Đăng xuất</a>
+      </div>
+    </div>
+    <div id="identity" hidden aria-hidden="true"></div>
+  </div>
+</nav>
+<main class="wrap"><section class="hero"><h1>Khám phá thời gian rảnh của bạn</h1><p>Dữ liệu hoạt động được tải trực tiếp từ hệ thống.</p>
+
+<!-- Form nhập thông tin (thay cho ô tìm kiếm) -->
+<div class="match-card">
+  <div class="match-grid">
+    <div class="match-field">
+      <label><svg class="icon"><use href="#icon-clock"></use></svg> Tôi rảnh trong...</label>
+      <div class="time-select-row">
+        <input type="number" class="time-select" id="freeHours" min="0" value="0" style="width:70px;">
+        <span class="time-select-unit">Giờ</span>
+        <input type="number" class="time-select" id="freeMinutes" min="0" max="59" value="0" style="width:70px;">
+        <span class="time-select-unit">Phút</span>
+      </div>
+    </div>
+    <div class="match-field">
+      <label><svg class="icon"><use href="#icon-map-pin"></use></svg> Bạn đang ở đâu?</label>
+      <input type="text" id="locationInput" placeholder="Nhập địa chỉ..." style="width:100%;height:40px;border-radius:10px;border:1.5px solid var(--line);padding:0 12px;">
+      <div class="loc-btn"><svg class="icon"><use href="#icon-target"></use></svg> Sử dụng vị trí hiện tại</div>
+    </div>
+    <div class="match-field">
+      <label><svg class="icon"><use href="#icon-radius"></use></svg> Bán kính: <span id="radiusValue">5</span> km</label>
+      <input type="range" min="1" max="20" value="5" class="slider" id="radiusSlider">
+    </div>
+    <div class="match-field">
+      <label><svg class="icon"><use href="#icon-wallet"></use></svg> Ngân sách tối đa</label>
+      <input type="text" id="budgetInput" placeholder="VD: 200.000 ₫" style="width:100%;height:40px;border-radius:10px;border:1.5px solid var(--line);padding:0 12px;">
+    </div>
+  </div>
+  <div class="match-field" style="margin-bottom:22px;">
+    <label><svg class="icon"><use href="#icon-sparkles"></use></svg> Sở thích</label>
+    <div class="chip-row"></div>
+  </div>
+  <div class="match-actions">
+    <a href="search.html" class="btn btn-primary" id="searchActivitiesButton">Tìm hoạt động cho tôi</a>
+    <a href="group.html" class="btn btn-secondary"><svg class="icon"><use href="#icon-users"></use></svg> Đi theo nhóm</a>
+  </div>
+</div>
+</section>
+
+<section><div class="section-title">Hoạt động đang mở</div>
+<div class="table-panel"><div id="activities" class="activity-grid"><div class="empty-state">Đang tải dữ liệu…</div></div><div id="activitiesPager" class="pager"></div></div></section>
+
+<section><div class="section-title">Doanh nghiệp trên hệ thống</div>
+<div class="table-panel"><div id="businesses" class="activity-grid"><div class="empty-state">Đang tải dữ liệu…</div></div><div id="businessesPager" class="pager"></div></div></section>
+
+<!-- Hoạt động xung quanh bạn (map) -->
+<section class="map-section-wrap">
+  <div class="section-title">Hoạt động quanh bạn</div>
+  <div class="section-sub">FREE2DO cân nhắc cả thời gian rảnh và khoảng cách di chuyển của bạn</div>
+  <div class="map-section-layout">
+    <div class="map-box" id="homeMapBox">
+      <div class="map-grid-bg"></div>
+      <div class="map-overlay-left">
+        <svg class="icon" style="color:var(--rose);"><use href="#icon-map-pin"></use></svg>
+        <div>Vị trí của bạn<span class="map-overlay-left-sub" id="homeMapLocation">Cầu Giấy, Hà Nội</span></div>
+        <svg class="icon icon-sm" style="color:var(--muted);"><use href="#icon-chevron-down"></use></svg>
+      </div>
+    </div>
+    <div class="map-side-panel">
+      <div class="map-side-panel-header"><h3>Hoạt động gần bạn</h3><p><span id="homeMapResultCount">0</span> hoạt động</p></div>
+      <div class="map-side-list" id="homeMapResults"></div>
+    </div>
+  </div>
+</section>
+</main>
 <footer style="padding:24px;text-align:center;background:#fff;border-top:1px solid var(--line)"><a href="../privacy-policy.html">Chính sách bảo mật</a><span aria-hidden="true"> · </span><a href="../terms-of-service.html">Điều khoản sử dụng</a><span aria-hidden="true"> · </span><a href="mailto:anhtud143@gmail.com">Liên hệ</a></footer>
-<script src="../js/config.js"></script><script src="../js/customer-api.js"></script><script src="../js/customer-home.js"></script></body></html>
+
+<div class="mobile-nav-panel" id="mobile-nav">
+  <div class="mobile-nav-content">
+    <button class="mobile-nav-close" type="button" onclick="toggleMobileMenu()">&times;</button>
+    <a href="home.html" class="mobile-nav-link active">Trang chủ</a>
+    <a href="search.html" class="mobile-nav-link">Tìm kiếm</a>
+    <a href="account.html#yeuthich" class="mobile-nav-link">Yêu thích</a>
+  </div>
+</div>
+<script>
+function toggleUserMenu(e){
+  e.stopPropagation();
+  document.getElementById('user-dropdown').classList.toggle('open');
+}
+document.addEventListener('click', function(){
+  const menu=document.getElementById('user-dropdown');
+  if(menu) menu.classList.remove('open');
+});
+function toggleMobileMenu(){
+  var panel=document.getElementById('mobile-nav');
+  if(panel) panel.classList.toggle('show');
+}
+(function(){
+  var panel=document.getElementById('mobile-nav');
+  if(!panel) return;
+  panel.addEventListener('click',function(e){
+    if(e.target===panel || e.target.closest('.mobile-nav-link')) panel.classList.remove('show');
+  });
+})();
+</script>
+<script src="../js/config.js"></script><script src="../js/customer-api.js"></script><script src="../js/customer-map.js"></script><script src="../js/customer-home.js"></script>
+</body></html>

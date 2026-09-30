@@ -30,6 +30,9 @@ class Settings(BaseSettings):
     SUPABASE_STORAGE_BUCKET: str = "free2do-media"
     MAX_IMAGE_UPLOAD_MB: int = 5
     MAX_VIDEO_UPLOAD_MB: int = 25
+    # Bật truy vấn không gian khi database đã chạy phần PostGIS trong migration.sql.
+    # Nếu môi trường chưa có extension/cột location, backend tự dùng Haversine dự phòng.
+    POSTGIS_EXTENSION_ENABLED: bool = True
     CORS_ORIGINS: str = "http://127.0.0.1:5500,http://localhost:5500,https://free2-do.vercel.app"
     model_config = SettingsConfigDict(env_file=ENV_PATH, extra="ignore")
 

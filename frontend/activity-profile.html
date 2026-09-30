@@ -2,12 +2,15 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>FREE2DO Admin — Hồ sơ Hoạt động</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style1.css">
+<link rel="stylesheet" href="admin-responsive.css">
 </head>
 <body>
 <div class="app">
+  <input class="nav-toggle" type="checkbox" id="nav-toggle" aria-label="Mở hoặc đóng menu điều hướng">
 
     <div class="sidebar">
     <div class="side-logo"><img src="Vecto/Group.svg" alt="Customer"><span>FREE2DO</span></div>
@@ -16,6 +19,7 @@
       <a href="customers.html" class="nav-item"><span class="ic"></span>Khách hàng</a>
       <a href="businesses.html" class="nav-item"><span class="ic"></span>Doanh nghiệp</a>
       <a href="activities.html" class="nav-item active"><span class="ic"></span>Hoạt động</a>
+      <a href="management.html" class="nav-item"><span class="ic">⚙</span>Hệ thống</a>
     </div>
     <div class="side-bottom">
       <div class="side-admin">
@@ -27,9 +31,11 @@
     </div>
   </div>
 
+  <label class="nav-scrim" for="nav-toggle" aria-label="Đóng menu"></label>
   <div class="main">
     <div class="header">
-      <div><div class="breadcrumb">Quản trị / Hoạt động / Hồ sơ Hoạt động</div><h1>Hồ sơ Hoạt động</h1></div>
+      <label class="menu-button" for="nav-toggle" aria-hidden="true">☰</label>
+      <div class="header-title"><div class="breadcrumb">Quản trị / Hoạt động / Hồ sơ Hoạt động</div><h1>Hồ sơ Hoạt động</h1></div>
       <div class="header-right">
         <div class="bell">🔔<span class="badge-dot"></span></div>
         <div class="who"><div class="avatar">A</div><div class="name">Admin</div><div class="chev">▾</div></div>
@@ -92,10 +98,12 @@
       <div class="section">
         <div class="section-head"><h3>Khách hàng đã tham gia</h3></div>
         <div class="card">
+          <div class="table-scroll" role="region" aria-label="Bảng dữ liệu, cuộn ngang để xem thêm" tabindex="0">
           <table>
             <thead><tr><th>Khách hàng</th><th>Ngày tham gia</th><th>Trạng thái</th><th>Đánh giá</th></tr></thead>
             <tbody id="activityCustomerRows"><tr><td colspan="4">Đang tải dữ liệu...</td></tr></tbody>
           </table>
+        </div>
         </div>
       </div>
 

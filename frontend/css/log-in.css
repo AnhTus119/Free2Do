@@ -1,8 +1,7 @@
-
 /* Nền */ 
 body, html {
   min-height: 100vh;
-  background: var(--color-brown);
+  background: var(--paper);
   position: relative;
   overflow: hidden;
 }
@@ -11,8 +10,9 @@ body, html {
     position: relative;
     width: 100%;
     min-height: 100vh;
-    background-image: url('../img/back.png');
+    background-image: linear-gradient(rgba(251,247,240,.75), rgba(251,247,240,.75)), url('../img/back.png');
     background-size: 150%;
+  background-color: var(--cream);
 }
 
 .login__circle {
@@ -20,8 +20,8 @@ body, html {
   width: 1440px;
   aspect-ratio: 1 / 1;
   border-radius: 50%;
-  background: var(--color-cream);
-  border: 15px solid var(--color-green);
+  background: var(--paper);
+  border: 15px solid var(--muted);
   right: -650px;
   bottom: -350px;
   z-index: 1;
@@ -44,7 +44,7 @@ body, html {
   justify-content: flex-end;   
   align-items: flex-start; 
   padding: 30px;
-  color: var(--color-cream);
+  color: var(--rose-dark);
 }
 
 .login__title {
@@ -53,7 +53,8 @@ body, html {
   font-size: 32px;
   font-weight: 700;
   letter-spacing: 1px;
-  margin: 0 0 0 20px; 
+  margin: 0 0 0 20px;
+  text-shadow: 0 0 10px rgba(251,247,240,.95);
 }
 
 .login__illustration {
@@ -81,15 +82,18 @@ body, html {
   font-weight: 700;
   line-height: 1.3;
   margin: 20px 0 70px 55px;
+  color: var(--ink);
+  text-shadow: 0 0 14px rgba(251,247,240,.95);
 }
 .login__tagline em {
   font-style: italic;
-  color: var(--color-rose);
+  color: var(--rose-dark);
 }
 
 .login__copyright {
   font-size: 12px;
   font-weight: 400;
+  color: var(--side-bg);
 }
 
 /* Cột phải*/
@@ -104,7 +108,7 @@ body, html {
 
 .login__back {
   display: inline-block;
-  color: var(--color-black);
+  color: var(--ink);
   text-decoration: none;
   font-style: italic;
   font-size: 20px;
@@ -115,11 +119,11 @@ body, html {
     width: 300px;
     height: 50px;
     display: flex;
-    background: var(--color-pink);
+    background: #fff;
     border-radius: 20px;
     padding: 4px;
     margin: 40px auto;
-    
+  border: 1.5px solid var(--line);
 }
 
 .login__tab {
@@ -129,13 +133,13 @@ body, html {
   justify-content: center;
   border-radius: 20px;
   text-decoration: none;
-  color: var(--color-black);
+  color: var(--brown);
   font-size: 18px;
 }
 
 .login__tab--active {
-  background: var(--color-rose);
-  color: var(--color-white);
+  background: var(--rose);
+  color: #fff;
   font-weight: 400;
 }
 
@@ -148,7 +152,7 @@ body, html {
   display: block;
   margin-bottom: 5px;
   font-size: 20px;
-  color: var(--color-black);
+  color: var(--ink);
 }
 
 .login__input-wrap {
@@ -159,19 +163,20 @@ body, html {
   width: 100%;
   height: 50px;
   padding: 0 50px 0 16px; 
-  border: 2px solid var(--color-brown);
+  border: 1.5px solid var(--line);
   border-radius: 10px;
-  background: var(--color-cream); 
+  background: #fff; 
   font-size: 18px;
 }
 
 .login__input::placeholder {
-  color: var(--color-text-muted);
+  color: var(--muted);
 }
 
 .login__input:focus {
   outline: none;
-  border-color: var(--color-rose);
+  border-color: var(--rose);
+  box-shadow: 0 0 0 4px rgba(219,102,128,.15);
 }
 
 .login__toggle {
@@ -182,7 +187,7 @@ body, html {
   background: none;
   border: none;
   cursor: pointer;
-  color: var(--color-black);
+  color: var(--brown);
   font-size: 16px;
 }
 
@@ -191,7 +196,7 @@ body, html {
   text-align: right;
   margin-top: 10px;
   font-size: 16px;
-  color: var(--color-rose);
+  color: var(--rose-dark);
   text-decoration: underline;
 }
 
@@ -201,17 +206,19 @@ body, html {
     width: 300px;
     height: 50px;
     border: none;
-    border-radius: 15px;
-    background: var(--color-rose);
-    color: var(--color-white);
+    border-radius: 999px;
+    background: var(--rose);
+    color: #fff;
     font-size: 24px;
     font-weight: 700;
     cursor: pointer; /* Thêm con trỏ chuột khi hover */
     margin: 0 auto 30px auto;
+    box-shadow: 0 8px 18px rgba(219, 102, 128, 0.3);
 }
 
 .login__submit:hover {
-  filter: brightness(1.05); 
+  filter: none;
+  background: var(--rose-dark);
 }
 
 /* Divider */
@@ -221,7 +228,7 @@ body, html {
   gap: 12px;
   margin-bottom: 30px;
   font-size: 15px;
-  color: var(--color-brown);
+  color: var(--muted);
   font-weight: 700;
 }
 
@@ -230,7 +237,7 @@ body, html {
   content: "";
   flex: 1;
   height: 1px;
-  background: var(--color-brown);
+  background: var(--line);
 }
 
 /* Social buttons */
@@ -248,9 +255,9 @@ body, html {
   gap: 10px;
   width: 375px;
   height: 50px;
-  border: 1px solid var(--color-brown);
+  border: 1.5px solid var(--line);
   border-radius: 8px;
-  background: var(--color-cream);
+  background: #fff;
   font-size: 16px;
   cursor: pointer;
 
@@ -260,22 +267,181 @@ body, html {
 .login__terms {
   text-align: center;
   font-size: 15px;
-  color: var(--color-black);
+  color: var(--ink);
   margin-bottom: 15px;
 }
 
 .login__switch {
   text-align: center;
   font-size: 15px;
-  color: var(--color-black);
+  color: var(--ink);
 }
 
 .login__terms a,
 .login__switch a {
-  color: var(--color-rose);
+  color: var(--rose-dark);
   text-decoration: underline;
 }
 
 .login__switch a {
     text-decoration: none;
+}
+/* =========================================================
+   RESPONSIVE — iPad / Tablet (≤1024px)
+   ========================================================= */
+@media (max-width: 1024px) {
+  .login__content {
+    grid-template-columns: 1fr;
+  }
+
+  .login__circle {
+    display: none; /* vòng tròn trang trí chỉ hợp với màn rộng */
+  }
+
+  /* Logo to bên trái, FREE2DO + khẩu hiệu xếp dọc bên phải */
+  .login__brand {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    column-gap: 20px;
+    text-align: left;
+    padding: 28px 24px 0;
+  }
+
+  .login__illustration {
+    grid-column: 1;
+    grid-row: 1 / 3;
+    margin: 0;
+    flex: none;
+  }
+
+  .login__title {
+    grid-column: 2;
+    grid-row: 1;
+    margin: 0;
+  }
+
+  .login__logo {
+    width: 96px;
+    height: 96px;
+  }
+
+  .login__brand-bottom {
+    grid-column: 2;
+    grid-row: 2;
+    position: static; /* bỏ vị trí neo cũ để copyright canh theo .login__content */
+    text-align: left;
+    margin-top: 6px;
+  }
+
+  .login__tagline {
+    margin: 0;
+    font-size: 24px;
+    line-height: 1.3;
+    text-align: left;
+  }
+
+  /* Dòng bản quyền đẩy xuống cuối trang */
+  .login__copyright {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 16px;
+    text-align: center;
+    padding: 0 20px;
+  }
+
+  .login__inner {
+    padding: 10px 60px 60px;
+  }
+
+  .login__tabs {
+    width: 100%;
+    max-width: 320px;
+  }
+}
+
+/* =========================================================
+   RESPONSIVE — Điện thoại (≤640px)
+   ========================================================= */
+@media (max-width: 640px) {
+  .login {
+    background-size: cover;
+  }
+
+  .login__content {
+    min-height: auto;
+  }
+
+  .login__brand {
+    padding: 18px 16px 0;
+    column-gap: 12px;
+  }
+
+  .login__title {
+    font-size: 20px;
+  }
+
+  .login__logo {
+    width: 56px;
+    height: 56px;
+  }
+
+  .login__tagline {
+    font-size: 16px;
+  }
+
+  /* Gộp "Free2Do giúp bạn" và "biết nên làm gì." về chung 1 dòng */
+  .login__tagline br:nth-of-type(2) {
+    display: none;
+  }
+
+  .login__copyright {
+    bottom: 10px;
+    font-size: 11px;
+  }
+
+  .login__inner {
+    padding: 10px 20px 46px;
+  }
+
+  .login__back {
+    font-size: 16px;
+  }
+
+  .login__tabs {
+    margin: 24px auto;
+  }
+
+  .login__field {
+    margin-bottom: 22px;
+  }
+
+  .login__label {
+    font-size: 17px;
+  }
+
+  .login__input {
+    height: 46px;
+    font-size: 16px;
+  }
+
+  .login__submit {
+    width: 100%;
+    font-size: 20px;
+  }
+
+  .login__socials {
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .login__social {
+    width: 100%;
+  }
+
+  .login__terms,
+  .login__switch {
+    font-size: 14px;
+  }
 }

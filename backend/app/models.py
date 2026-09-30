@@ -303,11 +303,10 @@ class SearchHistory(Base):
 
 class Group(Base):
     __tablename__ = "groups"
-
     group_id = Column(String, primary_key=True, default=gen_id)
     invite_code = Column(String, nullable=False, unique=True, index=True)
     host_user_id = Column(String, ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False, index=True)
-    selected_activity_id = Column(String, ForeignKey("activities.activity_id", ondelete="SET NULL"), nullable=True)
+    selected_activity_id = Column(String, ForeignKey("activities.activity_id", ondelete="SET NULL"))
     status = Column(String, nullable=False, default="active")
     created_at = Column(DateTime, nullable=False)
     updated_at = Column(DateTime, nullable=False)
@@ -320,10 +319,9 @@ class Group(Base):
 class GroupMember(Base):
     __tablename__ = "group_members"
     __table_args__ = (UniqueConstraint("group_id", "user_id", name="uq_group_member_user"),)
-
     member_id = Column(String, primary_key=True, default=gen_id)
     group_id = Column(String, ForeignKey("groups.group_id", ondelete="CASCADE"), nullable=False, index=True)
-    user_id = Column(String, ForeignKey("users.user_id", ondelete="SET NULL"), nullable=True, index=True)
+    user_id = Column(String, ForeignKey("users.user_id", ondelete="SET NULL"), index=True)
     name = Column(String, nullable=False)
     free_hours = Column(Float, nullable=False)
     address = Column(String, nullable=False)
@@ -339,7 +337,6 @@ class GroupMember(Base):
 
 class GroupPayment(Base):
     __tablename__ = "group_payments"
-
     payment_id = Column(String, primary_key=True, default=gen_id)
     group_id = Column(String, ForeignKey("groups.group_id", ondelete="CASCADE"), nullable=False, index=True)
     member_id = Column(String, ForeignKey("group_members.member_id", ondelete="CASCADE"), nullable=False, unique=True)

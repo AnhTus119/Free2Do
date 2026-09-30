@@ -551,3 +551,4 @@ async def group_websocket(websocket: WebSocket, group_id: str, token: str):
         if user_id:
             await group_connections.disconnect(group_id, user_id, websocket)
             await group_connections.broadcast_presence(group_id)
+

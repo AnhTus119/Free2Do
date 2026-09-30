@@ -167,6 +167,7 @@ class ActivityWithScore(Activity):
     category_ids: list[str] = Field(default_factory=list)
     avg_rating: Optional[float] = None
     review_count: int = 0
+    image_url: Optional[str] = None
 
 # ActivityMedia
 class ActivityMedia(BaseModel):
@@ -276,6 +277,7 @@ class SearchParams(BaseModel):
     free_time: Optional[int] = Field(None, ge=30)
     category_ids: list[str] = Field(default_factory=list)
     sort_by: Literal["match", "distance", "price", "rating"] = "match"
+    record_history: bool = True
 
 class SearchHistory(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -362,9 +364,6 @@ class UserProfileUpdate(BaseModel):
     phone: Optional[str] = Field(None, max_length=30)
 
 
-# ---------------------------------------------------------------------------
-# Group planning -- dữ liệu thật, đồng bộ qua REST + WebSocket
-# ---------------------------------------------------------------------------
 class GroupMemberInput(BaseModel):
     name: str = Field(min_length=1, max_length=200)
     free_hours: float = Field(gt=0, le=24)

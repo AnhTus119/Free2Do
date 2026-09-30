@@ -1,6 +1,7 @@
 import re
 import unittest
 from pathlib import Path
+from urllib.parse import unquote
 
 from app.main import app
 
@@ -51,7 +52,7 @@ class FullFrontendContractTests(unittest.TestCase):
             for url in pattern.findall(page.read_text(encoding="utf-8")):
                 if url.startswith(("http:", "https:", "#", "mailto:", "javascript:")) or "{" in url:
                     continue
-                target = page.parent / url.split("?", 1)[0].split("#", 1)[0]
+                target = page.parent / unquote(url.split("?", 1)[0].split("#", 1)[0])
                 if not target.exists():
                     missing.append(f"{page.relative_to(self.frontend)} -> {url}")
         self.assertEqual([], missing)
@@ -77,7 +78,8 @@ class FullFrontendContractTests(unittest.TestCase):
         removed = (
             "js/main.js", "js/search.js", "js/results.js", "js/detail.js",
             "js/review.js", "js/admin.js", "search-results.html",
-            "activity-detail.html", "review.html",
+            "activity-detail.html", "review.html", "js/public-data.js",
+            "js/user-nav.js", "js/api.js",
         )
         for path in removed:
             self.assertFalse((self.frontend / path).exists(), path)

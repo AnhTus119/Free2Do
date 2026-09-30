@@ -59,9 +59,21 @@
     });
     return me;
   }
-  document.addEventListener('click', e => {
-    if (e.target.closest('a.logout')) { e.preventDefault(); localStorage.removeItem('token'); location.href = '../log-in.html'; }
-  });
+  function logout() {
+    ['token', 'access_token', 'user_token', 'operator_token'].forEach(key => {
+      localStorage.removeItem(key);
+      sessionStorage.removeItem(key);
+    });
+    location.replace(new URL('../log-in.html', location.href).href);
+  }
+  // Capture phase giúp đăng xuất vẫn chạy dù menu cha có onclick hoặc script khác
+  // đóng dropdown trước khi sự kiện tới document.
+  document.addEventListener('click', event => {
+    if (!event.target.closest('.logout, [data-logout]')) return;
+    event.preventDefault();
+    event.stopPropagation();
+    logout();
+  }, true);
   window.toggleUserMenu = event => {
     event.stopPropagation();
     document.getElementById('user-dropdown')?.classList.toggle('open');
@@ -80,5 +92,5 @@
       ? value.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
       : value.toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' })).join(' – ');
   };
-  window.CustomerAPI = { request, requireUser, escapeHTML, price, priceLabel, hours };
+  window.CustomerAPI = { request, requireUser, logout, escapeHTML, price, priceLabel, hours };
 })();

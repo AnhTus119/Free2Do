@@ -1,8 +1,7 @@
-
 /* Nền */
 body, html {
   min-height: 100vh;
-  background: var(--color-brown);
+  background: var(--paper);
   position: relative;
   overflow: hidden;
 }
@@ -11,8 +10,9 @@ body, html {
     position: relative;
     width: 100%;
     min-height: 100vh;
-    background-image: url('../img/back.png');
+    background-image: linear-gradient(rgba(251,247,240,.75), rgba(251,247,240,.75)), url('../img/back.png');
     background-size: 150%;
+  background-color: var(--cream);
 }
 
 .signup__circle {
@@ -20,8 +20,8 @@ body, html {
   width: 1440px;
   aspect-ratio: 1 / 1;
   border-radius: 50%;
-  background: var(--color-cream);
-  border: 15px solid var(--color-green);
+  background: var(--paper);
+  border: 15px solid var(--muted);
   right: -650px;
   bottom: -350px;
   z-index: 1;
@@ -43,7 +43,7 @@ body, html {
   justify-content: flex-end;
   align-items: flex-start;
   padding: 30px;
-  color: var(--color-cream);
+  color: var(--side-bg);
 }
 
 .signup__title {
@@ -52,7 +52,8 @@ body, html {
   font-size: 32px;
   font-weight: 700;
   letter-spacing: 1px;
-  margin: 0 0 0 20px; 
+  margin: 0 0 0 20px;
+  text-shadow: 0 0 10px rgba(251,247,240,.95);
 }
 
 .signup__illustration {
@@ -80,15 +81,18 @@ body, html {
   font-weight: 700;
   line-height: 1.3;
   margin: 20px 0 70px 55px;
+  color: var(--ink);
+  text-shadow: 0 0 14px rgba(251,247,240,.95);
 }
 .signup__tagline em {
   font-style: italic;
-  color: var(--color-rose);
+  color: var(--rose-dark);
 }
 
 .signup__copyright {
   font-size: 12px;
   font-weight: 400;
+  color: var(--side-bg);
 }
 
 /* Cột phải */
@@ -103,7 +107,7 @@ body, html {
 
 .signup__back {
   display: inline-block;
-  color: var(--color-black);
+  color: var(--ink);
   text-decoration: none;
   font-style: italic;
   font-size: 20px;
@@ -114,10 +118,11 @@ body, html {
   width: 300px;
   height: 50px;
   display: flex;
-  background: var(--color-pink);
+  background: #fff;
   border-radius: 20px;
   padding: 4px;
   margin: 10px auto;
+  border: 1.5px solid var(--line);
 }
 
 .signup__tab {
@@ -127,13 +132,13 @@ body, html {
   justify-content: center;
   border-radius: 20px;
   text-decoration: none;
-  color: var(--color-black);
+  color: var(--brown);
   font-size: 18px;
 }
 
 .signup__tab--active {
-  background: var(--color-rose);
-  color: var(--color-white);
+  background: var(--rose);
+  color: #fff;
   font-weight: 400;
 }
 
@@ -146,7 +151,7 @@ body, html {
   display: block;
   margin-bottom: 3px;
   font-size: 20px;
-  color: var(--color-black);
+  color: var(--ink);
 }
 
 .signup__input-wrap {
@@ -157,19 +162,20 @@ body, html {
   width: 100%;
   height: 46px;
   padding: 0 50px 0 16px;
-  border: 2px solid var(--color-brown);
+  border: 1.5px solid var(--line);
   border-radius: 10px;
-  background: var(--color-cream);
+  background: #fff;
   font-size: 18px;
 }
 
 .signup__input::placeholder {
-  color: var(--color-text-muted);
+  color: var(--muted);
 }
 
 .signup__input:focus {
   outline: none;
-  border-color: var(--color-rose);
+  border-color: var(--rose);
+  box-shadow: 0 0 0 4px rgba(219,102,128,.15);
 }
 
 .signup__toggle {
@@ -180,7 +186,7 @@ body, html {
   background: none;
   border: none;
   cursor: pointer;
-  color: var(--color-black);
+  color: var(--brown);
   font-size: 16px;
 }
 
@@ -203,20 +209,20 @@ body, html {
   height: 5px;
   flex: 1;
   border-radius: 3px;
-  background: var(--color-pink); /* mặc định chưa nhập */
+  background: var(--line); /* mặc định chưa nhập */
   transition: background 0.2s ease; 
 }
 
 .signup__strength-bar--weak {
-  background: var(--color-brown); 
+  background: var(--danger); 
 }
 
 .signup__strength-bar--medium {
-  background: var(--color-rose); 
+  background: var(--warn); 
 }
 
 .signup__strength-bar--strong {
-  background: var(--color-green);
+  background: var(--success);
 }
 
 .signup__strength-label {
@@ -226,9 +232,9 @@ body, html {
   text-align: right;
 }
 
-.signup__strength-label--weak { color: var(--color-brown); }
-.signup__strength-label--medium { color: var(--color-rose); }
-.signup__strength-label--strong { color: var(--color-green); }
+.signup__strength-label--weak { color: var(--danger); }
+.signup__strength-label--medium { color: var(--warn); }
+.signup__strength-label--strong { color: var(--success); }
 
 /* Consent checkbox */
 .signup__consent {
@@ -237,7 +243,7 @@ body, html {
   gap: 10px;
   margin-bottom: 10px;
   font-size: 15px;
-  color: var(--color-black);
+  color: var(--ink);
   cursor: pointer;
 }
 
@@ -245,7 +251,7 @@ body, html {
   width: 17px;
   height: 17px;
   margin-top: 1px;
-  accent-color: var(--color-rose);
+  accent-color: var(--rose);
   cursor: pointer;
 }
 
@@ -255,17 +261,19 @@ body, html {
   width: 300px;
   height: 50px;
   border: none;
-  border-radius: 15px;
-  background: var(--color-rose);
-  color: var(--color-white);
+  border-radius: 999px;
+  background: var(--rose);
+  color: #fff;
   font-size: 24px;
   font-weight: 700;
   cursor: pointer;
   margin: 0 auto 10px auto;
+  box-shadow: 0 8px 18px rgba(219, 102, 128, 0.3);
 }
 
 .signup__submit:hover {
-  filter: brightness(1.05); 
+  filter: none;
+  background: var(--rose-dark);
 }
 
 /* Divider */
@@ -275,7 +283,7 @@ body, html {
   gap: 12px;
   margin-bottom: 10px;
   font-size: 15px;
-  color: var(--color-brown);
+  color: var(--muted);
   font-weight: 700;
 }
 
@@ -284,7 +292,7 @@ body, html {
   content: "";
   flex: 1;
   height: 1px;
-  background: var(--color-brown);
+  background: var(--line);
 }
 
 /* Social buttons */
@@ -302,9 +310,9 @@ body, html {
   gap: 10px;
   width: 375px;
   height: 50px;
-  border: 1px solid var(--color-brown);
+  border: 1.5px solid var(--line);
   border-radius: 8px;
-  background: var(--color-cream);
+  background: #fff;
   font-size: 16px;
   cursor: pointer;
 }
@@ -313,15 +321,178 @@ body, html {
 .signup__switch {
   text-align: center;
   font-size: 15px;
-  color: var(--color-black);
+  color: var(--ink);
 }
 
 .signup__consent a,
 .signup__switch a {
-  color: var(--color-rose);
+  color: var(--rose-dark);
   text-decoration: underline;
 }
 
 .signup__switch a {
   text-decoration: none;
+}
+/* =========================================================
+   RESPONSIVE — iPad / Tablet (≤1024px)
+   ========================================================= */
+@media (max-width: 1024px) {
+  .signup__content {
+    grid-template-columns: 1fr;
+  }
+
+  .signup__circle {
+    display: none;
+  }
+
+  /* Logo to bên trái, FREE2DO + khẩu hiệu xếp dọc bên phải */
+  .signup__brand {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    column-gap: 20px;
+    text-align: left;
+    padding: 28px 24px 0;
+  }
+
+  .signup__illustration {
+    grid-column: 1;
+    grid-row: 1 / 3;
+    margin: 0;
+    flex: none;
+  }
+
+  .signup__title {
+    grid-column: 2;
+    grid-row: 1;
+    margin: 0;
+  }
+
+  .signup__logo {
+    width: 96px;
+    height: 96px;
+  }
+
+  .signup__brand-bottom {
+    grid-column: 2;
+    grid-row: 2;
+    position: static; /* bỏ vị trí neo cũ để copyright canh theo .signup__content */
+    text-align: left;
+    margin-top: 6px;
+  }
+
+  .signup__tagline {
+    margin: 0;
+    font-size: 24px;
+    line-height: 1.3;
+    text-align: left;
+  }
+
+  /* Dòng bản quyền đẩy xuống cuối trang */
+  .signup__copyright {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 16px;
+    text-align: center;
+    padding: 0 20px;
+  }
+
+  .signup__inner {
+    padding: 10px 60px 60px;
+  }
+
+  .signup__tabs {
+    width: 100%;
+    max-width: 320px;
+  }
+}
+
+/* =========================================================
+   RESPONSIVE — Điện thoại (≤640px)
+   ========================================================= */
+@media (max-width: 640px) {
+  .signup {
+    background-size: cover;
+  }
+
+  .signup__content {
+    min-height: auto;
+  }
+
+  .signup__brand {
+    padding: 18px 16px 0;
+    column-gap: 12px;
+  }
+
+  .signup__title {
+    font-size: 20px;
+  }
+
+  .signup__logo {
+    width: 56px;
+    height: 56px;
+  }
+
+  .signup__tagline {
+    font-size: 16px;
+  }
+
+  /* Gộp "Free2Do giúp bạn" và "biết nên làm gì." về chung 1 dòng */
+  .signup__tagline br:nth-of-type(2) {
+    display: none;
+  }
+
+  .signup__copyright {
+    bottom: 10px;
+    font-size: 11px;
+  }
+
+  .signup__inner {
+    padding: 10px 20px 46px;
+  }
+
+  .signup__back {
+    font-size: 16px;
+  }
+
+  .signup__tabs {
+    margin: 20px auto;
+  }
+
+  .signup__field {
+    margin-bottom: 14px;
+  }
+
+  .signup__label {
+    font-size: 17px;
+  }
+
+  .signup__input {
+    height: 44px;
+    font-size: 16px;
+  }
+
+  .signup__strength-label {
+    font-size: 13px;
+  }
+
+  .signup__submit {
+    width: 100%;
+    font-size: 20px;
+  }
+
+  .signup__socials {
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .signup__social {
+    width: 100%;
+  }
+
+  .signup__consent,
+  .signup__switch {
+    font-size: 14px;
+  }
 }

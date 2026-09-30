@@ -2,11 +2,252 @@
 <html lang="vi">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta http-equiv="refresh" content="0;url=Demo%20Trang%20Customer/home.html">
-  <title>FREE2DO</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Free2Do giúp bạn khám phá những hoạt động phù hợp với thời gian, sở thích và những người đồng hành.">
+  <title>FREE2DO — Khám phá điều bạn muốn làm</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --landing-ink: #2b2420;
+      --landing-muted: #6e625c;
+      --landing-rose: #db6680;
+      --landing-rose-hover: #b94d68;
+      --landing-paper: #fbf7f0;
+      --landing-line: #eadfcb;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; min-width: 0; background: var(--landing-paper); color: var(--landing-ink); font-family: 'Inter', Arial, sans-serif; }
+    button, a { -webkit-tap-highlight-color: transparent; }
+    a:focus-visible, button:focus-visible { outline: 3px solid var(--landing-rose); outline-offset: 3px; }
+    .navbar {
+      position: sticky; top: 0; z-index: 100; width: 100%;
+      display: grid; grid-template-columns: minmax(0,1fr) auto minmax(0,1fr);
+      align-items: center; gap: 24px; padding: 15px clamp(20px,4vw,64px);
+      background: rgba(255,255,255,.96); border-bottom: 1px solid var(--landing-line);
+      backdrop-filter: blur(12px);
+    }
+    .nav-left { display: flex; align-items: center; min-width: 0; }
+    .nav-logo { display: inline-flex; align-items: center; gap: 9px; color: var(--landing-ink); text-decoration: none; font-size: 18px; font-weight: 800; white-space: nowrap; }
+    .nav-logo img { width: 38px; height: 38px; object-fit: contain; }
+    .nav-center { display: flex; align-items: center; justify-content: center; gap: clamp(24px,3vw,46px); }
+    .nav-link { padding: 8px 0; color: var(--landing-muted); text-decoration: none; font-size: 14px; font-weight: 600; white-space: nowrap; border-bottom: 2px solid transparent; }
+    .nav-link:hover, .nav-link.active { color: var(--landing-ink); border-color: var(--landing-rose); }
+    .nav-right { display: flex; justify-content: flex-end; min-width: 0; }
+    .auth-buttons { display: flex; align-items: center; gap: 10px; }
+    .auth-link {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-height: 42px; padding: 0 19px; border: 1px solid var(--landing-rose);
+      border-radius: 999px; background: var(--landing-rose); color: #fff;
+      text-decoration: none; font-size: 13.5px; font-weight: 700; white-space: nowrap;
+      box-shadow: 0 4px 12px rgba(219,102,128,.16);
+      transition: transform .18s ease, background-color .18s ease, box-shadow .18s ease;
+    }
+    .auth-link:hover { background: var(--landing-rose-hover); border-color: var(--landing-rose-hover); transform: translateY(-3px); box-shadow: 0 10px 22px rgba(185,77,104,.28); }
+    .mobile-menu-btn { display: none; width: 38px; height: 38px; padding: 7px; margin-right: 8px; border: 0; background: transparent; color: var(--landing-ink); cursor: pointer; }
+    .mobile-menu-btn svg { width: 24px; height: 24px; }
+    .mobile-nav-panel { display: none; }
+    .landing-shell { width: min(100% - 48px, 1280px); margin: 0 auto; }
+    .landing-hero {
+      position: relative; isolation: isolate; display: flex; flex-direction: column; justify-content: space-between;
+      aspect-ratio: 2047 / 1362; margin: 24px auto 0;
+      overflow: hidden; border-radius: 28px; background: #e8edf1;
+      box-shadow: 0 24px 58px rgba(71,48,40,.16);
+    }
+    .landing-hero::after {
+      content: ''; position: absolute; inset: 48% 0 0; z-index: 1; pointer-events: none;
+      background: linear-gradient(0deg,rgba(26,24,26,.88) 0%,rgba(26,24,26,.56) 34%,transparent 100%);
+    }
+    .hero-content { position: relative; z-index: 2; width: 100%; padding: clamp(34px,5vw,66px); color: var(--landing-ink); }
+    .hero-eyebrow { display: inline-block; margin: 0 0 18px; padding: 8px 14px; border: 1px solid #f2d1d8; border-radius: 99px; background: #fde9ed; color: var(--landing-rose-hover); font-size: 12px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; }
+    .hero-content h1 { margin: 0; font-size: clamp(28px,4vw,54px); line-height: 1.08; letter-spacing: -.045em; font-weight: 800; white-space: nowrap; text-shadow: 0 1px 12px rgba(255,255,255,.55); }
+    .hero-visual { position: absolute; inset: 0; z-index: 0; }
+    .hero-visual img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center center; }
+    .hero-bottom { position: relative; z-index: 2; display: flex; align-items: flex-end; justify-content: space-between; gap: 28px; padding: 90px clamp(34px,5vw,66px) clamp(34px,5vw,60px); color: #fff; }
+    .hero-bottom p { max-width: 500px; margin: 0; color: #fff; font-size: clamp(15px,1.3vw,18px); font-weight: 600; line-height: 1.6; text-shadow: 0 2px 10px rgba(0,0,0,.35); }
+    .hero-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+    .hero-cta, .hero-secondary {
+      display: inline-flex; align-items: center; justify-content: center; min-height: 49px;
+      padding: 0 23px; border-radius: 999px; text-decoration: none; font-size: 14px; font-weight: 700;
+      transition: transform .18s ease, background-color .18s ease, box-shadow .18s ease;
+    }
+    .hero-cta { color: #fff; background: var(--landing-rose); box-shadow: 0 8px 24px rgba(30,20,20,.22); }
+    .hero-cta:hover { background: var(--landing-rose-hover); transform: translateY(-3px); }
+    .hero-secondary { border: 1px solid rgba(255,255,255,.75); color: #fff; background: rgba(255,255,255,.13); }
+    .hero-secondary:hover { background: rgba(255,255,255,.27); transform: translateY(-3px); }
+    .landing-section { padding: clamp(62px,8vw,110px) 0; }
+    .section-kicker { margin: 0 0 12px; color: var(--landing-rose-hover); font-size: 12px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+    .section-heading { max-width: 690px; margin: 0; font-size: clamp(27px,3vw,43px); line-height: 1.17; letter-spacing: -.035em; }
+    .section-lead { max-width: 620px; margin: 16px 0 30px; color: var(--landing-muted); font-size: 16px; line-height: 1.7; }
+    .feature-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 18px; }
+    .feature-card { padding: 30px; border: 1px solid var(--landing-line); border-radius: 22px; background: #fff; box-shadow: 0 12px 28px rgba(77,54,43,.035); }
+    .feature-number { display: inline-flex; align-items: center; justify-content: center; width: 46px; height: 46px; border-radius: 14px; background: #fde9ed; color: var(--landing-rose-hover); font-size: 14px; font-weight: 800; }
+    .feature-card h3 { margin: 24px 0 10px; font-size: 19px; }
+    .feature-card p { margin: 0; color: var(--landing-muted); font-size: 14px; line-height: 1.7; }
+    .closing-band { display: flex; align-items: center; justify-content: space-between; gap: 30px; margin-bottom: 80px; padding: 36px 42px; border-radius: 24px; background: #f5e4dd; }
+    .closing-band h2 { margin: 0 0 8px; font-size: clamp(24px,2.5vw,34px); }
+    .closing-band p { margin: 0; color: var(--landing-muted); line-height: 1.6; }
+    .closing-band .auth-link { flex: 0 0 auto; }
+    .landing-footer { padding: 27px 20px; border-top: 1px solid var(--landing-line); background: #fff; color: var(--landing-muted); font-size: 13px; text-align: center; line-height: 2; }
+    .landing-footer a { color: var(--landing-ink); text-decoration: none; }
+    .landing-footer a:hover { color: var(--landing-rose-hover); text-decoration: underline; }
+    @media (max-width: 1100px) {
+      .navbar { gap: 16px; }
+      .nav-center { gap: 22px; }
+      .feature-card { padding: 24px; }
+      .hero-content { padding: 34px; }
+      .hero-content h1 { font-size: clamp(27px,3.9vw,42px); }
+      .hero-bottom { padding: 70px 34px 32px; }
+      .hero-actions { justify-content: flex-end; }
+    }
+    @media (max-width: 768px) {
+      .navbar { display: flex; justify-content: space-between; gap: 12px; padding: 11px 18px; }
+      .mobile-menu-btn { display: inline-flex; align-items: center; justify-content: center; }
+      .nav-center { display: none; }
+      .nav-left { flex: 1 1 auto; }
+      .nav-right { flex: 0 0 auto; }
+      .landing-shell { width: min(100% - 28px,1280px); }
+      .landing-hero { display: grid; grid-template-areas: 'photo' 'bottom'; aspect-ratio: auto; margin-top: 14px; border-radius: 22px; background: #fffaf5; }
+      .landing-hero::after { display: none; }
+      .hero-content { grid-area: photo; align-self: start; width: 100%; padding: clamp(12px,2.8vw,23px); }
+      .hero-eyebrow { margin-bottom: 8px; }
+      .hero-content h1 { text-shadow: 0 1px 10px rgba(255,255,255,.8); }
+      .hero-visual { grid-area: photo; position: relative; inset: auto; width: 100%; }
+      .hero-visual img { width: 100%; height: auto; object-fit: contain; }
+      .hero-bottom { grid-area: bottom; display: block; padding: 26px 32px 30px; background: var(--landing-ink); }
+      .hero-bottom p { max-width: none; margin-bottom: 18px; }
+      .hero-actions { justify-content: flex-start; }
+      .feature-grid { grid-template-columns: 1fr; gap: 12px; }
+      .feature-card { padding: 23px; }
+      .feature-card h3 { margin-top: 16px; }
+      .closing-band { padding: 30px; flex-direction: column; align-items: flex-start; margin-bottom: 50px; }
+      .mobile-nav-panel { position: fixed; inset: 0; z-index: 200; background: rgba(31,25,22,.48); }
+      .mobile-nav-panel.show { display: block; }
+      .mobile-nav-content { position: absolute; top: 0; left: 0; bottom: 0; width: min(280px,84vw); display: flex; flex-direction: column; gap: 5px; padding: 65px 16px 20px; background: #fff; box-shadow: 14px 0 35px rgba(31,25,22,.17); }
+      .mobile-nav-close { position: absolute; top: 12px; right: 14px; width: 40px; height: 40px; border: 0; background: transparent; font-size: 28px; cursor: pointer; }
+      .mobile-nav-link { display: block; padding: 12px 14px; border-radius: 10px; color: var(--landing-ink); text-decoration: none; font-size: 15px; font-weight: 600; }
+      .mobile-nav-link.active { background: #fde9ed; color: var(--landing-rose-hover); }
+    }
+    @media (max-width: 480px) {
+      .navbar { padding: 10px 12px; }
+      .nav-logo { font-size: 15px; gap: 5px; }
+      .nav-logo img { width: 31px; height: 31px; }
+      .auth-buttons { gap: 6px; }
+      .auth-link { min-height: 36px; padding: 0 11px; font-size: 12px; }
+      .hero-content { padding: 9px 11px; }
+      .hero-content h1 { font-size: clamp(17px,4.6vw,22px); }
+      .hero-eyebrow { margin-bottom: 5px; padding: 5px 8px; font-size: 9px; }
+      .hero-actions a { width: 100%; }
+    }
+    @media (max-width: 360px) {
+      .nav-logo span { display: none; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      .auth-link, .hero-cta, .hero-secondary { transition: none; }
+    }
+  </style>
 </head>
 <body>
-  <p>Đang mở FREE2DO… <a href="Demo Trang Customer/home.html">Tiếp tục</a></p>
+  <nav class="navbar" aria-label="Điều hướng chính">
+    <div class="nav-left">
+      <button class="mobile-menu-btn" id="openMobileNav" type="button" aria-label="Mở menu" aria-controls="mobileNav" aria-expanded="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+      <a class="nav-logo" href="index.html"><img src="Demo%20Trang%20Customer/Logo.svg" alt=""><span>FREE2DO</span></a>
+    </div>
+    <div class="nav-center">
+      <a class="nav-link active" href="index.html" aria-current="page">Trang chủ</a>
+      <a class="nav-link" href="Demo%20Trang%20Customer/search.html">Tìm kiếm</a>
+      <a class="nav-link" href="Demo%20Trang%20Customer/account.html#yeuthich">Yêu thích</a>
+    </div>
+    <div class="nav-right auth-buttons">
+      <a class="auth-link" href="log-in.html">Đăng nhập</a>
+      <a class="auth-link" href="sign-up.html">Đăng ký</a>
+    </div>
+  </nav>
+
+  <main>
+    <div class="landing-shell">
+      <section class="landing-hero" aria-labelledby="heroTitle">
+        <div class="hero-content">
+          <span class="hero-eyebrow">Thời gian rảnh, trải nghiệm hay</span>
+          <h1 id="heroTitle">Hôm nay mình làm gì thú vị?</h1>
+        </div>
+        <div class="hero-visual">
+          <img src="picture.jpg" alt="Nhóm bạn cùng tạo dáng bên Hồ Gươm, Hà Nội" width="2047" height="1362">
+        </div>
+        <div class="hero-bottom">
+          <p>Khám phá hoạt động quanh bạn, chọn điều hợp sở thích và rủ thêm bạn bè cùng trải nghiệm.</p>
+          <div class="hero-actions">
+            <a class="hero-cta" href="log-in.html">Bắt đầu khám phá <span aria-hidden="true">&nbsp;→</span></a>
+            <a class="hero-secondary" href="#cach-hoat-dong">Tìm hiểu Free2Do</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="landing-section" id="cach-hoat-dong" aria-labelledby="howTitle">
+        <p class="section-kicker">Một ngày theo cách của bạn</p>
+        <h2 class="section-heading" id="howTitle">Từ vài giờ rảnh đến một trải nghiệm đáng nhớ.</h2>
+        <p class="section-lead">Free2Do giúp bạn thu hẹp lựa chọn theo thời gian, vị trí và sở thích để dễ quyết định hơn.</p>
+        <div class="feature-grid">
+          <article class="feature-card">
+            <span class="feature-number">01</span>
+            <h3>Chọn thời gian rảnh</h3>
+            <p>Có một buổi chiều trống hay cả ngày cuối tuần? Bắt đầu từ khoảng thời gian bạn có.</p>
+          </article>
+          <article class="feature-card">
+            <span class="feature-number">02</span>
+            <h3>Khám phá quanh bạn</h3>
+            <p>Xem các hoạt động theo vị trí, ngân sách và chủ đề bạn muốn thử.</p>
+          </article>
+          <article class="feature-card">
+            <span class="feature-number">03</span>
+            <h3>Đi một mình hoặc cùng nhóm</h3>
+            <p>Lưu lựa chọn yêu thích và tìm trải nghiệm phù hợp với mọi người.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="closing-band" aria-label="Bắt đầu với Free2Do">
+        <div><h2>Để thời gian rảnh thành chuyện đáng kể.</h2><p>Đăng ký miễn phí và tìm hoạt động đầu tiên của bạn.</p></div>
+        <a class="auth-link" href="sign-up.html">Tạo tài khoản →</a>
+      </section>
+    </div>
+  </main>
+
+  <footer class="landing-footer">
+    <a href="privacy-policy.html">Chính sách bảo mật</a>
+    <span aria-hidden="true"> · </span>
+    <a href="terms-of-service.html">Điều khoản sử dụng</a>
+    <span aria-hidden="true"> · </span>
+    <a href="mailto:anhtud143@gmail.com">Liên hệ</a>
+  </footer>
+
+  <div class="mobile-nav-panel" id="mobileNav" aria-hidden="true">
+    <div class="mobile-nav-content">
+      <button class="mobile-nav-close" id="closeMobileNav" type="button" aria-label="Đóng menu">&times;</button>
+      <a href="index.html" class="mobile-nav-link active">Trang chủ</a>
+      <a href="Demo%20Trang%20Customer/search.html" class="mobile-nav-link">Tìm kiếm</a>
+      <a href="Demo%20Trang%20Customer/account.html#yeuthich" class="mobile-nav-link">Yêu thích</a>
+    </div>
+  </div>
+  <script>
+    const navPanel = document.getElementById('mobileNav');
+    const navButton = document.getElementById('openMobileNav');
+    function setMobileNav(open) {
+      navPanel.classList.toggle('show', open);
+      navPanel.setAttribute('aria-hidden', String(!open));
+      navButton.setAttribute('aria-expanded', String(open));
+      if (open) document.getElementById('closeMobileNav').focus();
+      else navButton.focus();
+    }
+    navButton.addEventListener('click', () => setMobileNav(true));
+    document.getElementById('closeMobileNav').addEventListener('click', () => setMobileNav(false));
+    navPanel.addEventListener('click', event => { if (event.target === navPanel) setMobileNav(false); });
+    document.addEventListener('keydown', event => { if (event.key === 'Escape' && navPanel.classList.contains('show')) setMobileNav(false); });
+  </script>
 </body>
 </html>

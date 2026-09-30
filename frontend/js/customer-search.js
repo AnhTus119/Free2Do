@@ -1,47 +1,165 @@
 (function () {
   'use strict';
   const api = window.CustomerAPI;
-  const form = document.getElementById('searchForm');
-  const results = document.getElementById('results');
-  const status = document.getElementById('locationStatus');
-  let position;
-  function currentPosition() {
-    if (position) return Promise.resolve(position);
-    if (!navigator.geolocation) return Promise.reject(new Error('Trình duyệt không hỗ trợ định vị.'));
-    status.textContent = 'Đang lấy vị trí…';
-    return new Promise((resolve, reject) => navigator.geolocation.getCurrentPosition(
-      value => { position = value.coords; status.textContent = 'Đã lấy vị trí hiện tại.'; resolve(position); },
-      () => reject(new Error('Không thể lấy vị trí. Hãy cấp quyền định vị cho trang web.')),
-      { enableHighAccuracy: true, timeout: 12000, maximumAge: 300000 },
-    ));
+  const params = new URLSearchParams(location.search);
+  const DEFAULT_POSITION = { latitude: 21.0285, longitude: 105.8542 };
+  const resultCount = document.getElementById('resultCount');
+  const summary = document.getElementById('searchSummary');
+  const radiusSlider = document.getElementById('searchRadiusSlider');
+  const radiusValue = document.getElementById('searchRadiusValue');
+  const mapRadius = document.getElementById('mapRadiusLabel');
+  const mapLocation = document.getElementById('mapLocationLabel');
+  const mapResults = document.getElementById('mapSideResults');
+  const mapCount = document.getElementById('mapResultCount');
+  const listResults = document.getElementById('searchResults');
+  const detailResults = document.getElementById('detailResults');
+  const categoryBox = document.getElementById('interestFilters');
+  const sortSelect = document.getElementById('sortSelect');
+  let position = DEFAULT_POSITION;
+  let mapController;
+  let timer;
+  let requestSequence = 0;
+  let mapSideView = 'list';
+
+  const parseMoney = value => {
+    const normalized = String(value || '').replace(/[^0-9]/g, '');
+    return normalized ? Number(normalized) : null;
+  };
+  const selectedCategories = () => [...categoryBox.querySelectorAll('[data-category-id].active')].map(item => item.dataset.categoryId);
+  function availableMinutes() {
+    const hours = Math.min(24, Math.max(0, Number(document.getElementById('freeHours').value) || 0));
+    const minutes = Math.min(59, Math.max(0, Number(document.getElementById('freeMinutes').value) || 0));
+    const total = Math.trunc(hours * 60 + minutes);
+    return total >= 30 ? total : null;
   }
-  function optionalNumber(id) { const value = document.getElementById(id).value; return value === '' ? null : Number(value); }
+  function selectedBudget() {
+    const selected = document.querySelector('input[name="budget"]:checked')?.value;
+    if (!selected) return null;
+    if (selected === 'free') return 0;
+    if (selected === 'custom') return parseMoney(document.getElementById('customBudgetInput').value);
+    return Number(selected);
+  }
+  function imageHTML(item) {
+    return item.image_url ? `<img src="${api.escapeHTML(item.image_url)}" alt="" style="width:100%;height:100%;object-fit:cover">` : '✨';
+  }
+  function listRow(item) {
+    return `<a href="activity-detail.html?id=${encodeURIComponent(item.activity_id)}" class="activity-list-row"><span><span class="activity-title">${api.escapeHTML(item.name)}</span><span class="activity-biz">${api.escapeHTML(item.business_name)}</span></span><span class="activity-list-address" title="${api.escapeHTML(item.address)}">${api.escapeHTML(item.address)}</span><span class="activity-list-rating">★ ${item.avg_rating ?? '—'}</span><span class="activity-list-price">${api.escapeHTML(api.priceLabel(item.price_text, item.price))}</span><span class="activity-list-distance">${item.distance_km ?? '—'} km</span></a>`;
+  }
+  function detailCard(item) {
+    return `<a href="activity-detail.html?id=${encodeURIComponent(item.activity_id)}" class="activity-card"><div class="activity-img" style="background:#F3D9A6;overflow:hidden">${imageHTML(item)}<span class="match-badge">${item.match_score}% phù hợp</span></div><div class="activity-body"><div class="activity-title">${api.escapeHTML(item.name)}</div><div class="activity-biz">${api.escapeHTML(item.business_name)} · ${api.escapeHTML(item.address)}</div><div class="activity-meta">★ ${item.avg_rating ?? '—'} · <span class="activity-price">${api.escapeHTML(api.priceLabel(item.price_text, item.price))}</span> · ${item.distance_km ?? '—'} km · ${api.escapeHTML(api.hours(item.time_open, item.time_close))}</div><div class="why-match">Phù hợp với tiêu chí bạn đã chọn</div></div></a>`;
+  }
+  function sideRow(item) {
+    return `<a class="map-side-item" data-activity-id="${api.escapeHTML(item.activity_id)}" href="activity-detail.html?id=${encodeURIComponent(item.activity_id)}"><div class="map-side-img">${imageHTML(item)}</div><div class="map-side-info"><h4>${api.escapeHTML(item.name)}</h4><p>${item.distance_km ?? '—'} km · ${api.escapeHTML(api.priceLabel(item.price_text, item.price))} · ★ ${item.avg_rating ?? '—'}</p><span class="map-match-badge">${item.match_score}% phù hợp</span></div></a>`;
+  }
   function render(items) {
-    if (!items.length) { results.className = 'message'; results.textContent = 'Không có hoạt động phù hợp.'; return; }
-    results.className = '';
-    results.innerHTML = items.map(item => `<article class="result"><h3><a href="activity-detail.html?id=${encodeURIComponent(item.activity_id)}">${api.escapeHTML(item.name)}</a></h3><div class="meta">${api.escapeHTML(item.business_name)} · ${api.escapeHTML(item.address)}</div><p>${api.escapeHTML(item.description || 'Chưa có mô tả.')}</p><div><span class="score">${item.match_score}% phù hợp</span> · ${item.distance_km == null ? 'Chưa rõ khoảng cách' : `${item.distance_km} km`} · ${api.escapeHTML(api.priceLabel(item.price_text, item.price))} · ★ ${item.avg_rating ?? '—'} (${item.review_count})</div></article>`).join('');
+    resultCount.textContent = items.length;
+    mapCount.textContent = items.length;
+    listResults.innerHTML = items.length ? items.map(listRow).join('') : '<p>Không tìm thấy hoạt động phù hợp với thông tin bạn đã chọn.</p>';
+    detailResults.innerHTML = items.length ? items.map(detailCard).join('') : '<p>Không tìm thấy hoạt động phù hợp với thông tin bạn đã chọn.</p>';
+    mapResults.innerHTML = items.length ? items.map(mapSideView === 'details' ? detailCard : sideRow).join('') : '<p style="padding:20px;">Không có hoạt động phù hợp.</p>';
+    mapController?.render(position, Number(radiusSlider.value), items);
+    const categoryNames = [...categoryBox.querySelectorAll('[data-category-id].active')].map(item => item.textContent.trim());
+    summary.textContent = `Đang lọc theo: rảnh ${availableMinutes() ?? 0} phút · bán kính ${radiusSlider.value} km · ngân sách ${selectedBudget() == null ? 'không giới hạn' : api.price(selectedBudget())} · sở thích: ${categoryNames.join(', ') || 'tất cả'}`;
   }
-  form.addEventListener('submit', async event => {
-    event.preventDefault(); const button = form.querySelector('button[type=submit]'); button.disabled = true;
-    try {
-      const coords = await currentPosition();
-      const payload = { keyword: document.getElementById('keyword').value.trim() || null,
-        latitude: coords.latitude, longitude: coords.longitude, radius: Number(document.getElementById('radius').value),
-        budget: optionalNumber('budget'), free_time: optionalNumber('freeTime'),
-        category_ids: [...document.querySelectorAll('[name=category]:checked')].map(input => input.value), sort_by: document.getElementById('sortBy').value };
-      results.className = 'message'; results.textContent = 'Đang tìm…';
-      render(await api.request('/search', { method: 'POST', body: payload }));
-    } catch (error) { results.className = 'message'; results.textContent = error.message; }
-    finally { button.disabled = false; }
-  });
-  api.requireUser().then(async () => {
-    const [categories, preferences] = await Promise.all([
-      api.request('/categories'),
-      api.request('/users/me/categories'),
-    ]);
-    const preferred = new Set(preferences.map(item => item.category_id));
-    document.getElementById('categoryList').innerHTML = categories.map(item => `<label><input type="checkbox" name="category" value="${api.escapeHTML(item.category_id)}"> ${api.escapeHTML(item.name)}</label>`).join('') || '<span>Chưa có danh mục.</span>';
-    document.querySelectorAll('[name=category]').forEach(input => { input.checked = preferred.has(input.value); });
-    const query = new URLSearchParams(location.search).get('q'); if (query) { document.getElementById('keyword').value = query; form.requestSubmit(); }
-  }).catch(error => { results.textContent = error.message; });
+  function syncQuery() {
+    params.set('latitude', position.latitude);
+    params.set('longitude', position.longitude);
+    params.set('radius', radiusSlider.value);
+    params.set('hours', document.getElementById('freeHours').value || '0');
+    params.set('minutes', document.getElementById('freeMinutes').value || '0');
+    params.set('categories', selectedCategories().join('|'));
+    const budget = selectedBudget();
+    if (budget == null) params.delete('budget'); else params.set('budget', budget);
+    history.replaceState(null, '', `${location.pathname}?${params}`);
+  }
+  async function search(recordHistory = false) {
+    const sequence = ++requestSequence;
+    syncQuery();
+    const items = await api.request('/search', { method: 'POST', body: {
+      keyword: params.get('q') || null, latitude: position.latitude, longitude: position.longitude,
+      radius: Number(radiusSlider.value), budget: selectedBudget(), free_time: availableMinutes(),
+      category_ids: selectedCategories(), sort_by: sortSelect.value, record_history: recordHistory,
+    } });
+    if (sequence === requestSequence) render(items);
+  }
+  function queueSearch() {
+    clearTimeout(timer);
+    timer = setTimeout(() => search(false).catch(error => {
+      mapResults.innerHTML = `<p style="padding:20px;">${api.escapeHTML(error.message)}</p>`;
+    }), 220);
+  }
+  function restoreFilters() {
+    radiusSlider.value = params.get('radius') || '5';
+    radiusValue.textContent = radiusSlider.value;
+    mapRadius.textContent = radiusSlider.value;
+    document.getElementById('freeHours').value = params.get('hours') || '0';
+    document.getElementById('freeMinutes').value = params.get('minutes') || '0';
+    const budget = parseMoney(params.get('budget'));
+    if (budget != null) {
+      const option = budget === 0 ? 'free' : budget <= 200000 ? '200000' : budget <= 500000 ? '500000' : 'custom';
+      const radio = document.querySelector(`input[name="budget"][value="${option}"]`);
+      if (radio) radio.checked = true;
+      if (option === 'custom') {
+        document.getElementById('customBudgetInput').hidden = false;
+        document.getElementById('customBudgetInput').value = budget;
+      }
+    }
+    if (window.Free2DoMap.validCoordinate(Number(params.get('latitude')), Number(params.get('longitude')))) {
+      position = { latitude: Number(params.get('latitude')), longitude: Number(params.get('longitude')) };
+    }
+  }
+  function setView(view) {
+    document.getElementById('view-map').style.display = view === 'details' ? 'none' : 'block';
+    document.getElementById('view-list').style.display = 'none';
+    document.getElementById('view-details').style.display = view === 'details' ? 'block' : 'none';
+    document.querySelectorAll('#viewSwitchMobile button').forEach(button => button.classList.toggle('active', button.dataset.view === view));
+  }
+  function bind() {
+    radiusSlider.addEventListener('input', () => { radiusValue.textContent = radiusSlider.value; mapRadius.textContent = radiusSlider.value; queueSearch(); });
+    ['freeHours', 'freeMinutes'].forEach(id => document.getElementById(id).addEventListener('input', queueSearch));
+    sortSelect.addEventListener('change', queueSearch);
+    categoryBox.addEventListener('click', event => { const chip = event.target.closest('[data-category-id]'); if (chip) { chip.classList.toggle('active'); queueSearch(); } });
+    document.querySelectorAll('input[name="budget"]').forEach(input => input.addEventListener('change', () => {
+      const custom = document.getElementById('customBudgetInput');
+      custom.hidden = input.value !== 'custom';
+      if (input.value === 'custom') custom.focus();
+      queueSearch();
+    }));
+    document.getElementById('customBudgetInput').addEventListener('input', queueSearch);
+    const keywordInput = document.querySelector('.nav-search input');
+    if (keywordInput) {
+      keywordInput.value = params.get('q') || '';
+      keywordInput.addEventListener('input', () => {
+        const value = keywordInput.value.trim();
+        if (value) params.set('q', value); else params.delete('q');
+        queueSearch();
+      });
+      keywordInput.addEventListener('keydown', event => {
+        if (event.key === 'Enter') { event.preventDefault(); queueSearch(); }
+      });
+    }
+    document.getElementById('map-list-button').addEventListener('click', () => { mapSideView = 'list'; document.getElementById('map-list-button').classList.add('active'); document.getElementById('map-details-button').classList.remove('active'); queueSearch(); });
+    document.getElementById('map-details-button').addEventListener('click', () => { mapSideView = 'details'; document.getElementById('map-details-button').classList.add('active'); document.getElementById('map-list-button').classList.remove('active'); queueSearch(); });
+    mapResults.addEventListener('pointerover', event => { const item = event.target.closest('[data-activity-id]'); if (item) mapController?.highlight(item.dataset.activityId, true); });
+    mapResults.addEventListener('pointerout', event => { const item = event.target.closest('[data-activity-id]'); if (item) mapController?.highlight(item.dataset.activityId, false); });
+    document.addEventListener('click', event => { const button = event.target.closest('#viewSwitchMobile button'); if (button) setView(button.dataset.view); });
+  }
+  async function load() {
+    await api.requireUser();
+    restoreFilters();
+    mapController = await window.Free2DoMap.create('searchMap', position);
+    const [categories, preferences] = await Promise.all([api.request('/categories'), api.request('/users/me/categories')]);
+    const initial = new Set((params.get('categories') || '').split('|').filter(Boolean));
+    if (!initial.size) preferences.forEach(item => initial.add(item.category_id));
+    categoryBox.innerHTML = categories.map(item => `<div class="chip ${initial.has(item.category_id) ? 'active' : ''}" data-category-id="${api.escapeHTML(item.category_id)}">${api.escapeHTML(item.name)}</div>`).join('');
+    bind();
+    if (!params.has('latitude')) {
+      try { position = await window.Free2DoMap.getCurrentPosition(); mapLocation.textContent = 'Vị trí hiện tại'; }
+      catch (_) { mapLocation.textContent = 'Hà Nội (mặc định)'; }
+    }
+    await search(true);
+    setView(matchMedia('(max-width:900px)').matches ? 'details' : 'list');
+  }
+  window.toggleMapView = () => setView('list');
+  load().catch(error => { mapResults.innerHTML = `<p style="padding:20px;">${api.escapeHTML(error.message)}</p>`; });
 })();

@@ -18,6 +18,8 @@ services:
         sync: false
       - key: SUPABASE_SERVICE_KEY
         sync: false
+      - key: POSTGIS_EXTENSION_ENABLED
+        value: true
       - key: SMTP_HOST
         value: smtp.gmail.com
       - key: SMTP_PORT

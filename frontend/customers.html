@@ -1,13 +1,16 @@
-</div><!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>FREE2DO Admin — Khách hàng</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style1.css">
+<link rel="stylesheet" href="admin-responsive.css">
 </head>
 <body>
 <div class="app">
+  <input class="nav-toggle" type="checkbox" id="nav-toggle" aria-label="Mở hoặc đóng menu điều hướng">
 
     <div class="sidebar">
     <div class="side-logo"><img src="Vecto/Group.svg" alt="Customer"><span>FREE2DO</span></div>
@@ -28,9 +31,11 @@
     </div>
   </div>
 
+  <label class="nav-scrim" for="nav-toggle" aria-label="Đóng menu"></label>
   <div class="main">
     <div class="header">
-      <div><div class="breadcrumb">Quản trị / Khách hàng</div><h1>Quản lý Khách hàng</h1></div>
+      <label class="menu-button" for="nav-toggle" aria-hidden="true">☰</label>
+      <div class="header-title"><div class="breadcrumb">Quản trị / Khách hàng</div><h1>Quản lý Khách hàng</h1></div>
       <div class="header-right">
         <div class="bell">🔔<span class="badge-dot"></span></div>
         <div class="who"><div class="avatar">A</div><div class="name">Admin</div><div class="chev">▾</div></div>
@@ -62,10 +67,12 @@
       </div>
 
       <div class="card">
-        <table class="customer-table">
+        <div class="table-scroll" role="region" aria-label="Bảng dữ liệu, cuộn ngang để xem thêm" tabindex="0">
+          <table class="customer-table">
           <thead><tr><th>Khách hàng</th><th>Email</th><th>Ngày đăng ký</th><th>Trạng thái</th><th>Hành động</th></tr></thead>
           <tbody id="customerRows"></tbody>
         </table>
+        </div>
         <div class="pagination">
           <span id="customerCount">Đang tải dữ liệu...</span>
           <div class="page-btns" id="customerPagination"></div>

@@ -2,12 +2,15 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>FREE2DO Admin — Tổng quan</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style1.css">
+<link rel="stylesheet" href="admin-responsive.css">
 </head>
 <body>
 <div class="app">
+  <input class="nav-toggle" type="checkbox" id="nav-toggle" aria-label="Mở hoặc đóng menu điều hướng">
 
   <div class="sidebar">
     <div class="side-logo"><img src="Vecto/Group.svg" alt="Customer"><span>FREE2DO</span></div>
@@ -28,9 +31,11 @@
     </div>
   </div>
 
+  <label class="nav-scrim" for="nav-toggle" aria-label="Đóng menu"></label>
   <div class="main">
     <div class="header">
-      <div><div class="breadcrumb"></div><h1>Hệ thống quản trị</h1></div>
+      <label class="menu-button" for="nav-toggle" aria-hidden="true">☰</label>
+      <div class="header-title"><div class="breadcrumb"></div><h1>Hệ thống quản trị</h1></div>
       <div class="header-right">
         <div class="bell">🔔<span class="badge-dot"></span></div>
         <div class="who"><div class="avatar">A</div><div class="name">Admin</div><div class="chev">▾</div></div>
@@ -68,6 +73,7 @@
           <a href = "activities.html" class = "section-link">Xem tất cả Hoạt động →</a>
         </div>
         <div class="card">
+          <div class="table-scroll" role="region" aria-label="Bảng dữ liệu, cuộn ngang để xem thêm" tabindex="0">
           <table class="pending-table">
             <colgroup>
               <col style="width:30%;">
@@ -79,6 +85,7 @@
             <thead><tr><th>Hoạt động</th><th>Doanh nghiệp</th><th>Địa chỉ</th><th>Trạng thái</th><th>Chi tiết</th></tr></thead>
             <tbody id="pendingTableBody"></tbody>
           </table>
+        </div>
           <div class="table-pagination" id="pendingPagination">
             <span id="paginationInfo"></span>
             <div class="page-btns" id="paginationBtns"></div>
@@ -114,6 +121,7 @@
         <a href="businesses.html" class="section-link">Xem tất cả Doanh nghiệp →</a>
       </div>
         <div class="card">
+          <div class="table-scroll" role="region" aria-label="Bảng dữ liệu, cuộn ngang để xem thêm" tabindex="0">
           <table class="pending-table">
             <colgroup>
               <col style="width:26%;">
@@ -125,6 +133,7 @@
             <thead><tr><th>Doanh nghiệp</th><th>Loại hình</th><th>Địa chỉ</th><th>Trạng thái</th><th>Chi tiết</th></tr></thead>
             <tbody id="bizTableBody"></tbody>
           </table>
+        </div>
           <div class="table-pagination" id="bizPagination">
             <span id="bizPaginationInfo"></span>
             <div class="page-btns" id="bizPaginationBtns"></div>

@@ -3,14 +3,38 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends
 from sqlalchemy import func, or_, text
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app import models, schemas
 from app.auth import get_current_user
+from app.config import settings
 from app.database import get_db
 from app.utils.distance import haversine_km
 
 router = APIRouter(prefix="/search", tags=["search"])
+
+
+def _postgis_available(db: Session) -> bool:
+    """Chỉ dùng ST_DWithin khi cả extension và cột geography đã sẵn sàng."""
+    if (
+        not settings.POSTGIS_EXTENSION_ENABLED
+        or db.bind is None
+        or db.bind.dialect.name != "postgresql"
+    ):
+        return False
+    return bool(
+        db.execute(
+            text(
+                "SELECT "
+                "EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'postgis') "
+                "AND EXISTS ("
+                "  SELECT 1 FROM information_schema.columns "
+                "  WHERE table_schema = 'public' AND table_name = 'activities' "
+                "  AND column_name = 'location'"
+                ")"
+            )
+        ).scalar()
+    )
 
 
 def _opening_window_minutes(activity: models.Activity) -> Optional[int]:
@@ -57,8 +81,12 @@ def search_activities(
     user: models.User = Depends(get_current_user),
 ):
     """Lọc và xếp hạng hoạt động ở backend; frontend chỉ hiển thị kết quả đã tính."""
-    use_postgis = db.bind is not None and db.bind.dialect.name == "postgresql"
-    query = db.query(models.Activity).filter(
+    use_postgis = _postgis_available(db)
+    query = db.query(models.Activity).options(
+        selectinload(models.Activity.categories),
+        selectinload(models.Activity.media),
+        selectinload(models.Activity.business),
+    ).filter(
         models.Activity.status == "active",
         models.Activity.latitude.is_not(None),
         models.Activity.longitude.is_not(None),
@@ -95,16 +123,31 @@ def search_activities(
     rows = []
     for activity in query.all():
         distance = haversine_km(payload.latitude, payload.longitude, activity.latitude, activity.longitude)
-        if distance <= payload.radius:
-            rows.append((activity, distance))
+        if distance > payload.radius:
+            continue
+        duration = _opening_window_minutes(activity)
+        if payload.free_time is not None and (duration is None or duration < payload.free_time):
+            continue
+        rows.append((activity, distance))
+
+    activity_ids = [activity.activity_id for activity, _distance in rows]
+    rating_rows = (
+        db.query(
+            models.Review.activity_id,
+            func.avg(models.Review.rating),
+            func.count(models.Review.review_id),
+        )
+        .filter(models.Review.activity_id.in_(activity_ids))
+        .group_by(models.Review.activity_id)
+        .all()
+        if activity_ids else []
+    )
+    ratings = {activity_id: (average, count) for activity_id, average, count in rating_rows}
 
     results = []
     for activity, distance_km in rows:
-        avg_rating, review_count = (
-            db.query(func.avg(models.Review.rating), func.count(models.Review.review_id))
-            .filter(models.Review.activity_id == activity.activity_id)
-            .one()
-        )
+        avg_rating, review_count = ratings.get(activity.activity_id, (None, 0))
+        image = next((item.media_url for item in activity.media if item.media_type == "image"), None)
         results.append(
             schemas.ActivityWithScore(
                 **schemas.Activity.model_validate(activity).model_dump(),
@@ -114,22 +157,24 @@ def search_activities(
                 category_ids=[item.category_id for item in activity.categories],
                 avg_rating=round(float(avg_rating), 1) if avg_rating is not None else None,
                 review_count=review_count or 0,
+                image_url=image,
             )
         )
 
-    db.add(
-        models.SearchHistory(
-            user_id=user.user_id,
-            keyword=payload.keyword,
-            latitude=payload.latitude,
-            longitude=payload.longitude,
-            radius=payload.radius,
-            budget=payload.budget,
-            free_time=payload.free_time,
-            created_at=datetime.now(UTC).replace(tzinfo=None),
+    if payload.record_history:
+        db.add(
+            models.SearchHistory(
+                user_id=user.user_id,
+                keyword=payload.keyword,
+                latitude=payload.latitude,
+                longitude=payload.longitude,
+                radius=payload.radius,
+                budget=payload.budget,
+                free_time=payload.free_time,
+                created_at=datetime.now(UTC).replace(tzinfo=None),
+            )
         )
-    )
-    db.commit()
+        db.commit()
     sort_keys = {
         "match": lambda item: (-item.match_score, item.distance_km or 0),
         "distance": lambda item: (item.distance_km or 0, -item.match_score),

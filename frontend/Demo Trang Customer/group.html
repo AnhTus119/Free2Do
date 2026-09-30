@@ -2,6 +2,7 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>FREE2DO — Lên kế hoạch nhóm</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="app-style.css">
@@ -81,6 +82,57 @@
   .created-members{display:none;}
   @media (max-width:600px){.member-form-grid,.member-edit-fields{grid-template-columns:1fr;}.member-form .interest-input,.member-edit-interests{grid-column:auto;}.group-actions{flex-direction:column;}.suggestions-grid{grid-template-columns:1fr;}.activity-popup-meta{grid-template-columns:1fr;}}
 </style>
+<style>
+/* ===== Font ===== */
+html,body,input,button,select,textarea{font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif}
+
+/* ===== Navbar: link ở giữa ===== */
+.navbar .nav-left,.navbar .nav-right{flex:1 1 0;min-width:0}
+.navbar .nav-right{display:flex;justify-content:flex-end;align-items:center}
+.navbar .nav-center{display:flex;align-items:center;justify-content:center;gap:44px;flex:0 0 auto}
+.mobile-menu-btn{display:none;background:none;border:0;padding:6px;cursor:pointer;color:inherit;align-items:center;position:relative;z-index:5;-webkit-tap-highlight-color:transparent}
+
+/* ===== Menu trượt (hamburger) ===== */
+.mobile-nav-panel{display:none !important;position:fixed;top:0;right:0;bottom:0;left:0;z-index:2000;background:rgba(0,0,0,.4)}
+.mobile-nav-panel.show{display:block !important}
+.mobile-nav-content{position:absolute;top:0;left:0;bottom:0;width:260px;max-width:80%;background:#fff;padding:64px 16px 20px;display:flex;flex-direction:column;gap:6px;box-shadow:4px 0 24px rgba(0,0,0,.15);overflow-y:auto}
+.mobile-nav-close{position:absolute;top:10px;right:14px;width:40px;height:40px;background:none;border:0;font-size:30px;line-height:1;cursor:pointer;color:inherit}
+.mobile-nav-link{display:block;padding:12px 14px;border-radius:10px;text-decoration:none;color:inherit;font-weight:600;font-size:15px}
+.mobile-nav-link.active{background:#FDEDEF;color:var(--rose,#DB6680)}
+@media(min-width:769px){.mobile-nav-panel,.mobile-nav-panel.show{display:none !important}}
+@media(max-width:768px){
+  .mobile-menu-btn{display:inline-flex !important}
+  .navbar .nav-center,.navbar .nav-search{display:none !important}
+  .navbar .nav-right>.logout{display:none !important}
+}
+@media(max-width:600px){
+  .nav-logo{font-size:16px}
+  .navbar .nav-name{display:none}
+  .navbar{padding-left:12px;padding-right:12px}
+}
+
+/* ===== Map (dùng chung) ===== */
+@media(max-width:900px){
+  .map-section-layout{display:flex !important;flex-direction:column;gap:16px}
+  .map-box{width:100% !important}
+  .map-side-panel{width:100% !important;max-width:none !important;max-height:none !important}
+  .map-side-list{max-height:360px;overflow-y:auto}
+}
+
+@media(max-width:900px){.cost-stats{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:600px){
+  .invite-row{grid-template-columns:1fr}
+  .tabs{overflow-x:auto;white-space:nowrap}
+}
+</style>
+<style>
+/* Điện thoại: nút Hủy / Tạo nhóm (và các nút trong cùng hàng) to, dễ bấm */
+@media (max-width:600px){
+  .group-actions{gap:12px}
+  .group-actions .btn{width:100%;min-height:52px;padding:0 20px;font-size:16px;font-weight:700;border-radius:14px;justify-content:center}
+  button[onclick="openGroupModal()"],#pane-matching .btn-block{min-height:52px;font-size:16px;padding:0 24px}
+}
+</style>
 </head>
 <body>
 
@@ -99,12 +151,13 @@
 </svg>
 
 <div class="navbar">
-  <div class="nav-left">
+  <div class="nav-left"><button class="mobile-menu-btn" type="button" aria-label="Mở menu" onclick="toggleMobileMenu()"><svg class="icon icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
     <a href="home.html" class="nav-logo" style="text-decoration:none; color:inherit;"><img src="Logo.svg" alt="logo" style="width:38px;height:auto;">FREE2DO</a>
     <div class="nav-search"><svg class="icon"><use href="#icon-search"></use></svg><input type="text" placeholder="Tìm hoạt động, địa điểm..."></div>
   </div>
+  <div class="nav-center"><a href="home.html" class="nav-link">Trang chủ</a><a class="nav-link" href="search.html">Tìm kiếm</a><a href="account.html#yeuthich" class="nav-link">Yêu thích</a></div>
   <div class="nav-right">
-    <div class="nav-center"><a href="home.html" class="nav-link">Trang chủ</a><a href="account.html#yeuthich" class="nav-link">Yêu thích</a></div>
+    
     <div class="nav-icon"><svg class="icon"><use href="#icon-bell"></use></svg><span class="dot-badge"></span></div>
     <div class="nav-who" onclick="toggleUserMenu(event)"><div class="nav-avatar">M</div><div class="nav-name">Minh</div><svg class="icon icon-sm"><use href="#icon-chevron-down"></use></svg><div class="nav-dropdown" id="user-dropdown"><a href="account.html#hoso"><svg class="icon"><use href="#icon-user"></use></svg>Hồ sơ cá nhân</a><a href="#" class="logout"><svg class="icon"><use href="#icon-log-out"></use></svg>Đăng xuất</a></div></div>
   </div>
@@ -196,8 +249,29 @@
 
 </div>
 
+<div class="mobile-nav-panel" id="mobile-nav">
+  <div class="mobile-nav-content">
+    <button class="mobile-nav-close" type="button" onclick="toggleMobileMenu()">&times;</button>
+    <a href="home.html" class="mobile-nav-link">Trang chủ</a><a href="search.html" class="mobile-nav-link">Tìm kiếm</a><a href="account.html#yeuthich" class="mobile-nav-link">Yêu thích</a>
+  </div>
+</div>
+<script>
+function toggleMobileMenu(){
+  var panel=document.getElementById('mobile-nav');
+  if(panel) panel.classList.toggle('show');
+}
+(function(){
+  var panel=document.getElementById('mobile-nav');
+  if(!panel) return;
+  panel.addEventListener('click',function(e){
+    if(e.target===panel || e.target.closest('.mobile-nav-link')) panel.classList.remove('show');
+  });
+})();
+</script>
 <script src="../js/config.js"></script>
 <script src="../js/customer-api.js"></script>
 <script src="../js/group.js"></script>
+
 </body>
 </html>
+

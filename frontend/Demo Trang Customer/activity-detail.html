@@ -119,16 +119,17 @@ html,body,input,button,select,textarea{font-family:'Inter',system-ui,-apple-syst
       <div id="activityMeta" style="color:var(--muted);font-size:14px;margin-bottom:14px;"></div>
 
       <div style="display:flex;gap:22px;flex-wrap:wrap;margin-bottom:20px;font-size:13.5px;">
-        <div><b id="activityPrice"></b><div style="color:var(--muted);font-size:12px;">Giá vé</div></div>
-        <div><b id="activityDuration"></b><div style="color:var(--muted);font-size:12px;">Thời lượng</div></div>
-        <div><b id="activityHours"></b><div style="color:var(--muted);font-size:12px;">Khung giờ</div></div>
-        <div><b id="activityDistance"></b><div style="color:var(--muted);font-size:12px;">Khoảng cách</div></div>
+        <div><div style="color:var(--muted);font-size:12px;">Giá vé</div><b id="activityPrice"></b></div>
+        <div><div style="color:var(--muted);font-size:12px;">Thời lượng</div><b id="activityDuration"></b></div>
+        <div><div style="color:var(--muted);font-size:12px;">Khung giờ</div><b id="activityHours"></b></div>
+        <div><div style="color:var(--muted);font-size:12px;">Khoảng cách</div><b id="activityDistance"></b></div>
       </div>
 
       <div class="tag-row" id="activityTags" style="margin-bottom:20px;"></div>
 
       <div class="section-title" style="font-size:16px;">Mô tả</div>
       <p id="activityDescription" style="font-size:13.5px;line-height:1.7;color:var(--ink);"></p>
+      <p id="activityMapsLine" style="display:none;font-size:13.5px;line-height:1.7;margin:8px 0 0;min-width:0;"><b>Google Maps:</b> <a id="activityMapsLink" href="#" target="_blank" rel="noopener noreferrer" style="color:#df5c7b;display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom;"></a></p>
 
       <div class="section-title" style="font-size:16px;margin-top:28px;">Vị trí</div>
       <div class="map-box" style="height:220px;margin-top:12px;">
@@ -187,6 +188,6 @@ document.addEventListener('click', function (e) {
 </script>
 <script src="../js/config.js"></script>
 <script src="../js/customer-api.js?v=20261001-map-username-fix"></script>
-<script src="../js/customer-detail.js?v=20261001-map-username-fix"></script>
+<script src="../js/customer-detail.js?v=20261002-maps-link"></script>
 </body>
 </html>

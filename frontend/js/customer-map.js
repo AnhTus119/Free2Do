@@ -58,7 +58,16 @@
   //   khi người dùng kéo/phóng bản đồ tiếp;
   // - lớp cũ chỉ bị gỡ khi lớp mới tải xong (hoặc quá thời gian chờ).
   const MAX_PARALLEL_TILES = 6;
-  const MAX_TILE_RETRIES = 4;
+  const MAX_TILE_RETRIES = 5;
+  const BACKGROUND_RETRY_MS = 6000;
+  const BACKGROUND_RETRY_ROUNDS = 3;
+  // Thử lần lượt từng nguồn: nếu OpenStreetMap chặn/giới hạn một ô thì ô đó được
+  // lấy từ nguồn dự phòng có kiểu hiển thị gần giống thay vì để trống.
+  const TILE_SOURCES = [
+    (z, x, y) => `https://tile.openstreetmap.org/${z}/${x}/${y}.png`,
+    (z, x, y) => `https://${'abcd'[(x + y) % 4]}.basemaps.cartocdn.com/rastertiles/voyager/${z}/${x}/${y}.png`,
+    (z, x, y) => `https://tile.openstreetmap.fr/osmfr/${z}/${x}/${y}.png`,
+  ];
   const TILE_PADDING = 1;
   const PREVIOUS_LAYER_TIMEOUT = 8000;
 
@@ -111,8 +120,9 @@
         active -= 1;
         image.remove();
         if (tile.retries < MAX_TILE_RETRIES && tile.layer.el.isConnected) {
-          const delay = 400 * (2 ** tile.retries);
+          const delay = 300 * (tile.retries + 1);
           tile.retries += 1;
+          tile.url = TILE_SOURCES[tile.retries % TILE_SOURCES.length](tile.z, tile.x, tile.y);
           tile.state = 'waiting';
           setTimeout(() => {
             if (!tile.layer.el.isConnected) return;
@@ -122,6 +132,21 @@
           }, delay);
         } else {
           settle(tile, false);
+          // Mạng/nguồn tile có thể chỉ chặn tạm thời: thử lại ngầm sau vài giây.
+          if (tile.rounds < BACKGROUND_RETRY_ROUNDS) {
+            tile.rounds += 1;
+            setTimeout(() => {
+              if (tile.state === 'failed' && tile.layer.el.isConnected) {
+                tile.retries = 0;
+                tile.url = TILE_SOURCES[0](tile.z, tile.x, tile.y);
+                tile.state = 'queued';
+                tile.layer.pending += 1;
+                makeImage(tile);
+                queue.push(tile);
+                pump();
+              }
+            }, BACKGROUND_RETRY_MS * tile.rounds);
+          }
         }
         pump();
       };
@@ -144,6 +169,7 @@
         if (existing.state !== 'failed') return;
         // Ô từng lỗi hẳn: thử lại khi khu vực này hiện ra lần nữa.
         existing.retries = 0;
+        existing.url = TILE_SOURCES[0](existing.z, existing.x, existing.y);
         existing.state = 'queued';
         existing.image?.remove();
         layer.pending += 1;
@@ -154,7 +180,11 @@
       const wrappedX = ((tileX % tilesPerAxis) + tilesPerAxis) % tilesPerAxis;
       const tile = {
         layer,
-        url: `https://tile.openstreetmap.org/${layer.zoom}/${wrappedX}/${tileY}.png`,
+        z: layer.zoom,
+        x: wrappedX,
+        y: tileY,
+        url: TILE_SOURCES[0](layer.zoom, wrappedX, tileY),
+        rounds: 0,
         left: tileX * TILE_SIZE - layer.originX,
         top: tileY * TILE_SIZE - layer.originY,
         centerX: (tileX + 0.5) * TILE_SIZE,
@@ -270,7 +300,7 @@
     const layer = document.createElement('div');
     layer.className = 'free2do-static-map';
     layer.style.cssText = 'position:absolute;inset:0;z-index:1;overflow:hidden;background:#e9e5d8;';
-    layer.innerHTML = '<div class="free2do-static-map-image" role="img" aria-label="Bản đồ hoạt động"></div><div class="free2do-static-map-markers"></div><div class="free2do-map-attribution"><a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap</a></div>';
+    layer.innerHTML = '<div class="free2do-static-map-image" role="img" aria-label="Bản đồ hoạt động"></div><div class="free2do-static-map-markers"></div><div class="free2do-map-attribution"><a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap</a> · <a href=\"https://carto.com/attributions\" target=\"_blank\" rel=\"noopener\">© CARTO</a></div>';
     container.prepend(layer);
 
     const mapImage = layer.querySelector('.free2do-static-map-image');

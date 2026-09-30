@@ -75,6 +75,14 @@
     text('reviewsTitle', `Đánh giá (${reviews.length})`);
     document.getElementById('activityTags').innerHTML = matched.map(item => `<span class="tag">${api.escapeHTML(item.name)}</span>`).join('');
     renderGallery(activity); renderReviews(reviews, me); buildReviewForm(reviews.find(review => review.user_id === me?.user_id), me);
+    const mapsLine = document.getElementById('activityMapsLine');
+    const mapsLinkText = document.getElementById('activityMapsLink');
+    if (activity.google_maps_url && mapsLine && mapsLinkText) {
+      mapsLinkText.href = activity.google_maps_url;
+      mapsLinkText.textContent = activity.google_maps_url;
+      mapsLinkText.title = activity.google_maps_url;
+      mapsLine.style.display = '';
+    }
     const mapLink = document.getElementById('mapLink');
     if (activity.google_maps_url) {
       mapLink.href = activity.google_maps_url;

@@ -8,6 +8,9 @@ COORDINATE_PATTERNS = (
     re.compile(r"@(-?\d{1,2}(?:\.\d+)?),(-?\d{1,3}(?:\.\d+)?)"),
     re.compile(r"!3d(-?\d{1,2}(?:\.\d+)?)!4d(-?\d{1,3}(?:\.\d+)?)"),
 )
+PAGE_COORDINATE_PATTERN = re.compile(
+    r"!2d(-?\d{1,3}(?:\.\d+)?)!3d(-?\d{1,2}(?:\.\d+)?)"
+)
 
 
 def _is_google_maps_host(host: str | None) -> bool:
@@ -36,6 +39,14 @@ def _extract(url: str) -> tuple[float, float] | None:
     return None
 
 
+def _extract_page_coordinates(content: str) -> tuple[float, float] | None:
+    match = PAGE_COORDINATE_PATTERN.search(unquote(content))
+    if not match:
+        return None
+    longitude, latitude = float(match.group(1)), float(match.group(2))
+    return _valid(latitude, longitude)
+
+
 def coordinates_from_google_maps_url(url: str) -> tuple[float, float] | None:
     """Trích tọa độ, chỉ theo redirect thuộc các miền Google để tránh SSRF."""
     parsed = urlparse(url.strip())
@@ -50,7 +61,19 @@ def coordinates_from_google_maps_url(url: str) -> tuple[float, float] | None:
         response = requests.get(current, allow_redirects=False, stream=True, timeout=8)
         try:
             if response.status_code not in (301, 302, 303, 307, 308):
-                return _extract(current)
+                coordinates = _extract(response.url) or _extract(current)
+                if coordinates:
+                    return coordinates
+                chunks = []
+                total = 0
+                for chunk in response.iter_content(chunk_size=65536, decode_unicode=True):
+                    if not chunk:
+                        continue
+                    chunks.append(chunk if isinstance(chunk, str) else chunk.decode("utf-8", "ignore"))
+                    total += len(chunks[-1])
+                    if total >= 524288:
+                        break
+                return _extract_page_coordinates("".join(chunks))
             next_url = urljoin(current, response.headers.get("location", ""))
         finally:
             response.close()

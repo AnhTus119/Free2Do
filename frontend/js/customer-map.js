@@ -3,6 +3,7 @@
 
   const DEFAULT_POSITION = { latitude: 21.0285, longitude: 105.8542 };
   const TILE_SIZE = 256;
+  const TILE_CACHE = new Map();
 
   function validCoordinate(latitude, longitude) {
     return Number.isFinite(Number(latitude)) && Number.isFinite(Number(longitude))
@@ -43,7 +44,8 @@
   }
 
   function loadTile(url) {
-    return new Promise(resolve => {
+    if (TILE_CACHE.has(url)) return TILE_CACHE.get(url);
+    const request = new Promise(resolve => {
       const image = new Image();
       image.crossOrigin = 'anonymous';
       image.referrerPolicy = 'origin';
@@ -51,6 +53,8 @@
       image.onerror = () => resolve(null);
       image.src = url;
     });
+    TILE_CACHE.set(url, request);
+    return request;
   }
 
   async function drawBaseMap(canvas, center, zoom, width, height, drawToken, currentToken) {
@@ -100,6 +104,10 @@
       const image = document.createElement('img');
       image.src = iconUrl;
       image.alt = '';
+      image.addEventListener('error', () => {
+        image.remove();
+        link.classList.add('free2do-static-map-marker-default');
+      }, { once: true });
       link.appendChild(image);
     } else {
       link.classList.add('free2do-static-map-marker-default');
@@ -130,6 +138,12 @@
     let resizeTimer;
     let drawToken = 0;
     let baseMapKey = '';
+    let viewportKey = '';
+    let zoomOffset = 0;
+    let currentBaseZoom = 13;
+    let wheelAccumulator = 0;
+    let pinchStartDistance = null;
+    let pinchLastDistance = null;
 
     function render(userPosition, radiusKm, activities) {
       const center = {
@@ -145,7 +159,13 @@
       const rect = container.getBoundingClientRect();
       const displayWidth = Math.max(320, Math.round(rect.width || container.clientWidth || 640));
       const displayHeight = Math.max(320, Math.round(rect.height || container.clientHeight || 640));
-      const zoom = zoomForRadius(center.latitude, latestRender.radiusKm, displayWidth, displayHeight);
+      const nextViewportKey = `${center.latitude.toFixed(5)}:${center.longitude.toFixed(5)}:${latestRender.radiusKm}`;
+      currentBaseZoom = zoomForRadius(center.latitude, latestRender.radiusKm, displayWidth, displayHeight);
+      if (nextViewportKey !== viewportKey) {
+        viewportKey = nextViewportKey;
+        zoomOffset = 0;
+      }
+      const zoom = clamp(currentBaseZoom + zoomOffset, 3, 18);
       const nextBaseMapKey = `${center.latitude.toFixed(5)}:${center.longitude.toFixed(5)}:${zoom}:${displayWidth}:${displayHeight}`;
       if (nextBaseMapKey !== baseMapKey) {
         baseMapKey = nextBaseMapKey;
@@ -182,9 +202,53 @@
       resizeTimer = setTimeout(() => render(latestRender.userPosition, latestRender.radiusKm, latestRender.activities), 50);
     }
 
+    function zoomBy(step) {
+      const nextZoom = clamp(currentBaseZoom + zoomOffset + step, 3, 18);
+      if (nextZoom === currentBaseZoom + zoomOffset) return;
+      zoomOffset = nextZoom - currentBaseZoom;
+      render(latestRender.userPosition, latestRender.radiusKm, latestRender.activities);
+    }
+
+    container.addEventListener('wheel', event => {
+      event.preventDefault();
+      wheelAccumulator -= event.deltaY;
+      if (Math.abs(wheelAccumulator) < 80) return;
+      zoomBy(wheelAccumulator > 0 ? 1 : -1);
+      wheelAccumulator = 0;
+    }, { passive: false });
+    container.addEventListener('dblclick', event => {
+      event.preventDefault();
+      zoomBy(1);
+    });
+    container.addEventListener('touchstart', event => {
+      if (event.touches.length !== 2) return;
+      pinchStartDistance = Math.hypot(
+        event.touches[0].clientX - event.touches[1].clientX,
+        event.touches[0].clientY - event.touches[1].clientY,
+      );
+      pinchLastDistance = pinchStartDistance;
+    }, { passive: true });
+    container.addEventListener('touchmove', event => {
+      if (event.touches.length !== 2 || pinchStartDistance == null) return;
+      event.preventDefault();
+      pinchLastDistance = Math.hypot(
+        event.touches[0].clientX - event.touches[1].clientX,
+        event.touches[0].clientY - event.touches[1].clientY,
+      );
+    }, { passive: false });
+    container.addEventListener('touchend', () => {
+      if (pinchStartDistance && pinchLastDistance) {
+        const ratio = pinchLastDistance / pinchStartDistance;
+        if (ratio > 1.15) zoomBy(1);
+        if (ratio < 0.85) zoomBy(-1);
+      }
+      pinchStartDistance = null;
+      pinchLastDistance = null;
+    });
+
     if ('ResizeObserver' in window) new ResizeObserver(invalidate).observe(container);
     window.addEventListener('resize', invalidate);
-    return { render, highlight, invalidate };
+    return { render, highlight, invalidate, zoomIn: () => zoomBy(1), zoomOut: () => zoomBy(-1) };
   }
 
   function getCurrentPosition() {

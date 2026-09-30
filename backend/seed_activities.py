@@ -37,7 +37,7 @@ ACTIVITIES = [
     ("A020", "B017", "HaPam Nails House", "0398556604", "Làm đẹp", "Làm nail phong cách trẻ trung", 120000, "120000", "18 Ng. 41 P. Đông Tác, Đông Tác, Kim Liên, Hà Nội 11520, Việt Nam", None, None, "09:00", "22:00", "Làm đẹp", None),
     ("A021", "B018", "HUN Thanh lý ký gửi", "0923002177", "Mua sắm", None, 100000, "100000", "Ng. 109 Đ. Trường Chinh, Phương Liệt, Hà Nội, Việt Nam", None, None, "09:00", "21:00", "Mua sắm", "https://hunthanhlykygui.com/"),
     ("A022", "B019", "Cami Camera", "0984422900", "Tiệm cho thuê máy ảnh", "Tiệm cho thuê máy ảnh Cami Camera", 200000, "200000", "C69 Ng. 109 Đ. Trường Chinh, Phương Liệt, Hà Nội 10000, Việt Nam", None, None, "07:00", "23:30", "Chụp ảnh", "https://www.instagram.com/cami_cameraa?igsh=dGJtMGtrNm41bGJw"),
-    ("A023", "B020", "Onemore Workspace", "0969608093", "Làm việc", "Phù hợp cho những người cần sự yên tĩnh", 50000, "50000", "134 Ng. Tự Do, Bạch Mai, Hà Nội, Việt Nam", None, None, "07:30", "01:30", "Làm việc", "https://www.facebook.com/onemoreworkspace"),
+    ("A023", "B020", "Onemore Workspace", "0969608093", "Cà phê", "Không gian cà phê yên tĩnh phù hợp để làm việc và thư giãn", 50000, "50000", "134 Ng. Tự Do, Bạch Mai, Hà Nội, Việt Nam", None, None, "07:30", "01:30", "Làm việc", "https://www.facebook.com/onemoreworkspace"),
     ("A024", "B021", "Thổ thì thầm Pottery workshop", "0396599572", "Workshop", "Quán cà phê nghệ thuật", 300000, "200000-300000", "TT 435a Đ. Giải Phóng, Tương Mai, Hà Nội, Việt Nam", None, None, "14:00", "20:00", "Workshop", "https://www.instagram.com/tho_thitham?igsh=Mnl6ZjVydGk2MHV2"),
     ("A025", "B022", "Cà Phê Nhà Kho Đại La", None, "Ăn uống", "Quán cà phê học tập", 100000, "1-100.000 ₫", "Ngách 51 Ng. 128C P. Đại La, Bạch Mai, Hà Nội, Việt Nam", None, None, "07:00", "23:00", "Ăn uống", None),
     ("A026", "B023", "Tiệm mì Biển Cam", "0917348688", "Ăn uống", "Nhà hàng", 100000, "1-100.000 ₫", "80 Ng. Tự Do, Bạch Mai, Hà Nội, Việt Nam", None, None, "10:30", "23:00", "Ăn uống", None),
@@ -47,6 +47,42 @@ ACTIVITIES = [
     ("A030", "B027", "Canopy StudySpace", "0961824089", "Quán cà phê", "Quán cà phê", 100000, "1-100.000 ₫", "89 ngõ 183 Trần Đại Nghĩa, Bạch Mai, Hà Nội, Việt Nam", None, None, "cả ngày", None, "Làm việc", "http://www.tiktok.com/@canopy.studyspace"),
     ("A031", "B028", "Photo Easel", "0987487774", "Chụp ảnh", "PhotoBooth Tạ Quang Bửu", 100000, "70.000-100.000", "103e7 P. Tạ Quang Bửu, Khu tập thể Bách Khoa, Bạch Mai, Hà Nội, Việt Nam", None, None, "09:00", "23:00", "Chụp ảnh", None),
 ]
+
+# Tags nhiều-nhiều lấy từ cột TAGS của sheet DỮ LIỆU. Một hoạt động chỉ cần
+# khớp một tag người dùng chọn là được trả về. Một số tag cụ thể được bổ sung
+# từ mô hình kinh doanh để chọn đúng icon (Cà phê, Billiard).
+ACTIVITY_TAGS = {
+    "A001": ("Workshop",),
+    "A002": ("Thể thao",),
+    "A003": ("Giải trí", "Ca hát"),
+    "A004": ("Giải trí", "Game"),
+    "A005": ("Giải trí", "Game"),
+    "A006": ("Giải trí", "Game"),
+    "A007": ("Mua sắm",),
+    "A009": ("Ăn uống", "Làm việc", "Thư giãn", "Cà phê"),
+    "A010": ("Giải trí", "Game"),
+    "A011": ("Giải trí", "Ca hát"),
+    "A012": ("Ăn uống", "Làm việc", "Thư giãn", "Cà phê"),
+    "A013": ("Giải trí", "Game", "Billiard"),
+    "A014": ("Giải trí", "Game", "Billiard"),
+    "A015": ("Ăn uống", "Làm việc", "Thư giãn", "Cà phê"),
+    "A016": ("Giải trí", "Game", "Billiard"),
+    "A017": ("Giải trí", "Game", "Billiard"),
+    "A018": ("Giải trí", "Xem phim", "Thư giãn"),
+    "A019": ("Tham quan", "Thư giãn"),
+    "A020": ("Làm đẹp",),
+    "A021": ("Mua sắm",),
+    "A022": ("Mua sắm", "Chụp ảnh"),
+    "A023": ("Cà phê", "Ăn uống", "Làm việc", "Thư giãn"),
+    "A024": ("Workshop",),
+    "A025": ("Ăn uống", "Làm việc", "Thư giãn", "Cà phê"),
+    "A026": ("Ăn uống",),
+    "A027": ("Ăn uống", "Game", "Giải trí", "Cà phê"),
+    "A028": ("Ăn uống", "Giải trí", "Workshop", "Thư giãn", "Cà phê"),
+    "A029": ("Ăn uống", "Thư giãn", "Cà phê"),
+    "A030": ("Ăn uống", "Thư giãn", "Làm việc", "Cà phê"),
+    "A031": ("Chụp ảnh",),
+}
 
 # Cột ``LINK Googlemap`` trong sheet DỮ LIỆU, ghép bằng activity_id.
 # Tách khỏi source_url vì source_url là website/Facebook/TikTok cung cấp thông tin.
@@ -109,7 +145,7 @@ def main():
             db.flush()
 
         categories = {}
-        for name in sorted({row[13] for row in ACTIVITIES}):
+        for name in sorted({tag for tags in ACTIVITY_TAGS.values() for tag in tags}):
             category = db.query(models.Category).filter(models.Category.name == name).first()
             if category is None:
                 category = models.Category(name=name)
@@ -163,7 +199,7 @@ def main():
         db.flush()
         for row in ACTIVITIES:
             (activity_id, business_id, _, _, name, description, price, price_text, address,
-             latitude, longitude, time_open, time_close, category_name, source_url) = row
+             latitude, longitude, time_open, time_close, _legacy_category, source_url) = row
             activity = db.query(models.Activity).filter(models.Activity.activity_id == activity_id).first()
             values = dict(
                 business_id=business_id,
@@ -189,7 +225,8 @@ def main():
                 for field, value in values.items():
                     setattr(activity, field, value)
             db.query(models.ActivityCategory).filter(models.ActivityCategory.activity_id == activity_id).delete()
-            db.add(models.ActivityCategory(activity_id=activity_id, category_id=categories[category_name].category_id))
+            for tag_name in ACTIVITY_TAGS[activity_id]:
+                db.add(models.ActivityCategory(activity_id=activity_id, category_id=categories[tag_name].category_id))
 
         db.commit()
         print(f"Imported {len(businesses)} businesses and {len(ACTIVITIES)} activities from workbook.")

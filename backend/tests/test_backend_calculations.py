@@ -19,6 +19,7 @@ from app.routers.users import update_my_categories, update_my_profile
 from app.utils.google_maps import coordinates_from_google_maps_url
 import seed_activities
 import seed_business_accounts
+import sync_activity_tags
 
 
 class BackendCalculationTests(unittest.TestCase):
@@ -86,6 +87,38 @@ class BackendCalculationTests(unittest.TestCase):
         response = get_activity("A001", db=self.db)
         self.assertEqual(response.google_maps_url, seed_activities.GOOGLE_MAP_URLS["A001"])
 
+    def test_activity_has_multiple_tags_and_matches_each_tag(self):
+        activity = self.db.query(models.Activity).filter_by(activity_id="A003").one()
+        self.assertEqual(
+            {item.category.name for item in activity.categories},
+            {"Giải trí", "Ca hát"},
+        )
+        for tag_name in ("Giải trí", "Ca hát"):
+            category = self.db.query(models.Category).filter_by(name=tag_name).one()
+            results = search_activities(
+                schemas.SearchParams(
+                    latitude=20.99796,
+                    longitude=105.84987,
+                    radius=2,
+                    category_ids=[category.category_id],
+                    record_history=False,
+                ),
+                db=self.db,
+                user=self.customer,
+            )
+            self.assertIn("A003", {item.activity_id for item in results})
+
+    def test_tag_sync_is_idempotent_and_fixes_onemore(self):
+        updated, missing = sync_activity_tags.sync_activity_tags(self.db)
+        self.assertEqual(updated, 30)
+        self.assertEqual(missing, [])
+        activity = self.db.query(models.Activity).filter_by(activity_id="A023").one()
+        self.assertEqual(activity.name, "Cà phê")
+        self.assertEqual(
+            {item.category.name for item in activity.categories},
+            {"Cà phê", "Ăn uống", "Làm việc", "Thư giãn"},
+        )
+
     def test_seed_enables_business_phone_login(self):
         updated, missing = seed_business_accounts.seed_business_accounts(self.db)
         self.assertEqual(len(updated), 27)
@@ -140,6 +173,14 @@ class BackendCalculationTests(unittest.TestCase):
             "https://www.google.com/maps/place/Free2Do/@21.03125,105.85111,17z"
         )
         self.assertEqual(coordinates, (21.03125, 105.85111))
+
+    def test_google_maps_page_coordinates_are_extracted(self):
+        from app.utils.google_maps import _extract_page_coordinates
+
+        coordinates = _extract_page_coordinates(
+            "preview?pb=!1m3!1d14899!2d105.8407837!3d20.9967994!2m3"
+        )
+        self.assertEqual(coordinates, (20.9967994, 105.8407837))
 
     def test_customer_can_update_profile_and_preferences(self):
         response = update_my_profile(

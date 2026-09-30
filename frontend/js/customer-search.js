@@ -150,9 +150,8 @@
     await api.requireUser();
     restoreFilters();
     mapController = await window.Free2DoMap.create('searchMap', position);
-    const [categories, preferences] = await Promise.all([api.request('/categories'), api.request('/users/me/categories')]);
+    const categories = await api.request('/categories');
     const initial = new Set((params.get('categories') || '').split('|').filter(Boolean));
-    if (!initial.size) preferences.forEach(item => initial.add(item.category_id));
     categoryBox.innerHTML = categories.map(item => `<div class="chip ${initial.has(item.category_id) ? 'active' : ''}" data-category-id="${api.escapeHTML(item.category_id)}">${api.escapeHTML(item.name)}</div>`).join('');
     bind();
     if (!params.has('latitude')) {

@@ -190,7 +190,15 @@ python migrate_db.py
 python seed_activities.py
 ```
 
-`seed_activities.py` tạo/cập nhật 28 doanh nghiệp, 30 hoạt động và 9 danh mục theo mã nguồn. Tọa độ còn thiếu được giữ là `NULL`; `price_text` giữ nguyên chuỗi giá trong Excel, còn `price` dùng mức trần của khoảng giá để lọc ngân sách.
+`seed_activities.py` tạo/cập nhật 28 doanh nghiệp, 30 hoạt động và 15 tags theo mã nguồn. Một hoạt động có thể có nhiều tags trong bảng `activities_categories`; bộ lọc tìm kiếm khớp nếu hoạt động có ít nhất một tag người dùng chọn. `price_text` giữ nguyên chuỗi giá trong Excel, còn `price` dùng mức trần của khoảng giá để lọc ngân sách.
+
+Với database đã có dữ liệu, chỉ cần đồng bộ tags và bổ sung tọa độ còn thiếu mà không seed lại tài khoản/media:
+
+```powershell
+python sync_activity_tags.py
+```
+
+Script có thể chạy lại an toàn. Nó cập nhật tags của 30 activity ID nguồn, sửa Onemore Workspace thành hoạt động `Cà phê`, và thử lấy latitude/longitude từ Google Maps cho các dòng đang thiếu.
 
 Tạo thông tin đăng nhập bằng số điện thoại cho các doanh nghiệp mẫu:
 
@@ -373,8 +381,9 @@ Haversine dự phòng.
 
 Khi tạo hoặc sửa hoạt động, backend tự lấy tọa độ từ link Google Maps nếu URL chứa
 `@lat,lng`, `!3d...!4d...`, tham số `q/query/ll/destination/center`, hoặc short link
-Google chuyển hướng tới một URL như vậy. Link chỉ chứa place ID/tên địa điểm mà không
-có tọa độ vẫn cần nhập latitude/longitude hoặc tích hợp Google Geocoding API.
+Google. Với link chỉ chứa place ID/tên địa điểm, backend đọc metadata tọa độ trong
+trang Google Maps đích; nếu Google thay đổi định dạng và không tìm được thì doanh
+nghiệp vẫn có thể nhập latitude/longitude trực tiếp.
 
 ## 18. Deploy backend lên Render
 

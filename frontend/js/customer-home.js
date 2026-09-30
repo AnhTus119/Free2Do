@@ -96,13 +96,12 @@
   async function load() {
     await api.requireUser();
     mapController = await window.Free2DoMap.create('homeMapBox', position);
-    const [activities, businesses, categories, preferences] = await Promise.all([
-      api.request('/activities'), api.request('/businesses'), api.request('/categories'), api.request('/users/me/categories'),
+    const [activities, businesses, categories] = await Promise.all([
+      api.request('/activities'), api.request('/businesses'), api.request('/categories'),
     ]);
     activitiesBox.innerHTML = activities.length ? activities.map(activityCard).join('') : '<div class="empty-state">Hiện chưa có hoạt động đang mở.</div>';
     businessesBox.innerHTML = businesses.length ? businesses.map(item => `<a class="activity-card" href="business-detail.html?id=${encodeURIComponent(item.user_id)}"><div class="activity-image">${item.avatar_url ? `<img src="${api.escapeHTML(item.avatar_url)}" alt="Logo ${api.escapeHTML(item.business_name)}">` : '<span>Chưa có logo</span>'}</div><div class="activity-body"><div class="activity-title">${api.escapeHTML(item.business_name)}</div><div class="activity-meta">${api.escapeHTML(item.business_address)}</div><p>${api.escapeHTML(item.description || 'Chưa có mô tả.')}</p><b>${item.activity_count} hoạt động đang mở</b></div></a>`).join('') : '<div class="empty-state">Hiện chưa có doanh nghiệp có hoạt động đang mở.</div>';
-    const preferred = new Set(preferences.map(item => item.category_id));
-    interestBox.innerHTML = categories.map(item => `<div class="chip ${preferred.has(item.category_id) ? 'active' : ''}" data-category-id="${api.escapeHTML(item.category_id)}">${api.escapeHTML(item.name)}</div>`).join('');
+    interestBox.innerHTML = categories.map(item => `<div class="chip" data-category-id="${api.escapeHTML(item.category_id)}">${api.escapeHTML(item.name)}</div>`).join('');
     bindFilters();
     try { position = await window.Free2DoMap.getCurrentPosition(); mapLocation.textContent = 'Vị trí hiện tại'; }
     catch (_) { mapLocation.textContent = 'Hà Nội (mặc định)'; }

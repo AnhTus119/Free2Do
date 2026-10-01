@@ -1,8 +1,14 @@
 (function () {
   'use strict';
 
-  const DEFAULT_POSITION = { latitude: 21.0285, longitude: 105.8542 };
   const TILE_SIZE = 256;
+  const VIETNAM_BOUNDS = Object.freeze({
+    south: 8.1790665,
+    west: 102.14441,
+    north: 23.393395,
+    east: 109.464638,
+  });
+  const VIETNAM_MIN_ZOOM = 8;
 
   function validCoordinate(latitude, longitude) {
     return Number.isFinite(Number(latitude)) && Number.isFinite(Number(longitude))
@@ -19,7 +25,7 @@
     const diameterMetres = Math.max(500, Number(radiusKm) * 2.08 * 1000);
     const metresPerPixel = diameterMetres / usablePixels;
     const latitudeScale = Math.max(0.15, Math.cos(Number(latitude) * Math.PI / 180));
-    return clamp(Math.floor(Math.log2((156543.03392 * latitudeScale) / metresPerPixel)), 3, 18);
+    return clamp(Math.floor(Math.log2((156543.03392 * latitudeScale) / metresPerPixel)), VIETNAM_MIN_ZOOM, 18);
   }
 
   function worldPoint(latitude, longitude, zoom) {
@@ -41,6 +47,26 @@
     return { latitude: clamp(latitude, -85.05112878, 85.05112878), longitude };
   }
 
+  function clampToVietnam(position) {
+    return {
+      latitude: clamp(Number(position.latitude), VIETNAM_BOUNDS.south, VIETNAM_BOUNDS.north),
+      longitude: clamp(Number(position.longitude), VIETNAM_BOUNDS.west, VIETNAM_BOUNDS.east),
+    };
+  }
+
+  function constrainCenterToVietnam(center, zoom, width, height) {
+    const northWest = worldPoint(VIETNAM_BOUNDS.north, VIETNAM_BOUNDS.west, zoom);
+    const southEast = worldPoint(VIETNAM_BOUNDS.south, VIETNAM_BOUNDS.east, zoom);
+    const minX = northWest.x + width / 2;
+    const maxX = southEast.x - width / 2;
+    const minY = northWest.y + height / 2;
+    const maxY = southEast.y - height / 2;
+    const point = worldPoint(center.latitude, center.longitude, zoom);
+    const x = minX <= maxX ? clamp(point.x, minX, maxX) : (northWest.x + southEast.x) / 2;
+    const y = minY <= maxY ? clamp(point.y, minY, maxY) : (northWest.y + southEast.y) / 2;
+    return coordinateFromWorldPoint(x, y, zoom);
+  }
+
   function markerPosition(latitude, longitude, center, zoom, width, height) {
     const point = worldPoint(latitude, longitude, zoom);
     const origin = worldPoint(center.latitude, center.longitude, zoom);
@@ -57,10 +83,10 @@
   // - ô lỗi được thử lại nhiều lần với thời gian chờ tăng dần và được thử lại
   //   khi người dùng kéo/phóng bản đồ tiếp;
   // - lớp cũ chỉ bị gỡ khi lớp mới tải xong (hoặc quá thời gian chờ).
-  const MAX_PARALLEL_TILES = 6;
-  const MAX_TILE_RETRIES = 5;
-  const BACKGROUND_RETRY_MS = 6000;
-  const BACKGROUND_RETRY_ROUNDS = 3;
+  const MAX_PARALLEL_TILES = 12;
+  const MAX_TILE_RETRIES = 8;
+  const BACKGROUND_RETRY_MS = 2500;
+  const BACKGROUND_RETRY_ROUNDS = 6;
   // Thử lần lượt từng nguồn: nếu OpenStreetMap chặn/giới hạn một ô thì ô đó được
   // lấy từ nguồn dự phòng có kiểu hiển thị gần giống thay vì để trống.
   const TILE_SOURCES = [
@@ -68,8 +94,8 @@
     (z, x, y) => `https://${'abcd'[(x + y) % 4]}.basemaps.cartocdn.com/rastertiles/voyager/${z}/${x}/${y}.png`,
     (z, x, y) => `https://tile.openstreetmap.fr/osmfr/${z}/${x}/${y}.png`,
   ];
-  const TILE_PADDING = 1;
-  const PREVIOUS_LAYER_TIMEOUT = 8000;
+  const TILE_PADDING = 0;
+  const PREVIOUS_LAYER_TIMEOUT = 30000;
 
   function createTileLayer(root) {
     let current = null;
@@ -77,7 +103,23 @@
     let previousTimer = null;
     let lastCenter = { x: 0, y: 0 };
     const queue = [];
+    const loadingTiles = new Set();
     let active = 0;
+
+    function discardStaleWork() {
+      for (let index = queue.length - 1; index >= 0; index -= 1) {
+        if (queue[index].layer !== current) queue.splice(index, 1);
+      }
+      [...loadingTiles].forEach(tile => {
+        if (tile.layer === current) return;
+        tile.image.onload = null;
+        tile.image.onerror = null;
+        tile.image.removeAttribute('src');
+        if (tile.state === 'loading') active = Math.max(0, active - 1);
+        tile.state = 'cancelled';
+        loadingTiles.delete(tile);
+      });
+    }
 
     function releasePrevious() {
       clearTimeout(previousTimer);
@@ -86,14 +128,16 @@
     }
 
     function maybeReleasePrevious() {
-      if (previous && current && current.pending <= 0) releasePrevious();
+      if (previous && current && current.pending <= 0 && current.failed <= 0) releasePrevious();
     }
 
     function makeImage(tile) {
       const image = document.createElement('img');
       image.alt = '';
       image.draggable = false;
+      image.loading = 'eager';
       image.decoding = 'async';
+      image.fetchPriority = 'high';
       image.style.cssText = `position:absolute;left:${tile.left}px;top:${tile.top}px;width:${TILE_SIZE + 1}px;height:${TILE_SIZE + 1}px;max-width:none;user-select:none;`;
       tile.layer.el.appendChild(image);
       tile.image = image;
@@ -102,30 +146,35 @@
     function settle(tile, ok) {
       tile.state = ok ? 'loaded' : 'failed';
       tile.layer.pending -= 1;
+      if (!ok) tile.layer.failed += 1;
       if (tile.layer === current) maybeReleasePrevious();
     }
 
     function startLoad(tile) {
+      if (tile.layer !== current || !tile.layer.el.isConnected) return;
       active += 1;
       tile.state = 'loading';
+      loadingTiles.add(tile);
       const image = tile.image;
       image.onload = () => {
         image.onload = image.onerror = null;
         active -= 1;
+        loadingTiles.delete(tile);
         settle(tile, true);
         pump();
       };
       image.onerror = () => {
         image.onload = image.onerror = null;
         active -= 1;
+        loadingTiles.delete(tile);
         image.remove();
-        if (tile.retries < MAX_TILE_RETRIES && tile.layer.el.isConnected) {
+        if (tile.retries < MAX_TILE_RETRIES && tile.layer === current && tile.layer.el.isConnected) {
           const delay = 300 * (tile.retries + 1);
           tile.retries += 1;
           tile.url = TILE_SOURCES[tile.retries % TILE_SOURCES.length](tile.z, tile.x, tile.y);
           tile.state = 'waiting';
           setTimeout(() => {
-            if (!tile.layer.el.isConnected) return;
+            if (tile.layer !== current || !tile.layer.el.isConnected) return;
             makeImage(tile);
             queue.push(tile);
             pump();
@@ -136,10 +185,11 @@
           if (tile.rounds < BACKGROUND_RETRY_ROUNDS) {
             tile.rounds += 1;
             setTimeout(() => {
-              if (tile.state === 'failed' && tile.layer.el.isConnected) {
+              if (tile.state === 'failed' && tile.layer === current && tile.layer.el.isConnected) {
                 tile.retries = 0;
                 tile.url = TILE_SOURCES[0](tile.z, tile.x, tile.y);
                 tile.state = 'queued';
+                tile.layer.failed = Math.max(0, tile.layer.failed - 1);
                 tile.layer.pending += 1;
                 makeImage(tile);
                 queue.push(tile);
@@ -156,7 +206,7 @@
     function pump() {
       while (active < MAX_PARALLEL_TILES && queue.length) {
         const tile = queue.shift();
-        if (tile.layer.el.isConnected) startLoad(tile);
+        if (tile.layer === current && tile.layer.el.isConnected) startLoad(tile);
       }
     }
 
@@ -172,6 +222,7 @@
         existing.url = TILE_SOURCES[0](existing.z, existing.x, existing.y);
         existing.state = 'queued';
         existing.image?.remove();
+        layer.failed = Math.max(0, layer.failed - 1);
         layer.pending += 1;
         makeImage(existing);
         queue.push(existing);
@@ -225,7 +276,7 @@
         releasePrevious();
         if (current) {
           previous = current;
-          previous.el.style.opacity = '0.35';
+          previous.el.style.opacity = '1';
           const stale = previous;
           previousTimer = setTimeout(() => { if (previous === stale) releasePrevious(); }, PREVIOUS_LAYER_TIMEOUT);
         }
@@ -240,7 +291,9 @@
           originY: Math.floor(centerWorld.y),
           tiles: new Map(),
           pending: 0,
+          failed: 0,
         };
+        discardStaleWork();
       }
       const shiftX = Math.round(width / 2 - (centerWorld.x - current.originX));
       const shiftY = Math.round(height / 2 - (centerWorld.y - current.originY));
@@ -307,7 +360,7 @@
     const markerLayer = layer.querySelector('.free2do-static-map-markers');
     const tiles = createTileLayer(mapImage);
     const markers = new Map();
-    let latestRender = { userPosition: DEFAULT_POSITION, radiusKm: 5, activities: [] };
+    let latestRender = null;
     let resizeTimer;
     let baseMapKey = '';
     let viewportKey = '';
@@ -316,7 +369,7 @@
     let wheelAccumulator = 0;
     let pinchStartDistance = null;
     let pinchLastDistance = null;
-    let viewCenter = { ...DEFAULT_POSITION };
+    let viewCenter = null;
     let selectPositionHandler = null;
     let dragStart = null;
     let dragging = false;
@@ -338,12 +391,13 @@
       const displayHeight = Math.max(320, Math.round(rect.height || container.clientHeight || 640));
       const nextViewportKey = `${center.latitude.toFixed(5)}:${center.longitude.toFixed(5)}:${latestRender.radiusKm}`;
       currentBaseZoom = zoomForRadius(center.latitude, latestRender.radiusKm, displayWidth, displayHeight);
-      if (nextViewportKey !== viewportKey) {
+      if (!viewCenter || nextViewportKey !== viewportKey) {
         viewportKey = nextViewportKey;
         zoomOffset = 0;
         viewCenter = { ...center };
       }
-      const zoom = clamp(currentBaseZoom + zoomOffset, 3, 18);
+      const zoom = clamp(currentBaseZoom + zoomOffset, VIETNAM_MIN_ZOOM, 18);
+      viewCenter = constrainCenterToVietnam(viewCenter, zoom, displayWidth, displayHeight);
       const nextBaseMapKey = `${viewCenter.latitude.toFixed(6)}:${viewCenter.longitude.toFixed(6)}:${zoom}:${displayWidth}:${displayHeight}`;
       if (nextBaseMapKey !== baseMapKey) {
         baseMapKey = nextBaseMapKey;
@@ -374,12 +428,14 @@
     }
 
     function invalidate() {
+      if (!latestRender) return;
       clearTimeout(resizeTimer);
       resizeTimer = setTimeout(() => render(latestRender.userPosition, latestRender.radiusKm, latestRender.activities), 50);
     }
 
     function zoomBy(step) {
-      const nextZoom = clamp(currentBaseZoom + zoomOffset + step, 3, 18);
+      if (!latestRender || !viewCenter) return;
+      const nextZoom = clamp(currentBaseZoom + zoomOffset + step, VIETNAM_MIN_ZOOM, 18);
       if (nextZoom === currentBaseZoom + zoomOffset) return;
       zoomOffset = nextZoom - currentBaseZoom;
       render(latestRender.userPosition, latestRender.radiusKm, latestRender.activities);
@@ -400,13 +456,15 @@
     layer.style.cursor = 'grab';
     layer.style.touchAction = 'none';
     layer.addEventListener('pointerdown', event => {
-      if (event.button !== 0 || event.target.closest('.free2do-static-map-marker')) return;
-      const zoom = clamp(currentBaseZoom + zoomOffset, 3, 18);
+      if (!latestRender || !viewCenter || event.button !== 0 || event.target.closest('.free2do-static-map-marker')) return;
+      const zoom = clamp(currentBaseZoom + zoomOffset, VIETNAM_MIN_ZOOM, 18);
       dragStart = {
         x: event.clientX,
         y: event.clientY,
         centerPoint: worldPoint(viewCenter.latitude, viewCenter.longitude, zoom),
         zoom,
+        offsetX: 0,
+        offsetY: 0,
       };
       dragging = false;
       layer.setPointerCapture?.(event.pointerId);
@@ -418,39 +476,55 @@
       const dy = event.clientY - dragStart.y;
       if (Math.hypot(dx, dy) > 4) dragging = true;
       if (!dragging) return;
-      mapImage.style.transform = `translate(${dx}px, ${dy}px)`;
-      markerLayer.style.transform = `translate(${dx}px, ${dy}px)`;
       const box = container.getBoundingClientRect();
+      const candidate = coordinateFromWorldPoint(
+        dragStart.centerPoint.x - dx,
+        dragStart.centerPoint.y - dy,
+        dragStart.zoom,
+      );
+      const bounded = constrainCenterToVietnam(
+        candidate,
+        dragStart.zoom,
+        Math.max(320, Math.round(box.width)),
+        Math.max(320, Math.round(box.height)),
+      );
+      const boundedPoint = worldPoint(bounded.latitude, bounded.longitude, dragStart.zoom);
+      dragStart.offsetX = dragStart.centerPoint.x - boundedPoint.x;
+      dragStart.offsetY = dragStart.centerPoint.y - boundedPoint.y;
+      mapImage.style.transform = `translate(${dragStart.offsetX}px, ${dragStart.offsetY}px)`;
+      markerLayer.style.transform = `translate(${dragStart.offsetX}px, ${dragStart.offsetY}px)`;
       tiles.extend(
         dragStart.zoom,
-        { x: dragStart.centerPoint.x - dx, y: dragStart.centerPoint.y - dy },
+        boundedPoint,
         Math.max(320, Math.round(box.width)),
         Math.max(320, Math.round(box.height)),
       );
     });
     const finishPointer = event => {
       if (!dragStart) return;
-      const dx = event.clientX - dragStart.x;
-      const dy = event.clientY - dragStart.y;
+      const rawDx = event.clientX - dragStart.x;
+      const rawDy = event.clientY - dragStart.y;
+      const dx = dragging ? dragStart.offsetX : rawDx;
+      const dy = dragging ? dragStart.offsetY : rawDy;
       mapImage.style.transform = '';
       markerLayer.style.transform = '';
       layer.style.cursor = 'grab';
       if (dragging) {
-        viewCenter = coordinateFromWorldPoint(
+        viewCenter = constrainCenterToVietnam(coordinateFromWorldPoint(
           dragStart.centerPoint.x - dx,
           dragStart.centerPoint.y - dy,
           dragStart.zoom,
-        );
+        ), dragStart.zoom, container.clientWidth, container.clientHeight);
         baseMapKey = '';
         render(latestRender.userPosition, latestRender.radiusKm, latestRender.activities);
       } else if (selectPositionHandler) {
         const rect = container.getBoundingClientRect();
         const viewPoint = worldPoint(viewCenter.latitude, viewCenter.longitude, dragStart.zoom);
-        const selected = coordinateFromWorldPoint(
+        const selected = clampToVietnam(coordinateFromWorldPoint(
           viewPoint.x + event.clientX - rect.left - rect.width / 2,
           viewPoint.y + event.clientY - rect.top - rect.height / 2,
           dragStart.zoom,
-        );
+        ));
         clearTimeout(selectionTimer);
         selectionTimer = setTimeout(() => selectPositionHandler(selected), 220);
       }
@@ -508,9 +582,9 @@
     return new Promise((resolve, reject) => navigator.geolocation.getCurrentPosition(
       result => resolve({ latitude: result.coords.latitude, longitude: result.coords.longitude }),
       () => reject(new Error('Hãy cho phép truy cập vị trí để tìm hoạt động quanh bạn.')),
-      { enableHighAccuracy: false, timeout: 8000, maximumAge: 600000 },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 },
     ));
   }
 
-  window.Free2DoMap = { create, getCurrentPosition, validCoordinate };
+  window.Free2DoMap = { create, getCurrentPosition, validCoordinate, vietnamBounds: VIETNAM_BOUNDS };
 })();

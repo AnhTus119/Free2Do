@@ -1,7 +1,6 @@
 (function () {
   'use strict';
   const api = window.CustomerAPI;
-  const DEFAULT_POSITION = { latitude: 21.0285, longitude: 105.8542 };
   const activitiesBox = document.getElementById('activities');
   const businessesBox = document.getElementById('businesses');
   const radiusSlider = document.getElementById('radiusSlider');
@@ -10,7 +9,7 @@
   const mapCount = document.getElementById('homeMapResultCount');
   const mapLocation = document.getElementById('homeMapLocation');
   const interestBox = document.querySelector('.match-card .chip-row');
-  let position = DEFAULT_POSITION;
+  let position = null;
   let mapController;
   let searchTimer;
   let locationResolveTimer;
@@ -35,7 +34,11 @@
     return `<a class="activity-card" href="${api.escapeHTML(detailHref(item))}"><div class="activity-image">${image ? `<img src="${api.escapeHTML(image)}" alt="">` : '<span>Chưa có ảnh</span>'}</div><div class="activity-body"><div class="activity-title">${api.escapeHTML(item.name)}</div><div class="activity-meta">${api.escapeHTML(item.business_name)} · ${api.escapeHTML(item.address)}</div><div>${api.escapeHTML(api.priceLabel(item.price_text, item.price))} · ★ ${item.avg_rating ?? '—'} (${item.review_count})</div></div></a>`;
   }
   function detailHref(item) {
-    const query = new URLSearchParams({ id: item.activity_id, latitude: position.latitude, longitude: position.longitude });
+    const query = new URLSearchParams({ id: item.activity_id });
+    if (window.Free2DoMap.validCoordinate(position?.latitude, position?.longitude)) {
+      query.set('latitude', position.latitude);
+      query.set('longitude', position.longitude);
+    }
     return `activity-detail.html?${query}`;
   }
   function paginate(box, nav, perPage) {
@@ -66,6 +69,9 @@
     catch (error) { console.warn('Không thể vẽ bản đồ:', error); }
   }
   async function searchNearby(recordHistory = false) {
+    if (!window.Free2DoMap.validCoordinate(position?.latitude, position?.longitude)) {
+      throw new Error('Chưa xác định được vị trí. Hãy cho phép truy cập GPS hoặc nhập địa chỉ khác.');
+    }
     const items = await api.request('/search', { method: 'POST', body: {
       latitude: position.latitude, longitude: position.longitude, radius: Number(radiusSlider.value),
       budget: parseMoney(document.getElementById('budgetInput').value), free_time: freeMinutes(),
@@ -133,10 +139,10 @@
     });
   }
   async function load() {
-    // Kiểm tra đăng nhập, tải dữ liệu trang, dựng bản đồ và định vị GPS chạy SONG SONG
-    // (trước đây chờ nối đuôi từng bước nên trang hiện rất chậm).
-    const gpsPromise = window.Free2DoMap.getCurrentPosition().then(found => found, () => null);
-    const mapPromise = window.Free2DoMap.create('homeMapBox', position);
+    // Xin GPS ngay khi mở trang, song song với API. Không dùng tọa độ Hà Nội
+    // làm dữ liệu giả trong lúc chờ hoặc khi người dùng từ chối quyền vị trí.
+    const gpsPromise = window.Free2DoMap.getCurrentPosition();
+    const mapPromise = window.Free2DoMap.create('homeMapBox');
     const [, activities, businesses, categories] = await Promise.all([
       api.requireUser(), api.request('/activities'), api.request('/businesses'), api.request('/categories'),
     ]);
@@ -145,19 +151,21 @@
     businessesBox.innerHTML = businesses.length ? businesses.map(item => `<a class="activity-card" href="business-detail.html?id=${encodeURIComponent(item.user_id)}"><div class="activity-image">${item.avatar_url ? `<img src="${api.escapeHTML(item.avatar_url)}" alt="Logo ${api.escapeHTML(item.business_name)}">` : '<span>Chưa có logo</span>'}</div><div class="activity-body"><div class="activity-title">${api.escapeHTML(item.business_name)}</div><div class="activity-meta">${api.escapeHTML(item.business_address)}</div><p>${api.escapeHTML(item.description || 'Chưa có mô tả.')}</p><b>${item.activity_count} hoạt động đang mở</b></div></a>`).join('') : '<div class="empty-state">Hiện chưa có doanh nghiệp có hoạt động đang mở.</div>';
     interestBox.innerHTML = categories.map(item => `<div class="chip" data-category-id="${api.escapeHTML(item.category_id)}">${api.escapeHTML(item.name)}</div>`).join('');
     bindFilters();
-    // Chỉ chờ GPS tối đa 2 giây; nếu chậm hơn thì tìm quanh vị trí mặc định trước,
-    // khi GPS trả về sẽ tự cập nhật lại (trừ khi người dùng đã tự chọn vị trí).
-    const gps = await Promise.race([gpsPromise, new Promise(resolve => setTimeout(() => resolve(undefined), 2000))]);
-    if (gps) { position = gps; locationLabel = 'Vị trí hiện tại'; }
-    else locationLabel = 'Hà Nội (mặc định)';
-    mapLocation.textContent = locationLabel;
-    await searchNearby(false);
-    if (gps === undefined) {
-      gpsPromise.then(found => {
-        if (!found || locationTouched) return;
-        position = found; locationLabel = 'Vị trí hiện tại'; mapLocation.textContent = locationLabel;
-        searchNearby(false).catch(() => {});
-      });
+    mapLocation.textContent = 'Đang lấy vị trí hiện tại…';
+    try {
+      const gps = await gpsPromise;
+      if (!locationTouched) {
+        position = gps;
+        locationLabel = 'Vị trí hiện tại';
+        document.getElementById('locationInput').value = locationLabel;
+        mapLocation.textContent = locationLabel;
+        await searchNearby(false);
+      }
+    } catch (error) {
+      if (!locationTouched) {
+        mapLocation.textContent = 'Chưa xác định vị trí';
+        mapResults.innerHTML = `<p style="padding:20px;color:var(--muted);">${api.escapeHTML(error.message)} Bạn vẫn có thể nhập địa chỉ ở ô “Bạn đang ở đâu?”.</p>`;
+      }
     }
   }
   document.getElementById('searchActivitiesButton').addEventListener('click', async event => {
@@ -169,6 +177,10 @@
         position = { latitude: resolved.latitude, longitude: resolved.longitude };
         locationLabel = resolved.display_name || typedLocation;
       } catch (error) { alert(error.message); return; }
+    }
+    if (!window.Free2DoMap.validCoordinate(position?.latitude, position?.longitude)) {
+      alert('Chưa xác định được vị trí. Hãy cho phép truy cập GPS hoặc nhập địa chỉ khác.');
+      return;
     }
     const params = new URLSearchParams({ latitude: position.latitude, longitude: position.longitude, location_label: locationLabel,
       radius: radiusSlider.value, hours: document.getElementById('freeHours').value || '0',

@@ -49,24 +49,22 @@
     .mobile-menu-btn { display: none; width: 38px; height: 38px; padding: 7px; margin-right: 8px; border: 0; background: transparent; color: var(--landing-ink); cursor: pointer; }
     .mobile-menu-btn svg { width: 24px; height: 24px; }
     .mobile-nav-panel { display: none; }
-    .landing-shell { width: min(100% - 48px, 1280px); margin: 0 auto; }
+    .landing-shell { width: min(100% - 48px, 1400px); margin: 0 auto; }
     .landing-hero {
-      position: relative; isolation: isolate; display: flex; flex-direction: column; justify-content: space-between;
-      aspect-ratio: 2047 / 1362; margin: 24px auto 0;
-      overflow: hidden; border-radius: 28px; background: #e8edf1;
+      position: relative; isolation: isolate; display: flex; align-items: center;
+      min-height: clamp(500px,52vw,650px); margin: 24px auto 0;
+      overflow: hidden; border-radius: 28px; background: #7b6252;
       box-shadow: 0 24px 58px rgba(71,48,40,.16);
     }
-    .landing-hero::after {
-      content: ''; position: absolute; inset: 48% 0 0; z-index: 1; pointer-events: none;
-      background: linear-gradient(0deg,rgba(26,24,26,.88) 0%,rgba(26,24,26,.56) 34%,transparent 100%);
+    .hero-image { position: absolute; inset: 0; z-index: -2; width: 100%; height: 100%; object-fit: cover; object-position: center; }
+    .landing-hero::before {
+      content: ''; position: absolute; inset: 0; z-index: -1;
+      background: linear-gradient(90deg,rgba(31,25,22,.80) 0%,rgba(31,25,22,.62) 34%,rgba(31,25,22,.10) 74%);
     }
-    .hero-content { position: relative; z-index: 2; width: 100%; padding: clamp(34px,5vw,66px); color: var(--landing-ink); }
-    .hero-eyebrow { display: inline-block; margin: 0 0 18px; padding: 8px 14px; border: 1px solid #f2d1d8; border-radius: 99px; background: #fde9ed; color: var(--landing-rose-hover); font-size: 12px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; }
-    .hero-content h1 { margin: 0; font-size: clamp(28px,4vw,54px); line-height: 1.08; letter-spacing: -.045em; font-weight: 800; white-space: nowrap; text-shadow: 0 1px 12px rgba(255,255,255,.55); }
-    .hero-visual { position: absolute; inset: 0; z-index: 0; }
-    .hero-visual img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center center; }
-    .hero-bottom { position: relative; z-index: 2; display: flex; align-items: flex-end; justify-content: space-between; gap: 28px; padding: 90px clamp(34px,5vw,66px) clamp(34px,5vw,60px); color: #fff; }
-    .hero-bottom p { max-width: 500px; margin: 0; color: #fff; font-size: clamp(15px,1.3vw,18px); font-weight: 600; line-height: 1.6; text-shadow: 0 2px 10px rgba(0,0,0,.35); }
+    .hero-content { width: min(570px,56%); padding: clamp(34px,6vw,84px); color: #fff; }
+    .hero-eyebrow { display: inline-block; margin: 0 0 18px; padding: 8px 14px; border: 1px solid rgba(255,255,255,.45); border-radius: 99px; background: rgba(255,255,255,.12); font-size: 12px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; }
+    .hero-content h1 { margin: 0 0 20px; font-size: clamp(37px,4.2vw,64px); line-height: 1.08; letter-spacing: -.045em; font-weight: 800; }
+    .hero-content p { max-width: 480px; margin: 0 0 28px; color: rgba(255,255,255,.91); font-size: clamp(15px,1.3vw,18px); line-height: 1.7; }
     .hero-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
     .hero-cta, .hero-secondary {
       display: inline-flex; align-items: center; justify-content: center; min-height: 49px;
@@ -75,8 +73,8 @@
     }
     .hero-cta { color: #fff; background: var(--landing-rose); box-shadow: 0 8px 24px rgba(30,20,20,.22); }
     .hero-cta:hover { background: var(--landing-rose-hover); transform: translateY(-3px); }
-    .hero-secondary { border: 1px solid rgba(255,255,255,.75); color: #fff; background: rgba(255,255,255,.13); }
-    .hero-secondary:hover { background: rgba(255,255,255,.27); transform: translateY(-3px); }
+    .hero-secondary { border: 1px solid rgba(255,255,255,.72); color: #fff; background: rgba(255,255,255,.08); }
+    .hero-secondary:hover { background: rgba(255,255,255,.2); transform: translateY(-3px); }
     .landing-section { padding: clamp(62px,8vw,110px) 0; }
     .section-kicker { margin: 0 0 12px; color: var(--landing-rose-hover); font-size: 12px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
     .section-heading { max-width: 690px; margin: 0; font-size: clamp(27px,3vw,43px); line-height: 1.17; letter-spacing: -.035em; }
@@ -93,14 +91,29 @@
     .landing-footer { padding: 27px 20px; border-top: 1px solid var(--landing-line); background: #fff; color: var(--landing-muted); font-size: 13px; text-align: center; line-height: 2; }
     .landing-footer a { color: var(--landing-ink); text-decoration: none; }
     .landing-footer a:hover { color: var(--landing-rose-hover); text-decoration: underline; }
-    @media (max-width: 1100px) {
+    @media (max-width: 1000px) {
       .navbar { gap: 16px; }
       .nav-center { gap: 22px; }
       .feature-card { padding: 24px; }
-      .hero-content { padding: 34px; }
-      .hero-content h1 { font-size: clamp(27px,3.9vw,42px); }
-      .hero-bottom { padding: 70px 34px 32px; }
-      .hero-actions { justify-content: flex-end; }
+
+    }
+    /* Keep the photo and text in separate rows on tablets and phones.
+       The image keeps its proportions instead of filling a tall background. */
+    @media (max-width: 1100px) {
+      .landing-hero { display: flex; flex-direction: column; align-items: stretch; min-height: 0; background: #352b26; }
+      .hero-image { position: relative; inset: auto; z-index: auto; display: block; flex: none; width: 100%; height: auto; aspect-ratio: 1983 / 793; object-fit: cover; }
+      .landing-hero::before { content: none; }
+      .hero-content { width: 100%; padding: 30px 36px 34px; }
+      .hero-eyebrow { margin-bottom: 14px; }
+      .hero-content h1 { margin-bottom: 14px; font-size: clamp(30px,4.3vw,44px); line-height: 1.2; letter-spacing: -.035em; text-wrap: balance; }
+      .hero-content p { max-width: 670px; margin-bottom: 22px; font-size: 16px; line-height: 1.65; }
+      .hero-actions { gap: 12px; }
+    }
+    @media (max-width: 600px) {
+      .hero-image { aspect-ratio: 16 / 10; height: auto; object-position: right center; }
+      .hero-content { padding: 28px; }
+      .hero-content h1 { font-size: clamp(30px,6.2vw,36px); }
+      .hero-content p { font-size: 14px; }
     }
     @media (max-width: 768px) {
       .navbar { display: flex; justify-content: space-between; gap: 12px; padding: 11px 18px; }
@@ -108,17 +121,8 @@
       .nav-center { display: none; }
       .nav-left { flex: 1 1 auto; }
       .nav-right { flex: 0 0 auto; }
-      .landing-shell { width: min(100% - 28px,1280px); }
-      .landing-hero { display: grid; grid-template-areas: 'photo' 'bottom'; aspect-ratio: auto; margin-top: 14px; border-radius: 22px; background: #fffaf5; }
-      .landing-hero::after { display: none; }
-      .hero-content { grid-area: photo; align-self: start; width: 100%; padding: clamp(12px,2.8vw,23px); }
-      .hero-eyebrow { margin-bottom: 8px; }
-      .hero-content h1 { text-shadow: 0 1px 10px rgba(255,255,255,.8); }
-      .hero-visual { grid-area: photo; position: relative; inset: auto; width: 100%; }
-      .hero-visual img { width: 100%; height: auto; object-fit: contain; }
-      .hero-bottom { grid-area: bottom; display: block; padding: 26px 32px 30px; background: var(--landing-ink); }
-      .hero-bottom p { max-width: none; margin-bottom: 18px; }
-      .hero-actions { justify-content: flex-start; }
+      .landing-shell { width: min(100% - 28px,1400px); }
+      .landing-hero { margin-top: 14px; border-radius: 22px; }
       .feature-grid { grid-template-columns: 1fr; gap: 12px; }
       .feature-card { padding: 23px; }
       .feature-card h3 { margin-top: 16px; }
@@ -136,10 +140,11 @@
       .nav-logo img { width: 31px; height: 31px; }
       .auth-buttons { gap: 6px; }
       .auth-link { min-height: 36px; padding: 0 11px; font-size: 12px; }
-      .hero-content { padding: 9px 11px; }
-      .hero-content h1 { font-size: clamp(17px,4.6vw,22px); }
-      .hero-eyebrow { margin-bottom: 5px; padding: 5px 8px; font-size: 9px; }
-      .hero-actions a { width: 100%; }
+      .hero-content { padding: 24px 20px 28px; }
+      .hero-content h1 { font-size: clamp(27px,7.4vw,35px); }
+      .hero-eyebrow { font-size: 10px; padding: 7px 10px; letter-spacing: .035em; }
+      .hero-actions { display: grid; grid-template-columns: 1fr; gap: 10px; }
+      .hero-actions a { width: 100%; min-height: 46px; }
     }
     @media (max-width: 360px) {
       .nav-logo span { display: none; }
@@ -172,14 +177,10 @@
   <main>
     <div class="landing-shell">
       <section class="landing-hero" aria-labelledby="heroTitle">
+        <img class="hero-image" src="free2do-hero.png" alt="Nhóm bạn cùng trải nghiệm làm gốm bên hồ" width="1983" height="793" fetchpriority="high">
         <div class="hero-content">
           <span class="hero-eyebrow">Thời gian rảnh, trải nghiệm hay</span>
           <h1 id="heroTitle">Hôm nay mình làm gì thú vị?</h1>
-        </div>
-        <div class="hero-visual">
-          <img src="picture.jpg" alt="Nhóm bạn cùng tạo dáng bên Hồ Gươm, Hà Nội" width="2047" height="1362">
-        </div>
-        <div class="hero-bottom">
           <p>Khám phá hoạt động quanh bạn, chọn điều hợp sở thích và rủ thêm bạn bè cùng trải nghiệm.</p>
           <div class="hero-actions">
             <a class="hero-cta" href="log-in.html">Bắt đầu khám phá <span aria-hidden="true">&nbsp;→</span></a>

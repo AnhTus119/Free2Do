@@ -124,6 +124,43 @@ class FullFrontendContractTests(unittest.TestCase):
         self.assertIn("me.username || me.name", api_source)
         self.assertIn("el.textContent = username", api_source)
 
+    def test_public_auth_pages_return_to_public_index(self):
+        login = (self.frontend / "log-in.html").read_text(encoding="utf-8")
+        signup = (self.frontend / "sign-up.html").read_text(encoding="utf-8")
+        self.assertIn('href="index.html" class="login__back"', login)
+        self.assertIn('href="index.html" class="signup__back"', signup)
+
+    def test_customer_location_has_no_hanoi_fallback(self):
+        sources = [
+            (self.frontend / "js" / name).read_text(encoding="utf-8")
+            for name in ("customer-map.js", "customer-home.js", "customer-search.js")
+        ]
+        combined = "\n".join(sources)
+        self.assertNotIn("21.0285", combined)
+        self.assertNotIn("105.8542", combined)
+        self.assertNotIn("Hà Nội (mặc định)", combined)
+        self.assertNotIn("Promise.race", combined)
+        self.assertIn("enableHighAccuracy: true", sources[0])
+        self.assertIn("maximumAge: 0", sources[0])
+
+    def test_map_is_bounded_to_vietnam_without_api_change(self):
+        map_source = (self.frontend / "js" / "customer-map.js").read_text(encoding="utf-8")
+        self.assertIn("VIETNAM_BOUNDS", map_source)
+        self.assertIn("constrainCenterToVietnam", map_source)
+        self.assertIn("VIETNAM_MIN_ZOOM", map_source)
+        self.assertIn("discardStaleWork", map_source)
+        self.assertIn("const MAX_PARALLEL_TILES = 12", map_source)
+        self.assertIn("const TILE_PADDING = 0", map_source)
+
+    def test_search_keyword_and_alternate_schedule_are_wired(self):
+        page = (self.frontend / "Demo Trang Customer" / "search.html").read_text(encoding="utf-8")
+        source = (self.frontend / "js" / "customer-search.js").read_text(encoding="utf-8")
+        self.assertIn('id="dateFilter"', page)
+        self.assertIn('id="startTimeFilter"', page)
+        self.assertIn("keyword: currentKeyword", source)
+        self.assertIn("activityMatchesSchedule", source)
+        self.assertIn("startTimeFilter.addEventListener", source)
+
 
 if __name__ == "__main__":
     unittest.main()

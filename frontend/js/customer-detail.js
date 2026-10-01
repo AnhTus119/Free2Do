@@ -61,10 +61,12 @@
       origin.set('latitude', params.get('latitude'));
       origin.set('longitude', params.get('longitude'));
     }
-    const [activity, categories, reviews, me] = await Promise.all([
+    const hasToken = Boolean(localStorage.getItem('token'));
+    const [activity, categories, reviews, me, bookmarks] = await Promise.all([
       api.request(`/activities/${encodeURIComponent(id)}${origin.size ? `?${origin}` : ''}`), api.request('/categories'),
       api.request(`/activities/${encodeURIComponent(id)}/reviews`),
-      localStorage.getItem('token') ? api.requireUser().catch(() => null) : null,
+      hasToken ? api.requireUser().catch(() => null) : null,
+      hasToken ? api.request('/bookmarks/me').catch(() => []) : [],
     ]);
     const matched = categories.filter(item => (activity.category_ids || []).includes(item.category_id));
     text('activityName', activity.name); text('activityMeta', `${activity.business_name} · ${activity.address}${activity.avg_rating == null ? '' : ` · ★ ${activity.avg_rating} (${activity.review_count} đánh giá)`}`);
@@ -110,7 +112,7 @@
     });
     document.title = `FREE2DO — ${activity.name}`;
     const favorite = document.getElementById('favoriteButton'); const label = document.getElementById('favoriteLabel'); let saved = false;
-    if (me?.account_type === 'user') { const bookmarks = await api.request('/bookmarks/me').catch(() => []); saved = bookmarks.some(item => item.activity_id === id); }
+    if (me?.account_type === 'user') saved = bookmarks.some(item => item.activity_id === id);
     const updateFavorite = () => { label.textContent = saved ? 'Đã yêu thích' : 'Lưu vào yêu thích'; favorite.classList.toggle('is-favorite', saved); }; updateFavorite();
     favorite.onclick = async () => { if (!me) return location.href = '../log-in.html'; favorite.disabled = true; try { await api.request(`/bookmarks/${encodeURIComponent(id)}`, { method: saved ? 'DELETE' : 'POST' }); saved = !saved; updateFavorite(); } catch (error) { alert(error.message); } finally { favorite.disabled = false; } };
     document.getElementById('reportActivity').onclick = async event => { event.preventDefault(); if (!me) return location.href = '../log-in.html'; const reason = prompt('Lý do báo cáo hoạt động:'); if (!reason?.trim()) return; const description = prompt('Mô tả thêm (không bắt buộc):') ?? ''; try { await api.request('/reports', { method: 'POST', body: { activity_id: id, reason: reason.trim(), description: description.trim() || null } }); alert('Đã gửi báo cáo.'); } catch (error) { alert(error.message); } };

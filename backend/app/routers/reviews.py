@@ -1,6 +1,6 @@
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.database import get_db
 from app import models, schemas
@@ -32,6 +32,11 @@ def _to_review_out(review: models.Review) -> schemas.ReviewOut:
 def list_activity_reviews(activity_id: str, db: Session = Depends(get_db)):
     reviews = (
         db.query(models.Review)
+        .options(
+            joinedload(models.Review.user),
+            selectinload(models.Review.media),
+            selectinload(models.Review.reply).selectinload(models.ReviewReply.media),
+        )
         .filter(models.Review.activity_id == activity_id)
         .order_by(models.Review.created_at.desc())
         .all()

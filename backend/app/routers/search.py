@@ -1,9 +1,10 @@
+import time
 from datetime import UTC, datetime
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
 from sqlalchemy import func, or_, text
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app import models, schemas
 from app.auth import get_current_user
@@ -36,6 +37,12 @@ def resolve_search_location(
     )
 
 
+# Việc có PostGIS hay không gần như không đổi, nên chỉ hỏi database một lần mỗi
+# 10 phút thay vì thêm một lượt truy vấn information_schema cho MỖI lần tìm kiếm.
+_POSTGIS_CACHE_SECONDS = 600
+_postgis_cache: dict[str, float | bool] = {"value": False, "checked_at": 0.0}
+
+
 def _postgis_available(db: Session) -> bool:
     """Chỉ dùng ST_DWithin khi cả extension và cột geography đã sẵn sàng."""
     if (
@@ -44,7 +51,10 @@ def _postgis_available(db: Session) -> bool:
         or db.bind.dialect.name != "postgresql"
     ):
         return False
-    return bool(
+    now = time.monotonic()
+    if _postgis_cache["checked_at"] and now - _postgis_cache["checked_at"] < _POSTGIS_CACHE_SECONDS:
+        return bool(_postgis_cache["value"])
+    available = bool(
         db.execute(
             text(
                 "SELECT "
@@ -57,6 +67,8 @@ def _postgis_available(db: Session) -> bool:
             )
         ).scalar()
     )
+    _postgis_cache.update(value=available, checked_at=now)
+    return available
 
 
 def _opening_window_minutes(activity: models.Activity) -> Optional[int]:
@@ -96,18 +108,29 @@ def _score_activity(
     return round(sum(weight * value for weight, value in parts) / total_weight * 100, 1)
 
 
+def _save_search_history(bind, values: dict) -> None:
+    """Lưu lịch sử bằng session riêng (session của request đã đóng khi task chạy)."""
+    with Session(bind=bind) as session:
+        try:
+            session.add(models.SearchHistory(**values))
+            session.commit()
+        except Exception:
+            session.rollback()
+
+
 @router.post("", response_model=list[schemas.ActivityWithScore])
 def search_activities(
     payload: schemas.SearchParams,
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_user),
+    background_tasks: BackgroundTasks = None,
 ):
     """Lọc và xếp hạng hoạt động ở backend; frontend chỉ hiển thị kết quả đã tính."""
     use_postgis = _postgis_available(db)
     query = db.query(models.Activity).options(
-        selectinload(models.Activity.categories).selectinload(models.ActivityCategory.category),
+        selectinload(models.Activity.categories).joinedload(models.ActivityCategory.category),
         selectinload(models.Activity.media),
-        selectinload(models.Activity.business),
+        joinedload(models.Activity.business),
     ).filter(
         models.Activity.status == "active",
         models.Activity.latitude.is_not(None),
@@ -185,19 +208,22 @@ def search_activities(
         )
 
     if payload.record_history:
-        db.add(
-            models.SearchHistory(
-                user_id=user.user_id,
-                keyword=payload.keyword,
-                latitude=payload.latitude,
-                longitude=payload.longitude,
-                radius=payload.radius,
-                budget=payload.budget,
-                free_time=payload.free_time,
-                created_at=datetime.now(UTC).replace(tzinfo=None),
-            )
+        history = dict(
+            user_id=user.user_id,
+            keyword=payload.keyword,
+            latitude=payload.latitude,
+            longitude=payload.longitude,
+            radius=payload.radius,
+            budget=payload.budget,
+            free_time=payload.free_time,
+            created_at=datetime.now(UTC).replace(tzinfo=None),
         )
-        db.commit()
+        if background_tasks is not None:
+            # Ghi lịch sử sau khi đã trả kết quả để người dùng không phải chờ thêm
+            # các lượt INSERT/COMMIT tới database.
+            background_tasks.add_task(_save_search_history, db.get_bind(), history)
+        else:
+            _save_search_history(db.get_bind(), history)
     sort_keys = {
         "match": lambda item: (-item.match_score, item.distance_km or 0),
         "distance": lambda item: (item.distance_km or 0, -item.match_score),

@@ -508,7 +508,7 @@
     return new Promise((resolve, reject) => navigator.geolocation.getCurrentPosition(
       result => resolve({ latitude: result.coords.latitude, longitude: result.coords.longitude }),
       () => reject(new Error('Hãy cho phép truy cập vị trí để tìm hoạt động quanh bạn.')),
-      { enableHighAccuracy: true, timeout: 12000, maximumAge: 300000 },
+      { enableHighAccuracy: false, timeout: 8000, maximumAge: 600000 },
     ));
   }
 

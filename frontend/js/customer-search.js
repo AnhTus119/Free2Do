@@ -20,6 +20,7 @@
   let timer;
   let requestSequence = 0;
   let mapSideView = 'list';
+  let locationTouched = false; // đã tự chọn vị trí trên bản đồ thì không ghi đè bằng GPS tới muộn
   let locationLabel = params.get('location_label') || 'Vị trí hiện tại';
 
   const parseMoney = value => {
@@ -153,25 +154,37 @@
     document.addEventListener('click', event => { const button = event.target.closest('#viewSwitchMobile button'); if (button) setView(button.dataset.view); });
   }
   async function load() {
-    await api.requireUser();
     restoreFilters();
-    mapController = await window.Free2DoMap.create('searchMap', position);
+    // Kiểm tra đăng nhập, tải danh mục, dựng bản đồ và định vị GPS chạy song song.
+    const needsGps = !params.has('latitude');
+    const gpsPromise = needsGps ? window.Free2DoMap.getCurrentPosition().then(found => found, () => null) : null;
+    const mapPromise = window.Free2DoMap.create('searchMap', position);
+    const [, categories] = await Promise.all([api.requireUser(), api.request('/categories')]);
+    mapController = await mapPromise;
     mapController.onSelectPosition(async selected => {
       position = selected;
+      locationTouched = true;
       locationLabel = 'Vị trí đã chọn trên bản đồ';
       mapLocation.textContent = locationLabel;
       await search(false).catch(error => { mapResults.innerHTML = `<p style="padding:20px;">${api.escapeHTML(error.message)}</p>`; });
     });
-    const categories = await api.request('/categories');
     const initial = new Set((params.get('categories') || '').split('|').filter(Boolean));
     categoryBox.innerHTML = categories.map(item => `<div class="chip ${initial.has(item.category_id) ? 'active' : ''}" data-category-id="${api.escapeHTML(item.category_id)}">${api.escapeHTML(item.name)}</div>`).join('');
     bind();
-    if (!params.has('latitude')) {
-      try { position = await window.Free2DoMap.getCurrentPosition(); locationLabel = 'Vị trí hiện tại'; mapLocation.textContent = locationLabel; }
-      catch (_) { mapLocation.textContent = 'Hà Nội (mặc định)'; }
+    let lateGps = null;
+    if (needsGps) {
+      // Chỉ chờ GPS tối đa 2 giây; chậm hơn thì tìm quanh vị trí mặc định rồi cập nhật khi GPS về.
+      const gps = await Promise.race([gpsPromise, new Promise(resolve => setTimeout(() => resolve(undefined), 2000))]);
+      if (gps) { position = gps; locationLabel = 'Vị trí hiện tại'; mapLocation.textContent = locationLabel; }
+      else { mapLocation.textContent = 'Hà Nội (mặc định)'; if (gps === undefined) lateGps = gpsPromise; }
     } else mapLocation.textContent = locationLabel;
     await search(true);
     setView(matchMedia('(max-width:900px)').matches ? 'details' : 'list');
+    lateGps?.then(found => {
+      if (!found || locationTouched) return;
+      position = found; locationLabel = 'Vị trí hiện tại'; mapLocation.textContent = locationLabel;
+      search(false).catch(() => {});
+    });
   }
   window.toggleMapView = () => setView('list');
   load().catch(error => { mapResults.innerHTML = `<p style="padding:20px;">${api.escapeHTML(error.message)}</p>`; });

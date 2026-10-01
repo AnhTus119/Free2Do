@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Literal, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload, selectinload
 from sqlalchemy import func
 
 from app.database import get_db
@@ -31,29 +31,49 @@ def _coordinates(latitude, longitude, google_maps_url, address=None):
     return latitude, longitude
 
 
+# Nạp sẵn quan hệ cần cho ActivityPublicOut: 3 truy vấn cho cả danh sách thay vì
+# 3 truy vấn lazy-load cho TỪNG hoạt động.
+DETAIL_LOAD_OPTIONS = (
+    joinedload(models.Activity.business),
+    selectinload(models.Activity.categories),
+    selectinload(models.Activity.media),
+)
+
+
+def _review_stats(db: Session, activity_ids: list[str]) -> dict[str, tuple[float | None, int]]:
+    """Điểm trung bình + số đánh giá của nhiều hoạt động chỉ bằng 1 truy vấn."""
+    if not activity_ids:
+        return {}
+    rows = (
+        db.query(
+            models.Review.activity_id,
+            func.avg(models.Review.rating),
+            func.count(models.Review.review_id),
+        )
+        .filter(models.Review.activity_id.in_(activity_ids))
+        .group_by(models.Review.activity_id)
+        .all()
+    )
+    return {activity_id: (average, count) for activity_id, average, count in rows}
+
+
 def _to_detail(
     db: Session,
     activity: models.Activity,
     origin_latitude: float | None = None,
     origin_longitude: float | None = None,
+    stats: dict[str, tuple[float | None, int]] | None = None,
 ) -> schemas.ActivityPublicOut:
-    avg_rating = (
-        db.query(func.avg(models.Review.rating))
-        .filter(models.Review.activity_id == activity.activity_id)
-        .scalar()
-    )
-    review_count = (
-        db.query(func.count(models.Review.review_id))
-        .filter(models.Review.activity_id == activity.activity_id)
-        .scalar()
-    )
+    if stats is None:
+        stats = _review_stats(db, [activity.activity_id])
+    avg_rating, review_count = stats.get(activity.activity_id, (None, 0))
     return schemas.ActivityPublicOut(
         **schemas.Activity.model_validate(activity).model_dump(),
         business_name=activity.business.business_name,
         business_avatar_url=activity.business.avatar_url,
         category_ids=[c.category_id for c in activity.categories],
         media=[schemas.ActivityMedia.model_validate(m) for m in activity.media],
-        avg_rating=round(avg_rating, 1) if avg_rating else None,
+        avg_rating=round(float(avg_rating), 1) if avg_rating else None,
         review_count=review_count or 0,
         distance_km=(
             round(haversine_km(origin_latitude, origin_longitude, activity.latitude, activity.longitude), 2)
@@ -62,6 +82,12 @@ def _to_detail(
             else None
         ),
     )
+
+
+def _to_details(db: Session, activities: list[models.Activity]) -> list[schemas.ActivityPublicOut]:
+    """Chuyển cả danh sách hoạt động sang schema với số truy vấn cố định."""
+    stats = _review_stats(db, [activity.activity_id for activity in activities])
+    return [_to_detail(db, activity, stats=stats) for activity in activities]
 
 
 def _set_categories(db: Session, activity_id: str, category_ids: list[str]) -> None:
@@ -88,7 +114,8 @@ def list_public_activities(
         query = query.filter(models.Activity.status.in_(("active", "pending")))
     else:
         query = query.filter(models.Activity.status == status_filter)
-    return [_to_detail(db, activity) for activity in query.order_by(models.Activity.created_at.desc()).all()]
+    activities = query.options(*DETAIL_LOAD_OPTIONS).order_by(models.Activity.created_at.desc()).all()
+    return _to_details(db, activities)
 
 
 @router.get("/{activity_id}", response_model=schemas.ActivityPublicOut)
@@ -98,7 +125,12 @@ def get_activity(
     longitude: float | None = Query(None, ge=-180, le=180),
     db: Session = Depends(get_db),
 ):
-    activity = db.query(models.Activity).filter(models.Activity.activity_id == activity_id).first()
+    activity = (
+        db.query(models.Activity)
+        .options(*DETAIL_LOAD_OPTIONS)
+        .filter(models.Activity.activity_id == activity_id)
+        .first()
+    )
     if not activity or activity.status not in ("active", "pending"):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Không tìm thấy hoạt động")
     return _to_detail(db, activity, latitude, longitude)
@@ -231,14 +263,15 @@ def list_activities_for_review(
     db: Session = Depends(get_db),
     _operator: models.Operator = Depends(get_current_operator),
 ):
-    query = db.query(models.Activity)
+    query = db.query(models.Activity).options(*DETAIL_LOAD_OPTIONS)
     if status_filter:
         query = query.filter(models.Activity.status == status_filter)
     activities = query.order_by(models.Activity.created_at.desc()).all()
+    stats = _review_stats(db, [activity.activity_id for activity in activities])
 
     return [
         schemas.ActivityAdminOut(
-            **_to_detail(db, activity).model_dump(),
+            **_to_detail(db, activity, stats=stats).model_dump(),
             verified_by=activity.verified_by,
             verified_at=activity.verified_at,
             expire_at=activity.expire_at,

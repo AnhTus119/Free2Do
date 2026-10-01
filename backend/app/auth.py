@@ -4,7 +4,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import jwt, JWTError
 from passlib.context import CryptContext
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from google.oauth2 import id_token as google_id_token
 from google.auth.transport import requests as google_requests
 from app.config import settings
@@ -78,7 +78,14 @@ def get_authenticated_account(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    account = db.query(models.Account).filter(models.Account.account_id == account_id).first()
+    # Nạp luôn hồ sơ user/operator bằng JOIN: mỗi request chỉ tốn 1 lượt tới database
+    # (trước đây là 2 lượt nối đuôi nhau: tìm account rồi mới tìm user/operator).
+    account = (
+        db.query(models.Account)
+        .options(joinedload(models.Account.user), joinedload(models.Account.operator))
+        .filter(models.Account.account_id == account_id)
+        .first()
+    )
     if not account:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Tài khoản không tồn tại")
     if account.status != "active":
@@ -111,7 +118,7 @@ def get_current_user(
     if account.account_type != "user":
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Yêu cầu tài khoản người dùng")
 
-    user = db.query(models.User).filter(models.User.account_id == account.account_id).first()
+    user = account.user  # đã được nạp cùng account ở get_authenticated_account
     if not user:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Không tìm thấy hồ sơ người dùng")
     return user
@@ -140,7 +147,7 @@ def get_current_operator(
     if account.account_type != "operator":
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Yêu cầu quyền Operator")
 
-    operator = db.query(models.Operator).filter(models.Operator.account_id == account.account_id).first()
+    operator = account.operator  # đã được nạp cùng account ở get_authenticated_account
     if not operator:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Không tìm thấy hồ sơ Operator")
     if operator.status != "active":

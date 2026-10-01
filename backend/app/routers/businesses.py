@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app import models, schemas
 from app.auth import get_current_business_user
 from app.database import get_db
-from app.routers.activities import _to_detail
+from app.routers.activities import DETAIL_LOAD_OPTIONS, _to_detail, _to_details
 from app.services.supabase_storage import delete_asset
 
 
@@ -316,11 +316,12 @@ def list_business_activities(
 ):
     activities = (
         db.query(models.Activity)
+        .options(*DETAIL_LOAD_OPTIONS)
         .filter(models.Activity.business_id == business.user_id)
         .order_by(models.Activity.created_at.desc())
         .all()
     )
-    return [_to_detail(db, activity) for activity in activities]
+    return _to_details(db, activities)
 
 
 @router.get("/reviews", response_model=list[schemas.BusinessReviewOut])

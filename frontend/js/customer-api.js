@@ -7,21 +7,28 @@
     const isForm = options.body instanceof FormData;
     const body = options.body && !isForm && typeof options.body !== 'string'
       ? JSON.stringify(options.body) : options.body;
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 30000);
+    const isRead = !options.method || String(options.method).toUpperCase() === 'GET';
     let response;
-    try {
-      response = await fetch(`${base}${path}`, {
-        ...options, body,
-        signal: options.signal || controller.signal,
-        headers: { ...(body && !isForm ? { 'Content-Type': 'application/json' } : {}),
-          ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(options.headers || {}) }
-      });
-    } catch (error) {
-      if (error.name === 'AbortError') throw new Error('Máy chủ phản hồi quá lâu. Vui lòng thử lại.');
-      throw new Error('Không thể kết nối tới máy chủ. Vui lòng kiểm tra mạng và thử lại.');
-    } finally {
-      clearTimeout(timeout);
+    // Render gói Free có thể đang "ngủ" nên lần gọi đầu hay bị rớt kết nối: yêu cầu đọc dữ liệu
+    // được thử lại 1 lần trước khi báo lỗi. Thời gian chờ 45s để đủ cho cold-start.
+    for (let attempt = 0; ; attempt += 1) {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 45000);
+      try {
+        response = await fetch(`${base}${path}`, {
+          ...options, body,
+          signal: options.signal || controller.signal,
+          headers: { ...(body && !isForm ? { 'Content-Type': 'application/json' } : {}),
+            ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(options.headers || {}) }
+        });
+        break;
+      } catch (error) {
+        if (error.name === 'AbortError') throw new Error('Máy chủ phản hồi quá lâu. Vui lòng thử lại.');
+        if (isRead && attempt === 0) { await new Promise(resolve => setTimeout(resolve, 800)); continue; }
+        throw new Error('Không thể kết nối tới máy chủ. Vui lòng kiểm tra mạng và thử lại.');
+      } finally {
+        clearTimeout(timeout);
+      }
     }
     const payload = await response.json().catch(() => null);
     if (!response.ok) {

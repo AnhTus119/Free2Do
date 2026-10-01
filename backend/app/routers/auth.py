@@ -1,7 +1,7 @@
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func
 from app.database import get_db
 from app.config import settings
@@ -178,7 +178,7 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
 @router.get("/me", response_model=schemas.MeResponse)
 def read_me(account: models.Account = Depends(get_authenticated_account), db: Session = Depends(get_db)):
     if account.account_type == "operator":
-        operator = db.query(models.Operator).filter(models.Operator.account_id == account.account_id).first()
+        operator = account.operator  # đã nạp cùng account, không cần truy vấn thêm
         return schemas.MeResponse(
             account_id=account.account_id,
             email=account.email,
@@ -194,7 +194,16 @@ def read_me(account: models.Account = Depends(get_authenticated_account), db: Se
             redirect="admin.html",
         )
 
-    user = db.query(models.User).filter(models.User.account_id == account.account_id).first()
+    user = (
+        db.query(models.User)
+        .options(
+            joinedload(models.User.role),
+            joinedload(models.User.business_profile),
+            joinedload(models.User.customer_profile),
+        )
+        .filter(models.User.account_id == account.account_id)
+        .first()
+    )
     role_name = user.role.role_name if user and user.role else None
     avatar_url = None
     if user:

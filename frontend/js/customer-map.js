@@ -83,15 +83,19 @@
   // - ô lỗi được thử lại nhiều lần với thời gian chờ tăng dần và được thử lại
   //   khi người dùng kéo/phóng bản đồ tiếp;
   // - lớp cũ chỉ bị gỡ khi lớp mới tải xong (hoặc quá thời gian chờ).
-  const MAX_PARALLEL_TILES = 12;
-  const MAX_TILE_RETRIES = 8;
+  // Giữ số request đồng thời ở mức vừa phải để nguồn tile cộng đồng không
+  // giới hạn trình duyệt. Hàng đợi luôn ưu tiên đúng lớp zoom hiện tại.
+  const MAX_PARALLEL_TILES = 8;
+  const MAX_TILE_RETRIES = 6;
   const BACKGROUND_RETRY_MS = 2500;
   const BACKGROUND_RETRY_ROUNDS = 6;
-  // Thử lần lượt từng nguồn: nếu OpenStreetMap chặn/giới hạn một ô thì ô đó được
-  // lấy từ nguồn dự phòng có kiểu hiển thị gần giống thay vì để trống.
+  // Không dùng CARTO làm nguồn dự phòng: từ cuối 09/2026 CARTO trả một ảnh
+  // "API KEY REQUIRED" (HTTP 200) cho URL không có key, khiến trình duyệt hiểu
+  // nhầm là tile đã tải thành công và phủ ảnh cảnh báo lên bản đồ.
+  // Hai nguồn dưới đây đều là tile OpenStreetMap miễn phí; nguồn thứ hai chỉ
+  // được gọi khi nguồn chính thật sự phát sinh lỗi tải.
   const TILE_SOURCES = [
     (z, x, y) => `https://tile.openstreetmap.org/${z}/${x}/${y}.png`,
-    (z, x, y) => `https://${'abcd'[(x + y) % 4]}.basemaps.cartocdn.com/rastertiles/voyager/${z}/${x}/${y}.png`,
     (z, x, y) => `https://tile.openstreetmap.fr/osmfr/${z}/${x}/${y}.png`,
   ];
   const TILE_PADDING = 0;
@@ -353,7 +357,7 @@
     const layer = document.createElement('div');
     layer.className = 'free2do-static-map';
     layer.style.cssText = 'position:absolute;inset:0;z-index:1;overflow:hidden;background:#e9e5d8;';
-    layer.innerHTML = '<div class="free2do-static-map-image" role="img" aria-label="Bản đồ hoạt động"></div><div class="free2do-static-map-markers"></div><div class="free2do-map-attribution"><a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap</a> · <a href=\"https://carto.com/attributions\" target=\"_blank\" rel=\"noopener\">© CARTO</a></div>';
+    layer.innerHTML = '<div class="free2do-static-map-image" role="img" aria-label="Bản đồ hoạt động"></div><div class="free2do-static-map-markers"></div><div class="free2do-map-attribution"><a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap contributors</a></div>';
     container.prepend(layer);
 
     const mapImage = layer.querySelector('.free2do-static-map-image');

@@ -149,7 +149,10 @@ class FullFrontendContractTests(unittest.TestCase):
         self.assertIn("constrainCenterToVietnam", map_source)
         self.assertIn("VIETNAM_MIN_ZOOM", map_source)
         self.assertIn("discardStaleWork", map_source)
-        self.assertIn("const MAX_PARALLEL_TILES = 8", map_source)
+        self.assertIn("const MAX_PARALLEL_TILES = 6", map_source)
+        self.assertIn("TILE_LOAD_TIMEOUT_MS", map_source)
+        self.assertIn("tile.openstreetmap.de", map_source)
+        self.assertNotIn("removeAttribute('src')", map_source)
         self.assertNotIn("basemaps.cartocdn.com", map_source)
         self.assertIn("const TILE_PADDING = 0", map_source)
 

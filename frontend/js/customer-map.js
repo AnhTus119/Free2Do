@@ -85,8 +85,9 @@
   // - lớp cũ chỉ bị gỡ khi lớp mới tải xong (hoặc quá thời gian chờ).
   // Giữ số request đồng thời ở mức vừa phải để nguồn tile cộng đồng không
   // giới hạn trình duyệt. Hàng đợi luôn ưu tiên đúng lớp zoom hiện tại.
-  const MAX_PARALLEL_TILES = 8;
-  const MAX_TILE_RETRIES = 6;
+  const MAX_PARALLEL_TILES = 6;
+  const MAX_TILE_RETRIES = 5;
+  const TILE_LOAD_TIMEOUT_MS = 8000;
   const BACKGROUND_RETRY_MS = 2500;
   const BACKGROUND_RETRY_ROUNDS = 6;
   // Không dùng CARTO làm nguồn dự phòng: từ cuối 09/2026 CARTO trả một ảnh
@@ -96,6 +97,7 @@
   // được gọi khi nguồn chính thật sự phát sinh lỗi tải.
   const TILE_SOURCES = [
     (z, x, y) => `https://tile.openstreetmap.org/${z}/${x}/${y}.png`,
+    (z, x, y) => `https://tile.openstreetmap.de/${z}/${x}/${y}.png`,
     (z, x, y) => `https://tile.openstreetmap.fr/osmfr/${z}/${x}/${y}.png`,
   ];
   const TILE_PADDING = 0;
@@ -110,16 +112,28 @@
     const loadingTiles = new Set();
     let active = 0;
 
+    function isVisibleLayer(layer) {
+      return layer === current || layer === previous;
+    }
+
     function discardStaleWork() {
       for (let index = queue.length - 1; index >= 0; index -= 1) {
-        if (queue[index].layer !== current) queue.splice(index, 1);
+        if (!isVisibleLayer(queue[index].layer)) queue.splice(index, 1);
+      }
+    }
+
+    function cancelLayerWork(layer) {
+      if (!layer) return;
+      for (let index = queue.length - 1; index >= 0; index -= 1) {
+        if (queue[index].layer === layer) queue.splice(index, 1);
       }
       [...loadingTiles].forEach(tile => {
-        if (tile.layer === current) return;
+        if (tile.layer !== layer) return;
+        clearTimeout(tile.loadTimer);
         tile.image.onload = null;
         tile.image.onerror = null;
-        tile.image.removeAttribute('src');
-        if (tile.state === 'loading') active = Math.max(0, active - 1);
+        tile.image.remove();
+        active = Math.max(0, active - 1);
         tile.state = 'cancelled';
         loadingTiles.delete(tile);
       });
@@ -127,6 +141,7 @@
 
     function releasePrevious() {
       clearTimeout(previousTimer);
+      cancelLayerWork(previous);
       previous?.el.remove();
       previous = null;
     }
@@ -141,7 +156,6 @@
       image.draggable = false;
       image.loading = 'eager';
       image.decoding = 'async';
-      image.fetchPriority = 'high';
       image.style.cssText = `position:absolute;left:${tile.left}px;top:${tile.top}px;width:${TILE_SIZE + 1}px;height:${TILE_SIZE + 1}px;max-width:none;user-select:none;`;
       tile.layer.el.appendChild(image);
       tile.image = image;
@@ -155,30 +169,33 @@
     }
 
     function startLoad(tile) {
-      if (tile.layer !== current || !tile.layer.el.isConnected) return;
+      if (!isVisibleLayer(tile.layer) || !tile.layer.el.isConnected) return;
       active += 1;
       tile.state = 'loading';
       loadingTiles.add(tile);
       const image = tile.image;
-      image.onload = () => {
+      let finished = false;
+
+      const finish = ok => {
+        if (finished) return;
+        finished = true;
+        clearTimeout(tile.loadTimer);
         image.onload = image.onerror = null;
-        active -= 1;
+        active = Math.max(0, active - 1);
         loadingTiles.delete(tile);
-        settle(tile, true);
-        pump();
-      };
-      image.onerror = () => {
-        image.onload = image.onerror = null;
-        active -= 1;
-        loadingTiles.delete(tile);
+        if (ok) {
+          settle(tile, true);
+          pump();
+          return;
+        }
         image.remove();
-        if (tile.retries < MAX_TILE_RETRIES && tile.layer === current && tile.layer.el.isConnected) {
+        if (tile.retries < MAX_TILE_RETRIES && isVisibleLayer(tile.layer) && tile.layer.el.isConnected) {
           const delay = 300 * (tile.retries + 1);
           tile.retries += 1;
           tile.url = TILE_SOURCES[tile.retries % TILE_SOURCES.length](tile.z, tile.x, tile.y);
           tile.state = 'waiting';
           setTimeout(() => {
-            if (tile.layer !== current || !tile.layer.el.isConnected) return;
+            if (!isVisibleLayer(tile.layer) || !tile.layer.el.isConnected) return;
             makeImage(tile);
             queue.push(tile);
             pump();
@@ -189,7 +206,7 @@
           if (tile.rounds < BACKGROUND_RETRY_ROUNDS) {
             tile.rounds += 1;
             setTimeout(() => {
-              if (tile.state === 'failed' && tile.layer === current && tile.layer.el.isConnected) {
+              if (tile.state === 'failed' && isVisibleLayer(tile.layer) && tile.layer.el.isConnected) {
                 tile.retries = 0;
                 tile.url = TILE_SOURCES[0](tile.z, tile.x, tile.y);
                 tile.state = 'queued';
@@ -204,13 +221,19 @@
         }
         pump();
       };
+
+      image.onload = () => finish(true);
+      image.onerror = () => finish(false);
+      tile.loadTimer = setTimeout(() => finish(false), TILE_LOAD_TIMEOUT_MS);
       image.src = tile.url;
     }
 
     function pump() {
       while (active < MAX_PARALLEL_TILES && queue.length) {
-        const tile = queue.shift();
-        if (tile.layer === current && tile.layer.el.isConnected) startLoad(tile);
+        const currentIndex = queue.findIndex(tile => tile.layer === current);
+        const index = currentIndex >= 0 ? currentIndex : 0;
+        const tile = queue.splice(index, 1)[0];
+        if (isVisibleLayer(tile.layer) && tile.layer.el.isConnected) startLoad(tile);
       }
     }
 
@@ -247,6 +270,7 @@
         retries: 0,
         state: 'queued',
         image: null,
+        loadTimer: null,
       };
       layer.tiles.set(key, tile);
       layer.pending += 1;

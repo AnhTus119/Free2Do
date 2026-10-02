@@ -3,7 +3,7 @@ from datetime import UTC, datetime
 from typing import Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
-from sqlalchemy import func, or_, text
+from sqlalchemy import and_, func, or_, text
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app import models, schemas
@@ -153,6 +153,18 @@ def search_activities(
             models.ActivityCategory.category_id.in_(payload.category_ids)
         ).distinct()
 
+    if payload.selected_date:
+        chosen_date = payload.selected_date
+        query = query.filter(
+            or_(
+                models.Activity.always_available.is_(True),
+                and_(
+                    or_(models.Activity.available_from.is_(None), func.date(models.Activity.available_from) <= chosen_date),
+                    or_(models.Activity.available_until.is_(None), func.date(models.Activity.available_until) >= chosen_date),
+                ),
+            ),
+        )
+
     if use_postgis:
         query = query.filter(
             text(
@@ -192,7 +204,8 @@ def search_activities(
     results = []
     for activity, distance_km in rows:
         avg_rating, review_count = ratings.get(activity.activity_id, (None, 0))
-        image = next((item.media_url for item in activity.media if item.media_type == "image"), None)
+        ordered_media = sorted(activity.media, key=lambda item: (item.media_kind != "cover", item.media_id))
+        image = next((item.media_url for item in ordered_media if item.media_type == "image"), None)
         results.append(
             schemas.ActivityWithScore(
                 **schemas.Activity.model_validate(activity).model_dump(),

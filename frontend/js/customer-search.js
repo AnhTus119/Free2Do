@@ -140,9 +140,11 @@
     const currentKeyword = keywordInput?.value.trim() || null;
     if (currentKeyword) params.set('q', currentKeyword); else params.delete('q');
     syncQuery();
+    const localToday = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
     const items = await api.request('/search', { method: 'POST', body: {
       keyword: currentKeyword, latitude: position.latitude, longitude: position.longitude,
       radius: Number(radiusSlider.value), budget: selectedBudget(), free_time: availableMinutes(),
+      selected_date: otherTime.checked ? (dateFilter.value || localToday) : localToday,
       category_ids: selectedCategories(), sort_by: sortSelect.value, record_history: recordHistory,
     } });
     if (sequence === requestSequence) render(items.filter(activityMatchesSchedule));

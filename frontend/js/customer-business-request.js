@@ -29,7 +29,7 @@
     const payload = {
       business_name: document.getElementById('businessName').value.trim(),
       phone: document.getElementById('businessPhone').value.trim() || null,
-      business_address: document.getElementById('businessAddress').value.trim(),
+      business_address: document.getElementById('businessAddress').value.trim() || null,
       description: document.getElementById('businessDescription').value.trim() || null,
     };
     const button = form.querySelector('button[type=submit]');

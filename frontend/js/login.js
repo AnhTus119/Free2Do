@@ -82,6 +82,13 @@ if (loginForm) {
         return;
       }
 
+      const pendingGroupInvite = sessionStorage.getItem("pending_group_invite") || new URLSearchParams(location.search).get("groupInvite");
+      if (pendingGroupInvite && me.account_type === "user" && me.role !== "business") {
+        sessionStorage.removeItem("pending_group_invite");
+        window.location.href = `Demo Trang Customer/group.html?groupInvite=${encodeURIComponent(pendingGroupInvite)}`;
+        return;
+      }
+
       window.location.href = me.redirect || (
         me.account_type === "operator"
           ? "admin.html"

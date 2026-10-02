@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 from typing import Literal
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from sqlalchemy.orm import Session
 
 from app import models, schemas
@@ -231,6 +231,7 @@ def remove_business_media(
 async def upload_activity_media(
     activity_id: str,
     file: UploadFile = File(...),
+    media_kind: Literal["cover", "gallery"] = Query("gallery"),
     db: Session = Depends(get_db),
     business: models.BusinessProfile = Depends(get_current_business_user),
 ):
@@ -242,8 +243,14 @@ async def upload_activity_media(
         folder=f"businesses/{business.user_id}/activities/{activity_id}",
         owner_id=business.user_id,
         kind="activity",
-        allow_video=True,
+        allow_video=media_kind == "gallery",
     )
+    old_covers = []
+    if media_kind == "cover":
+        old_covers = db.query(models.ActivityMedia).filter(
+            models.ActivityMedia.activity_id == activity_id,
+            models.ActivityMedia.media_kind == "cover",
+        ).all()
     media = models.ActivityMedia(
         activity_id=activity_id,
         media_url=asset.media_url,
@@ -252,11 +259,30 @@ async def upload_activity_media(
         bytes=asset.bytes,
         width=asset.width,
         height=asset.height,
+        media_kind=media_kind,
     )
     db.add(media)
+    for old_cover in old_covers:
+        _delete_or_502(old_cover.public_id, old_cover.media_type)
+        db.delete(old_cover)
     db.commit()
     db.refresh(media)
     return media
+
+
+@router.delete("/activities/media/{media_id}", response_model=schemas.MessageResponse)
+def remove_activity_media(
+    media_id: str,
+    db: Session = Depends(get_db),
+    business: models.BusinessProfile = Depends(get_current_business_user),
+):
+    media = db.query(models.ActivityMedia).filter(models.ActivityMedia.media_id == media_id).first()
+    if not media or media.activity.business_id != business.user_id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Không tìm thấy media")
+    _delete_or_502(media.public_id, media.media_type)
+    db.delete(media)
+    db.commit()
+    return {"message": "Đã xóa media hoạt động"}
 
 
 @router.post(

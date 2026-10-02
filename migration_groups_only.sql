@@ -39,6 +39,12 @@ CREATE TABLE IF NOT EXISTS group_payments (
   updated_at TIMESTAMP NOT NULL DEFAULT now()
 );
 
+-- Nâng cấp an toàn cho các bảng nhóm đã được tạo trước đây.
+ALTER TABLE groups ADD COLUMN IF NOT EXISTS search_started BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE group_members ADD COLUMN IF NOT EXISTS is_ready BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE group_members ADD COLUMN IF NOT EXISTS leave_requested_at TIMESTAMP;
+ALTER TABLE group_members ADD COLUMN IF NOT EXISTS leave_status VARCHAR NOT NULL DEFAULT 'none';
+
 CREATE INDEX IF NOT EXISTS idx_groups_host_user_id
   ON groups(host_user_id);
 CREATE INDEX IF NOT EXISTS idx_group_members_group_id
@@ -55,4 +61,3 @@ ALTER TABLE group_members ENABLE ROW LEVEL SECURITY;
 ALTER TABLE group_payments ENABLE ROW LEVEL SECURITY;
 
 COMMIT;
-

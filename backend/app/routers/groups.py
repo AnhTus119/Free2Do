@@ -6,13 +6,14 @@ from datetime import UTC, datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect, status
-from sqlalchemy import func
+from sqlalchemy import and_, func, or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app import models, schemas
 from app.auth import decode_token, get_current_user
 from app.database import SessionLocal, get_db
+from app.utils.email import send_notification_email
 
 
 router = APIRouter(prefix="/groups", tags=["groups"])
@@ -153,7 +154,7 @@ def _activity_out(db: Session, activity: Optional[models.Activity]) -> Optional[
         time_close=activity.time_close,
         avg_rating=round(float(avg_rating), 1) if avg_rating is not None else None,
         category_ids=[item.category_id for item in activity.categories],
-        media_url=activity.media[0].media_url if activity.media else None,
+        media_url=next((item.media_url for item in sorted(activity.media, key=lambda media: (media.media_kind != "cover", media.media_id))), None),
     )
 
 
@@ -198,6 +199,9 @@ def _group_out(
                 category_ids=category_ids,
                 category_names=[category_map[value] for value in category_ids if value in category_map],
                 is_host=member.is_host,
+                is_ready=member.is_ready,
+                leave_requested_at=member.leave_requested_at,
+                leave_status=member.leave_status,
                 is_online=bool(member.user_id and member.user_id in online_user_ids),
                 payment=schemas.GroupPaymentOut(
                     payment_id=payment.payment_id,
@@ -216,6 +220,8 @@ def _group_out(
         host_user_id=group.host_user_id,
         is_host=group.host_user_id == current_user_id,
         status=group.status,
+        search_started=group.search_started,
+        all_ready=bool(group.members) and all(member.is_ready for member in group.members),
         selected_activity=_activity_out(db, group.selected_activity),
         members=members,
         total_amount=total,
@@ -239,8 +245,7 @@ async def create_group(
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_user),
 ):
-    for member in payload.members:
-        _validate_categories(db, member.category_ids)
+    _validate_categories(db, payload.host.category_ids)
     now = _now()
     group = models.Group(
         invite_code=secrets.token_urlsafe(9).replace("-", "").replace("_", "")[:12],
@@ -251,28 +256,29 @@ async def create_group(
     )
     db.add(group)
     db.flush()
-    for index, item in enumerate(payload.members):
-        member = models.GroupMember(
-            group_id=group.group_id,
-            user_id=user.user_id if index == 0 else None,
-            name=item.name,
-            free_hours=item.free_hours,
-            address=item.address,
-            budget=item.budget,
-            category_ids_json=json.dumps(item.category_ids),
-            is_host=index == 0,
-            joined_at=now,
-            updated_at=now,
-        )
-        db.add(member)
-        db.flush()
-        db.add(models.GroupPayment(
-            group_id=group.group_id,
-            member_id=member.member_id,
-            amount=0,
-            status="unpaid",
-            updated_at=now,
-        ))
+    item = payload.host
+    member = models.GroupMember(
+        group_id=group.group_id,
+        user_id=user.user_id,
+        name=item.name,
+        free_hours=item.free_hours,
+        address=item.address,
+        budget=item.budget,
+        category_ids_json=json.dumps(item.category_ids),
+        is_host=True,
+        is_ready=False,
+        joined_at=now,
+        updated_at=now,
+    )
+    db.add(member)
+    db.flush()
+    db.add(models.GroupPayment(
+        group_id=group.group_id,
+        member_id=member.member_id,
+        amount=0,
+        status="unpaid",
+        updated_at=now,
+    ))
     try:
         db.commit()
     except IntegrityError as exc:
@@ -313,46 +319,44 @@ async def join_group(
     )
     if not group:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Link mời không hợp lệ")
+    if group.search_started:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Nhóm đã bắt đầu tìm hoạt động, không nhận thêm thành viên")
     existing = next((member for member in group.members if member.user_id == user.user_id), None)
     now = _now()
     if existing:
         member = existing
     else:
-        member = next(
-            (
-                item for item in group.members
-                if item.user_id is None and item.name.strip().casefold() == payload.name.strip().casefold()
-            ),
-            None,
+        if len(group.members) >= 30:
+            raise HTTPException(status.HTTP_409_CONFLICT, "Nhóm đã đủ 30 thành viên")
+        member = models.GroupMember(
+            group_id=group.group_id,
+            user_id=user.user_id,
+            name=payload.name,
+            free_hours=payload.free_hours,
+            address=payload.address,
+            budget=payload.budget,
+            category_ids_json=json.dumps(payload.category_ids),
+            is_host=False,
+            is_ready=False,
+            joined_at=now,
+            updated_at=now,
         )
-        if member is None:
-            member = models.GroupMember(
-                group_id=group.group_id,
-                user_id=user.user_id,
-                name=payload.name,
-                free_hours=payload.free_hours,
-                address=payload.address,
-                budget=payload.budget,
-                category_ids_json=json.dumps(payload.category_ids),
-                is_host=False,
-                joined_at=now,
-                updated_at=now,
-            )
-            db.add(member)
-            db.flush()
-            db.add(models.GroupPayment(
-                group_id=group.group_id,
-                member_id=member.member_id,
-                amount=float(group.selected_activity.price or 0) if group.selected_activity else 0,
-                status="unpaid",
-                updated_at=now,
-            ))
-        member.user_id = user.user_id
+        db.add(member)
+        db.flush()
+        db.add(models.GroupPayment(
+            group_id=group.group_id,
+            member_id=member.member_id,
+            amount=float(group.selected_activity.price or 0) if group.selected_activity else 0,
+            status="unpaid",
+            updated_at=now,
+        ))
     member.name = payload.name
     member.free_hours = payload.free_hours
     member.address = payload.address
     member.budget = payload.budget
     member.category_ids_json = json.dumps(payload.category_ids)
+    member.is_ready = False
+    group.search_started = False
     member.updated_at = now
     group.updated_at = now
     try:
@@ -363,6 +367,25 @@ async def join_group(
     db.refresh(group)
     await _changed(group.group_id)
     return _group_out(db, group, user.user_id, await group_connections.online_users(group.group_id))
+
+
+@router.get("/me", response_model=list[schemas.GroupOut])
+async def list_my_groups(
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    limit = max(1, min(limit, 500))
+    groups = (
+        db.query(models.Group)
+        .join(models.GroupMember, models.GroupMember.group_id == models.Group.group_id)
+        .filter(models.GroupMember.user_id == user.user_id)
+        .order_by(models.Group.updated_at.desc())
+        .limit(limit)
+        .all()
+    )
+    online = {group.group_id: await group_connections.online_users(group.group_id) for group in groups}
+    return [_group_out(db, group, user.user_id, online[group.group_id]) for group in groups]
 
 
 @router.get("/{group_id}", response_model=schemas.GroupOut)
@@ -396,9 +419,101 @@ async def update_member(
         member.category_ids_json = json.dumps(category_ids)
     for field, value in data.items():
         setattr(member, field, value)
+    member.is_ready = False
+    group.search_started = False
     now = _now()
     member.updated_at = now
     group.updated_at = now
+    db.commit()
+    db.refresh(group)
+    await _changed(group_id)
+    return _group_out(db, group, user.user_id, await group_connections.online_users(group_id))
+
+
+@router.patch("/{group_id}/members/{member_id}/ready", response_model=schemas.GroupOut)
+async def set_member_ready(
+    group_id: str,
+    member_id: str,
+    payload: schemas.GroupReadyRequest,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    group, _ = _require_group_member(db, group_id, user.user_id)
+    member = next((item for item in group.members if item.member_id == member_id), None)
+    if not member or member.user_id != user.user_id:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Mỗi thành viên chỉ được tự cập nhật trạng thái sẵn sàng")
+    if group.search_started:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Nhóm đã bắt đầu tìm hoạt động")
+    member.is_ready = payload.is_ready
+    member.updated_at = group.updated_at = _now()
+    db.commit()
+    db.refresh(group)
+    await _changed(group_id)
+    return _group_out(db, group, user.user_id, await group_connections.online_users(group_id))
+
+
+@router.post("/{group_id}/start", response_model=schemas.GroupOut)
+async def start_group_search(
+    group_id: str,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    group, _ = _require_group_member(db, group_id, user.user_id)
+    if group.host_user_id != user.user_id:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Chỉ host được bắt đầu tìm hoạt động")
+    if not group.members or not all(member.is_ready for member in group.members):
+        raise HTTPException(status.HTTP_409_CONFLICT, "Tất cả thành viên cần nhấn sẵn sàng trước")
+    group.search_started = True
+    group.updated_at = _now()
+    db.commit()
+    db.refresh(group)
+    await _changed(group_id)
+    return _group_out(db, group, user.user_id, await group_connections.online_users(group_id))
+
+
+@router.post("/{group_id}/members/{member_id}/leave-request", response_model=schemas.GroupOut)
+async def request_group_leave(
+    group_id: str,
+    member_id: str,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    group, _ = _require_group_member(db, group_id, user.user_id)
+    member = next((item for item in group.members if item.member_id == member_id), None)
+    if not member or member.user_id != user.user_id:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Chỉ được yêu cầu rời nhóm cho chính mình")
+    if not group.search_started:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Chỉ cần trưởng nhóm duyệt rời sau khi bắt đầu tìm hoạt động")
+    member.leave_requested_at = _now()
+    member.leave_status = "pending"
+    group.updated_at = member.updated_at = _now()
+    db.commit()
+    db.refresh(group)
+    await _changed(group_id)
+    return _group_out(db, group, user.user_id, await group_connections.online_users(group_id))
+
+
+@router.patch("/{group_id}/members/{member_id}/leave-request", response_model=schemas.GroupOut)
+async def resolve_group_leave(
+    group_id: str,
+    member_id: str,
+    payload: schemas.GroupLeaveRequest,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    group, _ = _require_group_member(db, group_id, user.user_id)
+    if group.host_user_id != user.user_id:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Chỉ trưởng nhóm được xử lý yêu cầu rời nhóm")
+    member = next((item for item in group.members if item.member_id == member_id), None)
+    if not member or member.leave_status != "pending":
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Không có yêu cầu rời nhóm đang chờ")
+    if payload.action == "approve":
+        db.delete(member)
+    else:
+        member.leave_status = "rejected"
+        member.leave_requested_at = None
+        member.updated_at = _now()
+    group.updated_at = _now()
     db.commit()
     db.refresh(group)
     await _changed(group_id)
@@ -421,9 +536,20 @@ async def group_recommendations(
     user: models.User = Depends(get_current_user),
 ):
     group, _ = _require_group_member(db, group_id, user.user_id)
+    if not group.search_started:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Host cần bắt đầu tìm hoạt động sau khi mọi người sẵn sàng")
     activities = (
         db.query(models.Activity)
-        .filter(models.Activity.status == "active")
+        .filter(
+            models.Activity.status == "active",
+            or_(
+                models.Activity.always_available.is_(True),
+                and_(
+                    or_(models.Activity.available_from.is_(None), func.date(models.Activity.available_from) <= _now().date()),
+                    or_(models.Activity.available_until.is_(None), func.date(models.Activity.available_until) >= _now().date()),
+                ),
+            ),
+        )
         .order_by(models.Activity.created_at.desc())
         .all()
     )
@@ -431,6 +557,13 @@ async def group_recommendations(
     for activity in activities:
         activity_categories = {item.category_id for item in activity.categories}
         duration = _duration_hours(activity)
+        if activity.price is not None and any(float(activity.price) > member.budget for member in group.members):
+            continue
+        if any(
+            _category_ids(member) and not (set(_category_ids(member)) & activity_categories)
+            for member in group.members
+        ):
+            continue
         member_scores: dict[str, int] = {}
         for member in group.members:
             interests = set(_category_ids(member))
@@ -476,6 +609,10 @@ async def select_group_activity(
     amount = float(activity.price or 0)
     for payment in group.payments:
         payment.amount = amount
+        payment.status = "unpaid"
+        payment.paid_at = None
+        payment.reminded_at = None
+        payment.overdue_since = None
         payment.updated_at = group.updated_at
     db.commit()
     db.refresh(group)
@@ -501,11 +638,28 @@ async def update_payment(
     if payload.action == "paid":
         payment.status = "paid"
         payment.paid_at = now
+        payment.overdue_since = None
     elif payload.action == "unpaid":
         payment.status = "unpaid"
         payment.paid_at = None
+        payment.overdue_since = payment.overdue_since or now
     else:
+        target = payment.member.user if payment.member else None
+        recipient = (target.account.email or target.account.recovery_email) if target and target.account else None
+        if not recipient:
+            raise HTTPException(status.HTTP_409_CONFLICT, "Thành viên chưa có email nhận thông báo")
+        try:
+            send_notification_email(
+                recipient,
+                f"Nhắc thanh toán nhóm FREE2DO — {group.selected_activity.name if group.selected_activity else 'hoạt động nhóm'}",
+                f"Trưởng nhóm nhắc bạn thanh toán {payment.amount:,.0f} đ cho hoạt động "
+                f"{group.selected_activity.name if group.selected_activity else 'đã chọn'}. "
+                "Nếu đã thanh toán, vui lòng liên hệ trưởng nhóm để cập nhật trạng thái.",
+            )
+        except Exception as exc:
+            raise HTTPException(status.HTTP_502_BAD_GATEWAY, "Không gửi được email nhắc thanh toán") from exc
         payment.reminded_at = now
+        payment.overdue_since = payment.overdue_since or now
     payment.updated_at = now
     group.updated_at = now
     db.commit()
@@ -551,4 +705,3 @@ async def group_websocket(websocket: WebSocket, group_id: str, token: str):
         if user_id:
             await group_connections.disconnect(group_id, user_id, websocket)
             await group_connections.broadcast_presence(group_id)
-

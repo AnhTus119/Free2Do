@@ -90,6 +90,26 @@ def get_authenticated_account(
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Tài khoản không tồn tại")
     if account.status != "active":
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Tài khoản chưa được kích hoạt hoặc đã bị khóa")
+    if account.user:
+        cutoff = datetime.utcnow() - timedelta(days=60)
+        overdue = (
+            db.query(models.GroupPayment.payment_id)
+            .join(models.GroupMember, models.GroupMember.member_id == models.GroupPayment.member_id)
+            .filter(
+                models.GroupMember.user_id == account.user.user_id,
+                models.GroupPayment.status == "unpaid",
+                models.GroupPayment.overdue_since.is_not(None),
+                models.GroupPayment.overdue_since <= cutoff,
+            )
+            .first()
+        )
+        if overdue:
+            account.status = "blocked"
+            db.commit()
+            raise HTTPException(
+                status.HTTP_403_FORBIDDEN,
+                "Tài khoản bị khóa do khoản thanh toán nhóm quá hạn trên 2 tháng",
+            )
     return account
 
 

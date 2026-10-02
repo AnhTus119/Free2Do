@@ -13,7 +13,32 @@
   };
   function renderGallery(activity) {
     const slots = [...document.querySelectorAll('#activityGallery > div')];
-    const media = activity.media || [];
+    const media = [...(activity.media || [])].sort((a, b) => (a.media_kind === 'cover' ? -1 : 0) - (b.media_kind === 'cover' ? -1 : 0));
+    let lightbox;
+    const openLightbox = index => {
+      if (!media.length) return;
+      if (!lightbox) {
+        lightbox = document.createElement('div');
+        lightbox.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#000e;display:flex;align-items:center;justify-content:center;color:white;';
+        lightbox.innerHTML = '<button data-prev aria-label="Ảnh trước" style="position:absolute;left:20px;font-size:32px">‹</button><button data-close aria-label="Đóng" style="position:absolute;right:20px;top:16px;font-size:30px">×</button><div data-image style="max-width:88vw;max-height:86vh"></div><button data-next aria-label="Ảnh tiếp" style="position:absolute;right:20px;font-size:32px">›</button><span data-count style="position:absolute;bottom:16px"></span>';
+        lightbox.addEventListener('click', event => {
+          if (event.target === lightbox || event.target.closest('[data-close]')) { lightbox.remove(); lightbox = null; }
+          else if (event.target.closest('[data-prev]')) show(index - 1);
+          else if (event.target.closest('[data-next]')) show(index + 1);
+        });
+        document.body.append(lightbox);
+      }
+      const show = next => {
+        index = (next + media.length) % media.length;
+        const item = media[index];
+        const url = api.escapeHTML(item.media_url);
+        lightbox.querySelector('[data-image]').innerHTML = item.media_type === 'video'
+          ? `<video src="${url}" controls autoplay style="max-width:88vw;max-height:86vh"></video>`
+          : `<img src="${url}" alt="${api.escapeHTML(activity.name)}" style="max-width:88vw;max-height:86vh;object-fit:contain">`;
+        lightbox.querySelector('[data-count]').textContent = `${index + 1} / ${media.length}`;
+      };
+      show(index);
+    };
     slots.forEach((slot, index) => {
       const item = media[index];
       if (!item) { slot.innerHTML = index === 0 ? '<span>Chưa có hình ảnh</span>' : ''; return; }
@@ -21,7 +46,12 @@
       slot.innerHTML = item.media_type === 'video'
         ? `<video src="${url}" controls preload="metadata" style="width:100%;height:100%;object-fit:cover"></video>`
         : `<img src="${url}" alt="${api.escapeHTML(activity.name)}" loading="lazy" style="width:100%;height:100%;object-fit:cover">`;
+      slot.style.position = 'relative';
+      slot.style.cursor = 'zoom-in';
+      if (index === 4 && media.length > 5) slot.innerHTML += `<span style="position:absolute;inset:0;background:#0009;color:white;display:grid;place-items:center;font-size:28px;font-weight:700">+${media.length - 4}</span>`;
+      slot.onclick = event => { if (event.target.closest('video')) return; openLightbox(index); };
     });
+    if (media.length > 5) slots[4].title = `Xem thêm ${media.length - 4} ảnh/video`;
   }
   function renderReviews(reviews, me) {
     document.getElementById('activityReviews').innerHTML = reviews.length ? reviews.map(review => {

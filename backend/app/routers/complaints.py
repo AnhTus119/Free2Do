@@ -2,6 +2,7 @@ from datetime import UTC, datetime
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
+from sqlalchemy.orm import joinedload, selectinload
 
 from app.database import get_db
 from app import models, schemas
@@ -79,10 +80,29 @@ def list_complaints(
     db: Session = Depends(get_db),
     _operator: models.Operator = Depends(get_current_operator),
 ):
-    query = db.query(models.Complaint)
+    query = db.query(models.Complaint).options(
+        joinedload(models.Complaint.review).joinedload(models.Review.activity),
+        joinedload(models.Complaint.review).joinedload(models.Review.user),
+        joinedload(models.Complaint.review).selectinload(models.Review.media),
+    )
     if status_filter:
         query = query.filter(models.Complaint.status == status_filter)
-    return query.order_by(models.Complaint.created_at.desc()).all()
+    complaints = query.order_by(models.Complaint.created_at.desc()).all()
+    return [schemas.Complaint(
+        complaint_id=item.complaint_id,
+        user_id=item.user_id,
+        review_id=item.review_id,
+        reason=item.reason,
+        description=item.description,
+        status=item.status,
+        created_at=item.created_at,
+        resolved_at=item.resolved_at,
+        activity_name=item.review.activity.name if item.review and item.review.activity else None,
+        reviewer_name=item.review.user.name if item.review and item.review.user else None,
+        review_rating=item.review.rating if item.review else None,
+        review_content=item.review.content if item.review else None,
+        evidence=[schemas.ReviewMedia.model_validate(media) for media in item.review.media] if item.review else [],
+    ) for item in complaints]
 
 
 @operator_router.patch("/{complaint_id}/resolve", response_model=schemas.MessageResponse)

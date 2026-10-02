@@ -9,6 +9,7 @@ from app import models, schemas
 from app.auth import get_current_business_user, get_current_operator
 from app.utils.email import send_activity_approved_email, send_activity_hidden_email
 from app.utils.geocoding import geocode_address, resolve_location
+from app.utils.google_maps import is_google_maps_url
 from app.utils.distance import haversine_km
 from app.services.supabase_storage import delete_asset
 
@@ -19,9 +20,16 @@ def _coordinates(latitude, longitude, google_maps_url, address=None):
     # A Google Maps link is the authoritative source even when stale manual
     # coordinates were also submitted.
     if google_maps_url:
+        if not is_google_maps_url(google_maps_url):
+            raise ValueError("Hãy nhập link Google Maps hợp lệ.")
         resolved = resolve_location(google_maps_url, address)
         if resolved:
+            if address:
+                address_point = geocode_address(address)
+                if address_point and haversine_km(resolved[0], resolved[1], address_point[0], address_point[1]) > 2:
+                    raise ValueError("Địa chỉ và link Google Maps không khớp; hãy kiểm tra lại vị trí.")
             return resolved[0], resolved[1]
+        raise ValueError("Không xác minh được link Google Maps; hãy kiểm tra link hoặc chọn lại vị trí.")
     if latitude is not None and longitude is not None:
         return latitude, longitude
     if address:
@@ -72,7 +80,7 @@ def _to_detail(
         business_name=activity.business.business_name,
         business_avatar_url=activity.business.avatar_url,
         category_ids=[c.category_id for c in activity.categories],
-        media=[schemas.ActivityMedia.model_validate(m) for m in activity.media],
+        media=[schemas.ActivityMedia.model_validate(m) for m in sorted(activity.media, key=lambda item: (item.media_kind != "cover", item.media_id))],
         avg_rating=round(float(avg_rating), 1) if avg_rating else None,
         review_count=review_count or 0,
         distance_km=(
@@ -146,10 +154,14 @@ def create_activity(
     business: models.BusinessProfile = Depends(get_current_business_user),
 ):
     now = datetime.utcnow()
+    if not payload.google_maps_url:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Link Google Maps là bắt buộc để xác minh vị trí")
     try:
         latitude, longitude = _coordinates(
             payload.latitude, payload.longitude, payload.google_maps_url, payload.address
         )
+    except ValueError as exc:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from exc
     except Exception as exc:
         raise HTTPException(status.HTTP_502_BAD_GATEWAY, "Không thể xác định vị trí hoạt động") from exc
     activity = models.Activity(
@@ -157,17 +169,24 @@ def create_activity(
         name=payload.name,
         description=payload.description,
         price=payload.price,
-        price_text=payload.price_text,
+        price_text=(f"{int(payload.price):,} ₫".replace(",", ".") if payload.price is not None else None),
         address=payload.address,
         latitude=latitude,
         longitude=longitude,
         time_open=payload.time_open,
         time_close=payload.time_close,
+        available_from=payload.available_from,
+        available_until=payload.available_until,
+        always_available=payload.always_available,
         status="pending",
         created_at=now,
         source_url=payload.source_url,
         google_maps_url=payload.google_maps_url,
     )
+    if not payload.always_available and (not payload.available_from or not payload.available_until):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Hãy nhập ngày bắt đầu và ngày kết thúc hoặc chọn mở vĩnh viễn")
+    if payload.available_from and payload.available_until and payload.available_until < payload.available_from:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Ngày kết thúc phải sau ngày bắt đầu")
     db.add(activity)
     db.flush()
     _set_categories(db, activity.activity_id, payload.category_ids)
@@ -188,16 +207,31 @@ def update_activity(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Không tìm thấy hoạt động")
 
     data = payload.model_dump(exclude_unset=True, exclude={"category_ids"})
-    if "google_maps_url" in data:
+    if "price" in data:
+        data["price_text"] = f"{int(data['price']):,} ₫".replace(",", ".") if data["price"] is not None else None
+    effective_always = data.get("always_available", activity.always_available)
+    effective_from = data.get("available_from", activity.available_from)
+    effective_until = data.get("available_until", activity.available_until)
+    if not effective_always and (not effective_from or not effective_until):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Hãy nhập ngày bắt đầu và ngày kết thúc hoặc chọn mở vĩnh viễn")
+    if effective_from and effective_until and effective_until < effective_from:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Ngày kết thúc phải sau ngày bắt đầu")
+    if "google_maps_url" in data or "address" in data:
+        maps_url = data.get("google_maps_url", activity.google_maps_url)
+        if not maps_url:
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Link Google Maps là bắt buộc để xác minh vị trí")
         try:
             coordinates = _coordinates(
-                data.get("latitude"), data.get("longitude"), data["google_maps_url"],
+                data.get("latitude", activity.latitude), data.get("longitude", activity.longitude), maps_url,
                 data.get("address", activity.address),
             )
+        except ValueError as exc:
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from exc
         except Exception as exc:
             raise HTTPException(status.HTTP_502_BAD_GATEWAY, "Không thể xác định vị trí hoạt động") from exc
         if coordinates != (None, None):
             data["latitude"], data["longitude"] = coordinates
+        data["google_maps_url"] = maps_url
     for field, value in data.items():
         setattr(activity, field, value)
     if payload.category_ids is not None:
@@ -328,16 +362,31 @@ def update_activity_as_operator(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Không tìm thấy hoạt động")
 
     data = payload.model_dump(exclude_unset=True, exclude={"category_ids"})
-    if "google_maps_url" in data:
+    if "price" in data:
+        data["price_text"] = f"{int(data['price']):,} ₫".replace(",", ".") if data["price"] is not None else None
+    effective_always = data.get("always_available", activity.always_available)
+    effective_from = data.get("available_from", activity.available_from)
+    effective_until = data.get("available_until", activity.available_until)
+    if not effective_always and (not effective_from or not effective_until):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Hãy nhập ngày bắt đầu và ngày kết thúc hoặc chọn mở vĩnh viễn")
+    if effective_from and effective_until and effective_until < effective_from:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Ngày kết thúc phải sau ngày bắt đầu")
+    if "google_maps_url" in data or "address" in data:
+        maps_url = data.get("google_maps_url", activity.google_maps_url)
+        if not maps_url:
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Link Google Maps là bắt buộc để xác minh vị trí")
         try:
             coordinates = _coordinates(
-                data.get("latitude"), data.get("longitude"), data["google_maps_url"],
+                data.get("latitude", activity.latitude), data.get("longitude", activity.longitude), maps_url,
                 data.get("address", activity.address),
             )
+        except ValueError as exc:
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from exc
         except Exception as exc:
             raise HTTPException(status.HTTP_502_BAD_GATEWAY, "Không thể xác định vị trí hoạt động") from exc
         if coordinates != (None, None):
             data["latitude"], data["longitude"] = coordinates
+        data["google_maps_url"] = maps_url
     for field, value in data.items():
         setattr(activity, field, value)
     if payload.category_ids is not None:

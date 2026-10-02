@@ -118,6 +118,13 @@ codeForm.addEventListener("submit", async (event) => {
 
     const me = await request("/auth/me");
 
+    const pendingGroupInvite = sessionStorage.getItem("pending_group_invite");
+    if (pendingGroupInvite && me.account_type === "user" && me.role !== "business") {
+      sessionStorage.removeItem("pending_group_invite");
+      window.location.replace(`Demo Trang Customer/group.html?groupInvite=${encodeURIComponent(pendingGroupInvite)}`);
+      return;
+    }
+
     // Điều hướng đúng theo loại tài khoản sau khi xác minh.
     window.location.replace(
       me.redirect || homePageForAccount(me)

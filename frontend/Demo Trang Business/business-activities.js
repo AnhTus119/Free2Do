@@ -47,13 +47,16 @@ window.openForm = (mode, id = null) => {
   document.getElementById('f-name').value = item?.name || '';
   document.getElementById('f-description').value = item?.description || '';
   document.getElementById('f-price').value = item?.price ?? '';
-  document.getElementById('f-price-text').value = item?.price_text || '';
   document.getElementById('f-address').value = item?.address || '';
   document.getElementById('f-open').value = toLocalInput(item?.time_open);
   document.getElementById('f-close').value = toLocalInput(item?.time_close);
-  document.getElementById('f-latitude').value = item?.latitude ?? '';
-  document.getElementById('f-longitude').value = item?.longitude ?? '';
   document.getElementById('f-source').value = item?.google_maps_url || item?.source_url || '';
+  document.getElementById('f-always').checked = item?.always_available !== false;
+  document.getElementById('f-available-from').value = item?.available_from?.slice(0, 10) || '';
+  document.getElementById('f-available-until').value = item?.available_until?.slice(0, 10) || '';
+  document.getElementById('availability-end-wrap').hidden = document.getElementById('f-always').checked;
+  document.getElementById('f-available-until').disabled = document.getElementById('f-always').checked;
+  document.getElementById('f-cover').value = '';
   document.getElementById('f-media').value = '';
   renderCategories(item?.category_ids || []);
   document.getElementById('form-overlay').classList.add('show');
@@ -76,38 +79,58 @@ async function submitActivity() {
   const name = document.getElementById('f-name').value.trim();
   const address = document.getElementById('f-address').value.trim();
   if (!name || !address) return BusinessAPI.notify('Tên và địa chỉ là bắt buộc.', 'error');
+  const submittedLink = document.getElementById('f-source').value.trim();
+  let mapUrl;
+  try {
+    mapUrl = new URL(submittedLink);
+  } catch {
+    return BusinessAPI.notify('Hãy nhập link Google Maps hợp lệ.', 'error');
+  }
+  if (!/(^|\.)google\.[a-z.]+$|(^|\.)goo\.gl$/.test(mapUrl.hostname.toLowerCase())) {
+    return BusinessAPI.notify('Địa điểm phải là link Google Maps.', 'error');
+  }
   const numberOrNull = id => {
     const value = document.getElementById(id).value.trim();
     return value === '' ? null : Number(value);
   };
   const dateOrNull = id => document.getElementById(id).value ? new Date(document.getElementById(id).value).toISOString() : null;
-  const submittedLink = document.getElementById('f-source').value.trim();
   const currentActivity = activities.find(activity => activity.activity_id === editingId);
-  const isGoogleMapsLink = /^https?:\/\/(?:[^/]+\.)?(?:google\.[^/]+|goo\.gl)\//i.test(submittedLink)
-    && /(?:\/maps|maps\.app\.goo\.gl)/i.test(submittedLink);
+  const alwaysAvailable = document.getElementById('f-always').checked;
+  const availableFrom = document.getElementById('f-available-from').value;
+  const availableUntil = alwaysAvailable ? null : document.getElementById('f-available-until').value;
+  if (!alwaysAvailable && (!availableFrom || !availableUntil)) return BusinessAPI.notify('Hãy nhập ngày bắt đầu và ngày kết thúc, hoặc chọn mở vĩnh viễn.', 'error');
+  if (!alwaysAvailable && availableFrom && availableUntil && availableUntil < availableFrom) {
+    return BusinessAPI.notify('Ngày kết thúc phải từ ngày bắt đầu trở đi.', 'error');
+  }
+  const price = numberOrNull('f-price');
+  if (price != null && (!Number.isInteger(price) || price < 0)) return BusinessAPI.notify('Giá phải là số nguyên không âm.', 'error');
   const payload = {
     name,
     description: document.getElementById('f-description').value.trim() || null,
-    price: numberOrNull('f-price'),
-    price_text: document.getElementById('f-price-text').value.trim() || null,
+    price,
     address,
     time_open: dateOrNull('f-open'),
     time_close: dateOrNull('f-close'),
-    latitude: numberOrNull('f-latitude'),
-    longitude: numberOrNull('f-longitude'),
-    source_url: isGoogleMapsLink ? (currentActivity?.source_url || null) : (submittedLink || null),
-    google_maps_url: isGoogleMapsLink ? submittedLink : (currentActivity?.google_maps_url || null),
+    available_from: availableFrom ? `${availableFrom}T00:00:00` : null,
+    available_until: availableUntil ? `${availableUntil}T23:59:59` : null,
+    always_available: alwaysAvailable,
+    source_url: currentActivity?.source_url || null,
+    google_maps_url: submittedLink,
     category_ids: selectedCategoryIds()
   };
   try {
     const activity = await BusinessAPI.request(editingId ? `/activities/${editingId}` : '/activities', {
       method: editingId ? 'PATCH' : 'POST', body: payload
     });
-    const files = [...document.getElementById('f-media').files];
-    for (const file of files) {
+    const upload = async (file, kind) => {
       const form = new FormData();
       form.append('file', file);
-      await BusinessAPI.request(`/activities/${activity.activity_id}/media/upload`, { method: 'POST', body: form });
+      await BusinessAPI.request(`/activities/${activity.activity_id}/media/upload?media_kind=${kind}`, { method: 'POST', body: form });
+    };
+    const cover = document.getElementById('f-cover').files[0];
+    if (cover) await upload(cover, 'cover');
+    for (const file of document.getElementById('f-media').files) {
+      await upload(file, 'gallery');
     }
     await reloadActivities();
     closeForm();
@@ -153,6 +176,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     await reloadActivities();
   } catch (error) { BusinessAPI.notify(error.message, 'error'); }
   document.getElementById('f-categories').addEventListener('change', event => event.target.closest('.chip')?.classList.toggle('active', event.target.checked));
+  document.getElementById('f-always').addEventListener('change', event => {
+    document.getElementById('availability-end-wrap').hidden = event.target.checked;
+    document.getElementById('f-available-until').disabled = event.target.checked;
+  });
   document.getElementById('activity-rows').addEventListener('click', async event => {
     const button = event.target.closest('[data-action]');
     if (!button) return;

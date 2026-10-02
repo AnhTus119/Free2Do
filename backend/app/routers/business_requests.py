@@ -1,6 +1,8 @@
 from datetime import datetime
+import re
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -33,7 +35,7 @@ def create_business_request(
         user_id=user.user_id,
         business_name=payload.business_name,
         phone=payload.phone,
-        business_address=payload.business_address,
+        business_address=payload.business_address.strip() if payload.business_address else None,
         description=payload.description,
         status="pending",
         created_at=datetime.utcnow(),
@@ -104,16 +106,34 @@ def approve_business_request(
     request.reviewed_by = operator.operator_id
     request.reviewed_at = now
 
-    business_profile = models.BusinessProfile(
-        user_id=request.user_id,
-        business_name=request.business_name,
-        phone=request.phone,
-        description=request.description,
-        business_address=request.business_address,
-        verified_by=operator.operator_id,
-        verified_at=now,
-    )
-    db.add(business_profile)
+    business_profile = db.query(models.BusinessProfile).filter(
+        models.BusinessProfile.user_id == request.user_id
+    ).first()
+    if not business_profile:
+        if db.bind is not None and db.bind.dialect.name == "postgresql":
+            db.execute(text("SELECT pg_advisory_xact_lock(hashtext('free2do_business_code_sequence'))"))
+        # Giữ dạng B1, B2...; các hồ sơ cũ chưa có code vẫn được tính bằng tổng số hồ sơ.
+        existing_codes = db.query(models.BusinessProfile.business_code).filter(
+            models.BusinessProfile.business_code.is_not(None)
+        ).all()
+        code_numbers = [
+            int(match.group(1))
+            for (code,) in existing_codes
+            if (match := re.fullmatch(r"B(\d+)", code or ""))
+        ]
+        max_code = max(code_numbers, default=0)
+        number = max(max_code, db.query(models.BusinessProfile).count()) + 1
+        business_profile = models.BusinessProfile(
+            user_id=request.user_id,
+            business_code=f"B{number}",
+            business_name=request.business_name,
+            phone=request.phone,
+            description=request.description,
+            business_address=request.business_address,
+            verified_by=operator.operator_id,
+            verified_at=now,
+        )
+        db.add(business_profile)
 
     # Nâng role user lên "business" nếu role tương ứng đã tồn tại trong bảng roles
     business_role = db.query(models.Role).filter(models.Role.role_name == "business").first()
@@ -123,7 +143,13 @@ def approve_business_request(
     db.commit()
     db.refresh(request)
 
-    send_business_request_approved_email(request.user.account.email, request.business_name)
+    try:
+        recipient = request.user.account.email or request.user.account.recovery_email
+        if recipient:
+            send_business_request_approved_email(recipient, request.business_name)
+    except Exception:
+        # Duyệt đã ghi vào DB; lỗi SMTP không được làm operator tưởng rằng request thất bại.
+        pass
     return request
 
 
@@ -145,5 +171,10 @@ def reject_business_request(
     db.commit()
     db.refresh(request)
 
-    send_business_request_rejected_email(request.user.account.email, request.business_name)
+    try:
+        recipient = request.user.account.email or request.user.account.recovery_email
+        if recipient:
+            send_business_request_rejected_email(recipient, request.business_name)
+    except Exception:
+        pass
     return request

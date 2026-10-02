@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from typing import Literal, Optional
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -95,15 +95,16 @@ class BusinessProfileCreate(BaseModel):
     business_name: str
     phone: Optional[str] = None
     description: Optional[str] = None
-    business_address: str
+    business_address: Optional[str] = None
 
 class BusinessProfile(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     user_id: str
+    business_code: Optional[str] = None
     business_name: str
     phone: Optional[str] = None
     description: Optional[str] = None
-    business_address: str
+    business_address: Optional[str] = None
     avatar_url: Optional[str] = None
     verified_by: Optional[str] = None
     verified_at: Optional[datetime] = None
@@ -112,7 +113,7 @@ class BusinessProfile(BaseModel):
 class BusinessRequestCreate(BaseModel):
     business_name: str
     phone: Optional[str] = None
-    business_address: str
+    business_address: Optional[str] = None
     description: Optional[str] = None
 
 class BusinessRequest(BaseModel):
@@ -121,7 +122,7 @@ class BusinessRequest(BaseModel):
     user_id: str
     business_name: str
     phone: Optional[str] = None
-    business_address: str
+    business_address: Optional[str] = None
     description: Optional[str] = None
     status: str
     rejection_reason: Optional[str] = None
@@ -139,13 +140,16 @@ class CustomerProfile(BaseModel):
 class ActivityCreate(BaseModel):
     name: str
     description: Optional[str] = None
-    price: Optional[float] = None
+    price: Optional[int] = Field(None, ge=0)
     price_text: Optional[str] = None
     address: str
     latitude: Optional[float] = Field(None, ge=-90, le=90)
     longitude: Optional[float] = Field(None, ge=-180, le=180)
     time_open: Optional[datetime] = None
     time_close: Optional[datetime] = None
+    available_from: Optional[datetime] = None
+    available_until: Optional[datetime] = None
+    always_available: bool = True
     category_ids: list[str] = Field(default_factory=list)
     source_url: Optional[str] = None
     google_maps_url: Optional[str] = None
@@ -163,6 +167,9 @@ class Activity(BaseModel):
     longitude: Optional[float] = None
     time_open: Optional[datetime] = None
     time_close: Optional[datetime] = None
+    available_from: Optional[datetime] = None
+    available_until: Optional[datetime] = None
+    always_available: bool = True
     status: str
     created_at: datetime
     source_url: Optional[str] = None
@@ -190,6 +197,7 @@ class ActivityMedia(BaseModel):
     activity_id: str
     media_url: str
     media_type: str
+    media_kind: str = "gallery"
     public_id: Optional[str] = None
     bytes: Optional[int] = None
     width: Optional[int] = None
@@ -262,6 +270,11 @@ class Complaint(BaseModel):
     status: str
     created_at: datetime
     resolved_at: Optional[datetime] = None
+    activity_name: Optional[str] = None
+    reviewer_name: Optional[str] = None
+    review_rating: Optional[int] = None
+    review_content: Optional[str] = None
+    evidence: list[ReviewMedia] = Field(default_factory=list)
 
 # Report
 class ReportCreate(BaseModel):
@@ -289,6 +302,7 @@ class SearchParams(BaseModel):
     radius: float = Field(5.0, gt=0)
     budget: Optional[float] = Field(None, ge=0)
     free_time: Optional[int] = Field(None, ge=30)
+    selected_date: Optional[date] = None
     category_ids: list[str] = Field(default_factory=list)
     sort_by: Literal["match", "distance", "price", "rating"] = "match"
     record_history: bool = True
@@ -388,7 +402,15 @@ class GroupMemberInput(BaseModel):
 
 
 class GroupCreateRequest(BaseModel):
-    members: list[GroupMemberInput] = Field(min_length=1, max_length=30)
+    host: GroupMemberInput
+
+    @model_validator(mode="before")
+    @classmethod
+    def accept_legacy_members_payload(cls, value):
+        # Tương thích frontend cũ trong lúc client cập nhật; chỉ host được tạo.
+        if isinstance(value, dict) and "host" not in value and value.get("members"):
+            value = {**value, "host": value["members"][0]}
+        return value
 
 
 class GroupJoinRequest(GroupMemberInput):
@@ -401,6 +423,14 @@ class GroupMemberUpdate(BaseModel):
     address: Optional[str] = Field(None, min_length=1, max_length=500)
     budget: Optional[float] = Field(None, ge=0)
     category_ids: Optional[list[str]] = Field(None, min_length=1)
+
+
+class GroupReadyRequest(BaseModel):
+    is_ready: bool
+
+
+class GroupLeaveRequest(BaseModel):
+    action: Literal["approve", "reject"]
 
 
 class GroupPaymentAction(BaseModel):
@@ -430,6 +460,9 @@ class GroupMemberOut(BaseModel):
     category_ids: list[str]
     category_names: list[str]
     is_host: bool
+    is_ready: bool = False
+    leave_requested_at: Optional[datetime] = None
+    leave_status: str = "none"
     is_online: bool = False
     payment: GroupPaymentOut
 
@@ -455,6 +488,8 @@ class GroupOut(BaseModel):
     host_user_id: str
     is_host: bool
     status: str
+    search_started: bool = False
+    all_ready: bool = False
     selected_activity: Optional[GroupSelectedActivityOut] = None
     members: list[GroupMemberOut]
     total_amount: float
@@ -474,13 +509,16 @@ class GroupRecommendationOut(GroupSelectedActivityOut):
 class ActivityUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
-    price: Optional[float] = None
+    price: Optional[int] = Field(None, ge=0)
     price_text: Optional[str] = None
     address: Optional[str] = None
     latitude: Optional[float] = None
     longitude: Optional[float] = None
     time_open: Optional[datetime] = None
     time_close: Optional[datetime] = None
+    available_from: Optional[datetime] = None
+    available_until: Optional[datetime] = None
+    always_available: Optional[bool] = None
     category_ids: Optional[list[str]] = None
     source_url: Optional[str] = None
     google_maps_url: Optional[str] = None

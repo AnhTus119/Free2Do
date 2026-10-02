@@ -184,6 +184,7 @@ html,body,input,button,select,textarea{font-family:'Inter',system-ui,-apple-syst
       <div class="section-title" id="memberCountTitle" style="font-size:15px;"></div>
       <div id="memberCards"></div>
       <button class="btn btn-primary btn-block" type="button" onclick="showGroupResult()">Tìm hoạt động phù hợp cho cả nhóm</button>
+      <div id="groupHistory" style="margin-top:24px"></div>
     </div>
 
     <div class="group-result" id="group-result" style="display:none;">
@@ -203,7 +204,7 @@ html,body,input,button,select,textarea{font-family:'Inter',system-ui,-apple-syst
   <div class="group-overlay" id="groupOverlay" role="dialog" aria-modal="true" aria-labelledby="groupModalTitle">
     <div class="group-modal">
       <div class="group-modal-head">
-        <div><h2 id="groupModalTitle">Tạo nhóm ghép lịch</h2><p>Mời bạn bè hoặc nhập thông tin từng thành viên.</p></div>
+        <div><h2 id="groupModalTitle">Tạo nhóm ghép lịch</h2><p>Nhập thông tin của bạn để tạo nhóm và gửi link mời.</p></div>
         <button class="modal-close" type="button" onclick="closeGroupModal()" aria-label="Đóng">×</button>
       </div>
       <div class="invite-row">
@@ -211,7 +212,7 @@ html,body,input,button,select,textarea{font-family:'Inter',system-ui,-apple-syst
         <button class="copy-link-btn" type="button" id="copyInviteButton" onclick="createInviteLink()">Tạo link nhóm</button>
       </div>
       <div id="memberForms"></div>
-      <button class="add-member-btn" type="button" onclick="addMemberForm()"><svg class="icon"><use href="#icon-plus"></use></svg> Thêm thành viên</button>
+      <button class="add-member-btn" type="button" onclick="addMemberForm()" style="display:none"><svg class="icon"><use href="#icon-plus"></use></svg> Thêm thành viên</button>
       <div class="group-actions">
         <button class="btn btn-secondary" type="button" onclick="closeGroupModal()">Hủy</button>
         <button class="btn btn-primary" type="button" onclick="createGroup()">Tạo nhóm</button>
@@ -274,4 +275,3 @@ function toggleMobileMenu(){
 
 </body>
 </html>
-

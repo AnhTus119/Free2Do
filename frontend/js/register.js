@@ -83,6 +83,12 @@ if (registerForm) {
       const me = await meResponse.json();
       if (!meResponse.ok) throw new Error(me.detail || "Không lấy được thông tin tài khoản.");
 
+      const pendingGroupInvite = sessionStorage.getItem("pending_group_invite") || new URLSearchParams(location.search).get("groupInvite");
+      if (!me.requires_recovery_email && pendingGroupInvite && me.account_type === "user" && me.role !== "business") {
+        sessionStorage.removeItem("pending_group_invite");
+        window.location.href = `Demo Trang Customer/group.html?groupInvite=${encodeURIComponent(pendingGroupInvite)}`;
+        return;
+      }
       window.location.href = me.requires_recovery_email
         ? "recovery-email.html"
         : (me.redirect || "Demo Trang Customer/home.html");

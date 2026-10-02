@@ -8,9 +8,37 @@
     const url = api.escapeHTML(item.media_url);
     const content = item.media_type === 'video'
       ? `<video src="${url}" controls preload="metadata"></video>`
-      : `<img src="${url}" alt="Media đánh giá" loading="lazy">`;
+      : `<img src="${url}" alt="Media đánh giá" loading="lazy" style="cursor:zoom-in">`;
     return `<span class="review-media-item">${content}${own && item.media_id ? `<button class="delete-review-media" data-media-id="${api.escapeHTML(item.media_id)}" type="button">Xóa</button>` : ''}</span>`;
   };
+  function openReviewGallery(list, startIndex) {
+    const images = [...list.querySelectorAll('.review-media-item img')];
+    if (!images.length) return;
+    let index = Math.max(0, images.indexOf(startIndex));
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#000e;display:flex;align-items:center;justify-content:center;color:white;padding:24px;';
+    overlay.innerHTML = '<button data-prev aria-label="Ảnh trước" style="position:absolute;left:20px;top:50%;font-size:32px">‹</button><button data-close aria-label="Đóng" style="position:absolute;right:20px;top:16px;font-size:30px">×</button><img data-image alt="Ảnh đánh giá" style="max-width:88vw;max-height:86vh;object-fit:contain"><button data-next aria-label="Ảnh tiếp" style="position:absolute;right:20px;top:50%;font-size:32px">›</button><span data-count style="position:absolute;bottom:16px"></span>';
+    const show = next => {
+      index = (next + images.length) % images.length;
+      overlay.querySelector('[data-image]').src = images[index].src;
+      overlay.querySelector('[data-count]').textContent = `${index + 1} / ${images.length}`;
+      overlay.querySelector('[data-prev]').hidden = overlay.querySelector('[data-next]').hidden = images.length < 2;
+    };
+    overlay.addEventListener('click', event => {
+      if (event.target === overlay || event.target.closest('[data-close]')) overlay.remove();
+      else if (event.target.closest('[data-prev]')) show(index - 1);
+      else if (event.target.closest('[data-next]')) show(index + 1);
+    });
+    const onKey = event => {
+      if (!document.body.contains(overlay)) { document.removeEventListener('keydown', onKey); return; }
+      if (event.key === 'Escape') overlay.remove();
+      if (event.key === 'ArrowLeft') show(index - 1);
+      if (event.key === 'ArrowRight') show(index + 1);
+    };
+    document.addEventListener('keydown', onKey);
+    document.body.append(overlay);
+    show(index);
+  }
   function renderGallery(activity) {
     const slots = [...document.querySelectorAll('#activityGallery > div')];
     const media = [...(activity.media || [])].sort((a, b) => (a.media_kind === 'cover' ? -1 : 0) - (b.media_kind === 'cover' ? -1 : 0));
@@ -132,6 +160,8 @@
       const card = event.target.closest('[data-review-id]'); if (!card) return;
       try {
         if (event.target.closest('.delete-review-media')) { if (!confirm('Xóa ảnh/video này khỏi đánh giá?')) return; await api.request(`/reviews/media/${encodeURIComponent(event.target.closest('.delete-review-media').dataset.mediaId)}`, { method: 'DELETE' }); location.reload(); return; }
+        const reviewImage = event.target.closest('.review-media-list .review-media-item img');
+        if (reviewImage) { openReviewGallery(reviewImage.closest('.review-media-list'), reviewImage); return; }
         if (event.target.closest('.delete-review')) { if (confirm('Xóa đánh giá này?')) { await api.request(`/reviews/${encodeURIComponent(card.dataset.reviewId)}`, { method: 'DELETE' }); location.reload(); } }
         if (event.target.closest('.edit-review')) {
           const rating = Number(prompt('Điểm mới (1–5):', card.dataset.rating)); if (!Number.isInteger(rating) || rating < 1 || rating > 5) return;

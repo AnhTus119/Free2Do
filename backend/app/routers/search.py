@@ -11,25 +11,9 @@ from app.auth import get_current_user
 from app.config import settings
 from app.database import get_db
 from app.utils.distance import haversine_km
-from app.utils.geocoding import resolve_location, suggest_locations
+from app.utils.geocoding import resolve_location
 
 router = APIRouter(prefix="/search", tags=["search"])
-
-
-@router.get("/suggest")
-def suggest_search_locations(
-    query: str = Query(..., min_length=3, max_length=200),
-    _user: models.User = Depends(get_current_user),
-):
-    """Free Vietnam-focused place autocomplete powered by OpenStreetMap Nominatim."""
-    try:
-        rows = suggest_locations(query)
-    except Exception as exc:
-        raise HTTPException(status.HTTP_502_BAD_GATEWAY, "Không thể tải gợi ý địa chỉ lúc này") from exc
-    return [
-        {"latitude": latitude, "longitude": longitude, "display_name": display_name}
-        for latitude, longitude, display_name in rows
-    ]
 
 
 @router.get("/location", response_model=schemas.LocationResolveOut)

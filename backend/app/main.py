@@ -22,6 +22,7 @@ from app.routers import (
     media,
     public_businesses,
     groups,
+    ai,
 )
 
 app = FastAPI(title="Free2Do API", version="1.1.0")
@@ -53,6 +54,7 @@ app.include_router(businesses.router)
 app.include_router(media.router)
 app.include_router(public_businesses.router)
 app.include_router(groups.router)
+app.include_router(ai.router)
 
 # Operator
 app.include_router(categories.operator_router)
@@ -96,6 +98,7 @@ def health_ready():
         "supabase_storage_configured": bool(
             settings.SUPABASE_URL and settings.SUPABASE_SERVICE_KEY
         ),
+        "openai_configured": bool(settings.OPENAI_API_KEY.strip()),
         "smtp_configured": bool(
             settings.SMTP_USER.strip() and settings.SMTP_PASSWORD.strip()
         ),

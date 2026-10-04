@@ -22,6 +22,9 @@ class Settings(BaseSettings):
     GMAIL_SENDER_EMAIL: str = ""
     # Sign in with Google
     GOOGLE_CLIENT_ID: str = ""
+    # AI recommendations run server-side; never expose this key to the browser.
+    OPENAI_API_KEY: str = ""
+    OPENAI_MODEL: str = "gpt-6-luna"
     OTP_EXPIRE_MINUTES: int = 10
     RESET_TOKEN_EXPIRE_MINUTES: int = 10
     # Supabase Storage dùng cùng Project URL và server-side secret/service key.

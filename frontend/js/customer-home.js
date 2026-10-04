@@ -11,6 +11,7 @@
   const interestBox = document.querySelector('.match-card .chip-row');
   let position = null;
   let mapController;
+  let aiRecommendations = null;
   let searchTimer;
   let locationResolveTimer;
   let locationLabel = 'Vị trí hiện tại';
@@ -68,6 +69,21 @@
     try { mapController?.render(position, Number(radiusSlider.value), items); }
     catch (error) { console.warn('Không thể vẽ bản đồ:', error); }
   }
+  window.Free2DoCustomerHome = {
+    getAIContext: () => ({
+      latitude: position?.latitude ?? null,
+      longitude: position?.longitude ?? null,
+      radius: Number(radiusSlider.value),
+      budget: parseMoney(document.getElementById('budgetInput').value),
+      free_time: freeMinutes(),
+      category_ids: selectedCategoryIds(),
+    }),
+    showAIRecommendations: items => {
+      aiRecommendations = items || [];
+      renderMapResults(aiRecommendations);
+      if (aiRecommendations[0]) mapController?.highlight(aiRecommendations[0].activity_id, true);
+    },
+  };
   async function searchNearby(recordHistory = false) {
     if (!window.Free2DoMap.validCoordinate(position?.latitude, position?.longitude)) {
       throw new Error('Chưa xác định được vị trí. Hãy cho phép truy cập GPS hoặc nhập địa chỉ khác.');
@@ -151,6 +167,7 @@
     businessesBox.innerHTML = businesses.length ? businesses.map(item => `<a class="activity-card" href="business-detail.html?id=${encodeURIComponent(item.user_id)}"><div class="activity-image">${item.avatar_url ? `<img src="${api.escapeHTML(item.avatar_url)}" alt="Logo ${api.escapeHTML(item.business_name)}">` : '<span>Chưa có logo</span>'}</div><div class="activity-body"><div class="activity-title">${api.escapeHTML(item.business_name)}</div><div class="activity-meta">${api.escapeHTML(item.business_address)}</div><p>${api.escapeHTML(item.description || 'Chưa có mô tả.')}</p><b>${item.activity_count} hoạt động đang mở</b></div></a>`).join('') : '<div class="empty-state">Hiện chưa có doanh nghiệp có hoạt động đang mở.</div>';
     interestBox.innerHTML = categories.map(item => `<div class="chip" data-category-id="${api.escapeHTML(item.category_id)}">${api.escapeHTML(item.name)}</div>`).join('');
     bindFilters();
+    if (aiRecommendations) renderMapResults(aiRecommendations);
     mapLocation.textContent = 'Đang lấy vị trí hiện tại…';
     try {
       const gps = await gpsPromise;

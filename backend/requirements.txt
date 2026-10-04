@@ -10,3 +10,4 @@ python-jose[cryptography]==3.5.0
 python-multipart==0.0.32
 google-auth==2.57.0
 requests==2.34.2
+openai>=1.68.0,<3.0.0

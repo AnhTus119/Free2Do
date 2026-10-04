@@ -23,6 +23,10 @@ _rate_lock = threading.Lock()
 _requests_by_user: dict[str, list[float]] = {}
 _RATE_LIMIT = 12
 _RATE_WINDOW_SECONDS = 60
+_AI_UNAVAILABLE_MESSAGE = (
+    "Hiện AI chưa thể gợi ý (có thể đã hết credit/hạn mức hoặc dịch vụ tạm thời không khả dụng). "
+    "Bạn vẫn có thể nhập vị trí, ngân sách và sở thích ở các bộ lọc để tìm hoạt động thủ công."
+)
 
 
 class ChatTurn(BaseModel):
@@ -141,13 +145,13 @@ def chat(
     """AI conversation with an allowlisted tool that invokes Free2Do's own search."""
     _check_rate_limit(user.user_id)
     if not settings.OPENAI_API_KEY.strip():
-        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "AI chưa được cấu hình. Hãy thêm OPENAI_API_KEY ở môi trường backend.")
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, _AI_UNAVAILABLE_MESSAGE)
 
     try:
         from openai import OpenAI
     except ImportError as exc:
         logger.exception("OpenAI SDK is missing")
-        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "Backend chưa cài thư viện OpenAI.") from exc
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, _AI_UNAVAILABLE_MESSAGE) from exc
 
     categories = db.query(models.Category).order_by(models.Category.name).all()
     category_names = {item.category_id: item.name for item in categories}
@@ -203,4 +207,4 @@ def chat(
         raise
     except Exception as exc:
         logger.exception("OpenAI request failed")
-        raise HTTPException(status.HTTP_502_BAD_GATEWAY, "Không gọi được dịch vụ AI. Kiểm tra API key, model và hạn mức API rồi thử lại.") from exc
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, _AI_UNAVAILABLE_MESSAGE) from exc

@@ -365,16 +365,6 @@ Seed chỉ dành cho bộ dữ liệu ban đầu. Sau đó doanh nghiệp vẫn 
 `POST /activities/{activity_id}/media/upload`; Operator không tham gia luồng
 này.
 
-Nếu database còn URL Cloudinary từ bản cũ, chạy một lần để sao chép các file còn
-truy cập được sang bucket Supabase và cập nhật URL trong database:
-
-```powershell
-cd backend
-python migrate_media_to_supabase.py
-```
-
-Script chạy lại an toàn; các URL đã thuộc Supabase Storage sẽ được bỏ qua.
-
 ### PostGIS và tọa độ Google Maps
 
 `python migrate_db.py` bật extension PostGIS, thêm cột

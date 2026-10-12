@@ -159,14 +159,6 @@ def upload_seed_image(*, source: str, folder: str, public_id: str, owner_id: str
     return _upload(content, content_type, f"{folder.strip('/')}/{public_id}{_extension(content_type)}", upsert=True)
 
 
-def upload_existing_url(*, source: str, object_path: str, allow_video: bool = True) -> UploadedAsset:
-    """Sao chép một media URL cũ sang Storage bằng object path ổn định."""
-    content, content_type = _read_source(source)
-    validate_upload(content, content_type, allow_video=allow_video)
-    path = object_path.rsplit(".", 1)[0] + _extension(content_type)
-    return _upload(content, content_type, path, upsert=True)
-
-
 def delete_asset(public_id: str, media_type: str = "image") -> None:
     if not public_id:
         return

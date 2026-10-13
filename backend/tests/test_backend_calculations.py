@@ -207,6 +207,5 @@ class BackendCalculationTests(unittest.TestCase):
             )
         self.assertEqual(context.exception.status_code, 422)
 
-
 if __name__ == "__main__":
     unittest.main()

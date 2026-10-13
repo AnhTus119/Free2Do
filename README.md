@@ -190,6 +190,9 @@ python migrate_db.py
 python seed_activities.py
 ```
 
+`migrate_db.py` creates the group activity vote table directly from the backend model,
+so the group voting flow does not require a manual SQL change.
+
 `seed_activities.py` tạo/cập nhật 28 doanh nghiệp, 30 hoạt động và 15 tags theo mã nguồn. Một hoạt động có thể có nhiều tags trong bảng `activities_categories`; bộ lọc tìm kiếm khớp nếu hoạt động có ít nhất một tag người dùng chọn. `price_text` giữ nguyên chuỗi giá trong Excel, còn `price` dùng mức trần của khoảng giá để lọc ngân sách.
 
 Với database đã có dữ liệu, đồng bộ tags và audit tọa độ mà không seed lại tài khoản/media:
@@ -364,6 +367,16 @@ Seed chỉ dành cho bộ dữ liệu ban đầu. Sau đó doanh nghiệp vẫn 
 `POST /business/media?kind=logo|gallery|menu` và
 `POST /activities/{activity_id}/media/upload`; Operator không tham gia luồng
 này.
+
+Nếu database còn URL Cloudinary từ bản cũ, chạy một lần để sao chép các file còn
+truy cập được sang bucket Supabase và cập nhật URL trong database:
+
+```powershell
+cd backend
+python migrate_media_to_supabase.py
+```
+
+Script chạy lại an toàn; các URL đã thuộc Supabase Storage sẽ được bỏ qua.
 
 ### PostGIS và tọa độ Google Maps
 

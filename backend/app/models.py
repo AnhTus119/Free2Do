@@ -358,6 +358,18 @@ class GroupPayment(Base):
     group = relationship("Group", back_populates="payments")
     member = relationship("GroupMember", back_populates="payment")
 
+
+class GroupActivityVote(Base):
+    __tablename__ = "group_activity_votes"
+    __table_args__ = (
+        UniqueConstraint("group_id", "member_id", name="uq_group_activity_vote_member"),
+    )
+    vote_id = Column(String, primary_key=True, default=gen_id)
+    group_id = Column(String, ForeignKey("groups.group_id", ondelete="CASCADE"), nullable=False, index=True)
+    member_id = Column(String, ForeignKey("group_members.member_id", ondelete="CASCADE"), nullable=False, index=True)
+    activity_id = Column(String, ForeignKey("activities.activity_id", ondelete="CASCADE"), nullable=False)
+    confirmation_status = Column(String, nullable=False, default="pending")
+
 class OtpCode(Base):
     __tablename__ = "otp_codes"
 

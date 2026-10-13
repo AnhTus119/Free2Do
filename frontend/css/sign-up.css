@@ -3,56 +3,60 @@ body, html {
   min-height: 100vh;
   background: var(--paper);
   position: relative;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;            /* màn hình thấp mà form dài thì vẫn cuộn được */
 }
 
 .signup {
-    position: relative;
-    width: 100%;
-    min-height: 100vh;
-    background-image: linear-gradient(rgba(251,247,240,.75), rgba(251,247,240,.75)), url('../img/back.png');
-    background-size: 150%;
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+  background-image: linear-gradient(rgba(251,247,240,.75), rgba(251,247,240,.75)), url('../img/back.png');
+  background-size: 150%;
   background-color: var(--cream);
 }
 
 .signup__circle {
   position: fixed;
-  width: 1440px;
+  height: 180vh;               /* đường kính theo chiều cao màn hình */
   aspect-ratio: 1 / 1;
   border-radius: 50%;
   background: var(--paper);
   border: 15px solid var(--muted);
-  right: -650px;
-  bottom: -350px;
+  left: 49vw;                  /* mép trái vòng tròn nằm ~giữa màn hình */
+  top: 50%;
+  transform: translateY(-50%); /* căn giữa theo chiều dọc */
   z-index: 1;
 }
+
 /* Lớp chứa nội dung */
 .signup__content {
-    width: 100%;
-    min-height: 100vh;
-    position: relative;
-    z-index: 2;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+  width: 100%;
+  min-height: 100vh;
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: 49vw 1fr;
 }
 
 /* Cột trái */
 .signup__brand {
+  position: relative;
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
+  justify-content: center;     /* khối title + logo + tagline canh giữa dọc */
   align-items: flex-start;
-  padding: 30px;
+  padding: 0 0 0 10vh;
   color: var(--side-bg);
 }
 
 .signup__title {
   position: relative;
   z-index: 1;
-  font-size: 32px;
+  font-size: 4vh;
   font-weight: 700;
   letter-spacing: 1px;
-  margin: 0 0 0 20px;
+  margin: 0 0 7vh 0;
   text-shadow: 0 0 10px rgba(251,247,240,.95);
 }
 
@@ -62,25 +66,26 @@ body, html {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: auto;
-  flex: 1; 
+  align-self: stretch;
+  flex: none;
+  margin: 0 0 6vh 0;
 }
 
 .signup__logo {
-  width: 350px;
-  height: 350px;
+  width: 38vh;
+  height: 38vh;
 }
 
 .signup__brand-bottom {
-  position: relative;
+  position: static;
   z-index: 1;
 }
 
 .signup__tagline {
-  font-size: 45px;
+  font-size: 5vh;
   font-weight: 700;
   line-height: 1.3;
-  margin: 20px 0 70px 55px;
+  margin: 0;
   color: var(--ink);
   text-shadow: 0 0 14px rgba(251,247,240,.95);
 }
@@ -90,23 +95,29 @@ body, html {
 }
 
 .signup__copyright {
+  position: fixed;             /* ghim theo cửa sổ, zoom thế nào cũng nằm góc dưới trái */
+  left: 20px;
+  bottom: 16px;
+  margin: 0;
   font-size: 12px;
   font-weight: 400;
   color: var(--side-bg);
+  z-index: 3;
 }
 
 /* Cột phải */
 .signup__inner {
+  position: relative;
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
-  padding-top: 15px;
-  padding-left: 100px;
-  padding-right: 70px;
+  justify-content: center;     /* tabs + form canh giữa dọc */
+  padding: 60px 70px 20px calc(15vh + 30px);
 }
 
 .signup__back {
-  display: inline-block;
+  position: absolute;          /* ghim cố định ở trên cùng */
+  top: 15px;
+  left: calc(15vh + 30px);
   color: var(--ink);
   text-decoration: none;
   font-style: italic;
@@ -121,7 +132,7 @@ body, html {
   background: #fff;
   border-radius: 20px;
   padding: 4px;
-  margin: 10px auto;
+  margin: 0 auto 20px auto;
   border: 1.5px solid var(--line);
 }
 
@@ -140,6 +151,12 @@ body, html {
   background: var(--rose);
   color: #fff;
   font-weight: 400;
+}
+
+.signup__form {
+  width: 100%;
+  max-width: 460px;
+  margin: 0 auto;
 }
 
 /* Form field */
@@ -193,7 +210,7 @@ body, html {
 /* Password strength */
 .signup__strength {
   display: flex;
-  flex-direction: column; 
+  flex-direction: column;
   gap: 5px;
   margin-top: 3px;
 }
@@ -209,21 +226,13 @@ body, html {
   height: 5px;
   flex: 1;
   border-radius: 3px;
-  background: var(--line); /* mặc định chưa nhập */
-  transition: background 0.2s ease; 
+  background: var(--line);
+  transition: background 0.2s ease;
 }
 
-.signup__strength-bar--weak {
-  background: var(--danger); 
-}
-
-.signup__strength-bar--medium {
-  background: var(--warn); 
-}
-
-.signup__strength-bar--strong {
-  background: var(--success);
-}
+.signup__strength-bar--weak { background: var(--danger); }
+.signup__strength-bar--medium { background: var(--warn); }
+.signup__strength-bar--strong { background: var(--success); }
 
 .signup__strength-label {
   font-size: 15px;
@@ -272,49 +281,7 @@ body, html {
 }
 
 .signup__submit:hover {
-  filter: none;
   background: var(--rose-dark);
-}
-
-/* Divider */
-.signup__divider {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 10px;
-  font-size: 15px;
-  color: var(--muted);
-  font-weight: 700;
-}
-
-.signup__divider::before,
-.signup__divider::after {
-  content: "";
-  flex: 1;
-  height: 1px;
-  background: var(--line);
-}
-
-/* Social buttons */
-.signup__socials {
-  display: flex;
-  justify-content: center;
-  gap: 40px;
-  margin: 0 auto 10px auto;
-}
-
-.signup__social {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  width: 375px;
-  height: 50px;
-  border: 1.5px solid var(--line);
-  border-radius: 8px;
-  background: #fff;
-  font-size: 16px;
-  cursor: pointer;
 }
 
 /* Text */
@@ -333,6 +300,7 @@ body, html {
 .signup__switch a {
   text-decoration: none;
 }
+
 /* =========================================================
    RESPONSIVE — iPad / Tablet (≤1024px)
    ========================================================= */
@@ -347,6 +315,7 @@ body, html {
 
   /* Logo to bên trái, FREE2DO + khẩu hiệu xếp dọc bên phải */
   .signup__brand {
+    position: static;
     display: grid;
     grid-template-columns: auto 1fr;
     align-items: center;
@@ -376,7 +345,7 @@ body, html {
   .signup__brand-bottom {
     grid-column: 2;
     grid-row: 2;
-    position: static; /* bỏ vị trí neo cũ để copyright canh theo .signup__content */
+    position: static;
     text-align: left;
     margin-top: 6px;
   }
@@ -399,12 +368,20 @@ body, html {
   }
 
   .signup__inner {
-    padding: 10px 60px 60px;
+    position: static;
+    display: block;
+    padding: 10px 60px 80px;
+  }
+
+  .signup__back {
+    position: static;
+    display: inline-block;
   }
 
   .signup__tabs {
     width: 100%;
     max-width: 320px;
+    margin: 24px auto 30px;
   }
 }
 
@@ -480,15 +457,6 @@ body, html {
   .signup__submit {
     width: 100%;
     font-size: 20px;
-  }
-
-  .signup__socials {
-    flex-direction: column;
-    gap: 14px;
-  }
-
-  .signup__social {
-    width: 100%;
   }
 
   .signup__consent,

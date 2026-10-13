@@ -38,13 +38,15 @@ class FullFrontendContractTests(unittest.TestCase):
             "/groups/invite/{invite_code}/join": "post",
             "/groups/{group_id}": "get",
             "/groups/{group_id}/recommendations": "get",
+            "/groups/{group_id}/members/{member_id}/vote": "post",
+            "/groups/{group_id}/randomize": "post",
             "/groups/{group_id}/activity": "put",
+            "/groups/{group_id}/members/{member_id}/confirmation": "patch",
             "/groups/{group_id}/payments/{member_id}": "patch",
         }
         for path, method in expected.items():
             self.assertIn(path, paths)
             self.assertIn(method, paths[path])
-
     def test_local_html_assets_exist(self):
         missing = []
         pattern = re.compile(r'(?:src|href)=["\']([^"\']+)')

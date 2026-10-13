@@ -53,6 +53,9 @@ html,body,input,button,select,textarea{font-family:'Inter',system-ui,-apple-syst
   #avatarUploadForm{display:flex;flex-direction:column;gap:10px}
   #pane-hoso>div:first-child .btn{margin-left:0 !important;width:100%;justify-content:center}
 }
+.custom-interest-editor{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.custom-interest-input{height:36px;max-width:220px;border:1.5px solid var(--line);border-radius:100px;padding:0 12px;font-size:12.5px}
+.custom-interest-input:focus{outline:none;border-color:var(--rose)}
 </style>
 </head>
 <body>
@@ -85,6 +88,7 @@ html,body,input,button,select,textarea{font-family:'Inter',system-ui,-apple-syst
       <a href="home.html" class="nav-link">Trang chủ</a>
       <a class="nav-link" href="search.html">Tìm kiếm</a>
       <a href="account.html#yeuthich" class="nav-link active" onclick="selectTab('yeuthich')">Yêu thích</a>
+      <a href="group.html" class="nav-link">Nhóm</a>
     </div>
   <div class="nav-right">
     
@@ -129,9 +133,9 @@ html,body,input,button,select,textarea{font-family:'Inter',system-ui,-apple-syst
       <div class="field"><label for="profilePhone">Số điện thoại</label><input id="profilePhone" type="tel" maxlength="30"></div>
       <div class="field">
         <label>Sở thích</label>
-        <div class="chip-row">Đang tải từ hệ thống…</div>
+        <div class="chip-row"><button type="button" class="chip" data-add-custom-interest>+Thêm</button></div>
       </div>
-      <button class="btn btn-primary" onclick="saveProfile()">Lưu thay đổi</button>
+      <button class="btn btn-primary" id="profileSaveButton" type="button" onclick="saveProfile()">Lưu thay đổi</button>
     </div>
     <div id="save-toast" style="display:none;background:var(--success-bg);color:var(--success);padding:12px 16px;border-radius:12px;font-size:13.5px;font-weight:600;">✓ Cập nhật thông tin thành công.</div>
 
@@ -197,7 +201,7 @@ html,body,input,button,select,textarea{font-family:'Inter',system-ui,-apple-syst
 <div class="mobile-nav-panel" id="mobile-nav">
   <div class="mobile-nav-content">
     <button class="mobile-nav-close" type="button" onclick="toggleMobileMenu()">&times;</button>
-    <a href="home.html" class="mobile-nav-link">Trang chủ</a><a href="search.html" class="mobile-nav-link">Tìm kiếm</a><a href="account.html#yeuthich" class="mobile-nav-link active">Yêu thích</a>
+    <a href="home.html" class="mobile-nav-link">Trang chủ</a><a href="search.html" class="mobile-nav-link">Tìm kiếm</a><a href="account.html#yeuthich" class="mobile-nav-link active">Yêu thích</a><a href="group.html" class="mobile-nav-link">Nhóm</a>
   </div>
 </div>
 <script>

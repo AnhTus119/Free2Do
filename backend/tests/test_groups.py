@@ -13,8 +13,13 @@ from app.routers.groups import (
     create_group,
     group_recommendations,
     join_group,
+    randomize_group_activity,
+    respond_to_group_activity,
+    set_member_ready,
+    start_group_search,
     select_group_activity,
     update_payment,
+    vote_group_activity,
 )
 
 
@@ -137,21 +142,72 @@ class GroupFeatureTests(unittest.TestCase):
         ))
         self.assertEqual(len(joined.members), 2)
 
+        host_member = joined.members[0]
+        joined = asyncio.run(set_member_ready(
+            group.group_id,
+            host_member.member_id,
+            schemas.GroupReadyRequest(is_ready=True),
+            db=self.db,
+            user=self.host,
+        ))
+        member_row = next(item for item in joined.members if item.user_id == self.member.user_id)
+        joined = asyncio.run(set_member_ready(
+            group.group_id,
+            member_row.member_id,
+            schemas.GroupReadyRequest(is_ready=True),
+            db=self.db,
+            user=self.member,
+        ))
+        started = asyncio.run(start_group_search(group.group_id, db=self.db, user=self.host))
         recommendations = asyncio.run(group_recommendations(
             group.group_id, db=self.db, user=self.host,
         ))
         self.assertEqual(recommendations[0].activity_id, self.activity.activity_id)
         self.assertGreater(recommendations[0].match_score, 0)
 
+        selected_by_host = asyncio.run(vote_group_activity(
+            group.group_id,
+            started.members[0].member_id,
+            schemas.GroupActivitySelect(activity_id=self.activity.activity_id),
+            db=self.db,
+            user=self.host,
+        ))
+        selected_by_member = asyncio.run(vote_group_activity(
+            group.group_id,
+            member_row.member_id,
+            schemas.GroupActivitySelect(activity_id=self.activity.activity_id),
+            db=self.db,
+            user=self.member,
+        ))
         selected = asyncio.run(select_group_activity(
             group.group_id,
             schemas.GroupActivitySelect(activity_id=self.activity.activity_id),
             db=self.db,
             user=self.host,
         ))
+        self.assertEqual(selected_by_host.members[0].activity_vote_id, self.activity.activity_id)
+        self.assertEqual(selected_by_member.members[1].activity_vote_id, self.activity.activity_id)
         self.assertEqual(selected.total_amount, 240000)
         self.assertTrue(all(item.payment.amount == 120000 for item in selected.members))
 
+        with self.assertRaises(HTTPException) as confirmation_required:
+            asyncio.run(update_payment(
+                group.group_id,
+                member_row.member_id,
+                schemas.GroupPaymentAction(action="paid"),
+                db=self.db,
+                user=self.host,
+            ))
+        self.assertEqual(confirmation_required.exception.status_code, 409)
+
+        selected = asyncio.run(respond_to_group_activity(
+            group.group_id,
+            member_row.member_id,
+            schemas.GroupActivityConfirmation(action="accept"),
+            db=self.db,
+            user=self.member,
+        ))
+        self.assertTrue(selected.confirmation_complete)
         paid = asyncio.run(update_payment(
             group.group_id,
             selected.members[1].member_id,
@@ -169,6 +225,75 @@ class GroupFeatureTests(unittest.TestCase):
                 user=self.member,
             ))
         self.assertEqual(denied.exception.status_code, 403)
+
+    def test_host_randomizes_only_member_selected_activities(self):
+        now = datetime.now(UTC).replace(tzinfo=None)
+        business = self.db.query(models.BusinessProfile).first()
+        other_activity = models.Activity(
+            business_id=business.user_id,
+            name="Lớp vẽ",
+            description="Vẽ tranh cùng nhóm",
+            price=150000,
+            address="Cầu Giấy, Hà Nội",
+            status="active",
+            created_at=now,
+        )
+        self.db.add(other_activity)
+        self.db.flush()
+        self.db.add(models.ActivityCategory(
+            activity_id=other_activity.activity_id,
+            category_id=self.category.category_id,
+        ))
+        self.db.commit()
+
+        group = asyncio.run(create_group(
+            schemas.GroupCreateRequest(host=self._member_input("Host")),
+            db=self.db,
+            user=self.host,
+        ))
+        joined = asyncio.run(join_group(
+            group.invite_code,
+            schemas.GroupJoinRequest(**self._member_input("Member").model_dump()),
+            db=self.db,
+            user=self.member,
+        ))
+        for user, member in ((self.host, joined.members[0]), (self.member, joined.members[1])):
+            asyncio.run(set_member_ready(
+                group.group_id,
+                member.member_id,
+                schemas.GroupReadyRequest(is_ready=True),
+                db=self.db,
+                user=user,
+            ))
+        started = asyncio.run(start_group_search(group.group_id, db=self.db, user=self.host))
+        recommendations = asyncio.run(group_recommendations(group.group_id, db=self.db, user=self.host))
+        self.assertGreaterEqual(len(recommendations), 2)
+        selected_ids = {recommendations[0].activity_id, recommendations[1].activity_id}
+        asyncio.run(vote_group_activity(
+            group.group_id, started.members[0].member_id,
+            schemas.GroupActivitySelect(activity_id=recommendations[0].activity_id),
+            db=self.db, user=self.host,
+        ))
+        member_group = asyncio.run(vote_group_activity(
+            group.group_id, started.members[1].member_id,
+            schemas.GroupActivitySelect(activity_id=recommendations[1].activity_id),
+            db=self.db, user=self.member,
+        ))
+        self.assertEqual(member_group.members[1].activity_vote_id, recommendations[1].activity_id)
+
+        randomized = asyncio.run(randomize_group_activity(group.group_id, db=self.db, user=self.host))
+        self.assertIn(randomized.selected_activity.activity_id, selected_ids)
+        self.assertEqual(randomized.members[0].confirmation_status, "accepted")
+        self.assertEqual(randomized.members[1].confirmation_status, "pending")
+        left = asyncio.run(respond_to_group_activity(
+            group.group_id,
+            joined.members[1].member_id,
+            schemas.GroupActivityConfirmation(action="reject"),
+            db=self.db,
+            user=self.member,
+        ))
+        self.assertEqual(len(left.members), 1)
+        self.assertTrue(left.confirmation_complete)
 
     def test_same_user_two_tabs_stay_online_until_last_tab_closes(self):
         async def scenario():
@@ -198,4 +323,3 @@ class GroupFeatureTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

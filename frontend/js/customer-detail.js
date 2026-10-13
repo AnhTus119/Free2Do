@@ -4,16 +4,20 @@
   const params = new URLSearchParams(location.search);
   const id = params.get('id');
   const text = (key, value) => { const node = document.getElementById(key); if (node) node.textContent = value; };
+  const isOwnReview = (review, me) => me?.user_id != null && String(me.user_id) === String(review.user_id);
   const mediaHTML = (item, own = false) => {
     const url = api.escapeHTML(item.media_url);
     const content = item.media_type === 'video'
       ? `<video src="${url}" controls preload="metadata"></video>`
-      : `<img src="${url}" alt="Media đánh giá" loading="lazy">`;
+      : `<img src="${url}" alt="Media đánh giá" loading="lazy" data-review-image="${url}">`;
     return `<span class="review-media-item">${content}${own && item.media_id ? `<button class="delete-review-media" data-media-id="${api.escapeHTML(item.media_id)}" type="button">Xóa</button>` : ''}</span>`;
   };
   function renderGallery(activity) {
-    const slots = [...document.querySelectorAll('#activityGallery > div')];
+    const gallery = document.getElementById('activityGallery');
     const media = [...(activity.media || [])].sort((a, b) => (a.media_kind === 'cover' ? -1 : 0) - (b.media_kind === 'cover' ? -1 : 0));
+    const visibleMedia = media.slice(0, 5);
+    gallery.classList.remove('activity-photo-grid--1', 'activity-photo-grid--2', 'activity-photo-grid--3', 'activity-photo-grid--4', 'activity-photo-grid--5');
+    gallery.classList.add(`activity-photo-grid--${visibleMedia.length}`);
     let lightbox;
     const openLightbox = index => {
       if (!media.length) return;
@@ -39,44 +43,171 @@
       };
       show(index);
     };
-    slots.forEach((slot, index) => {
-      const item = media[index];
-      if (!item) { slot.innerHTML = index === 0 ? '<span>Chưa có hình ảnh</span>' : ''; return; }
+    if (!media.length) {
+      gallery.innerHTML = '<div class="activity-photo-empty">Chưa có hình ảnh</div>';
+      return;
+    }
+    gallery.innerHTML = visibleMedia.map((item, index) => {
       const url = api.escapeHTML(item.media_url);
-      slot.innerHTML = item.media_type === 'video'
-        ? `<video src="${url}" controls preload="metadata" style="width:100%;height:100%;object-fit:cover"></video>`
-        : `<img src="${url}" alt="${api.escapeHTML(activity.name)}" loading="lazy" style="width:100%;height:100%;object-fit:cover">`;
-      slot.style.position = 'relative';
-      slot.style.cursor = 'zoom-in';
-      if (index === 4 && media.length > 5) slot.innerHTML += `<span style="position:absolute;inset:0;background:#0009;color:white;display:grid;place-items:center;font-size:28px;font-weight:700">+${media.length - 4}</span>`;
-      slot.onclick = event => { if (event.target.closest('video')) return; openLightbox(index); };
-    });
-    if (media.length > 5) slots[4].title = `Xem thêm ${media.length - 4} ảnh/video`;
+      const more = index === 4 && media.length > 5 ? `<span class="activity-photo-more">+${media.length - 4}</span>` : '';
+      return item.media_type === 'video'
+        ? `<div class="activity-photo-item"><video src="${url}" controls preload="metadata" aria-label="Video ${index + 1}"></video>${more}</div>`
+        : `<button class="activity-photo-item" type="button" data-gallery-index="${index}" aria-label="Xem ảnh ${index + 1} trên ${media.length}"><img src="${url}" alt="${api.escapeHTML(activity.name)} - ảnh ${index + 1}" loading="lazy">${more}</button>`;
+    }).join('');
+    gallery.onclick = event => {
+      const button = event.target.closest('.activity-photo-item');
+      if (!button || event.target.closest('video')) return;
+      if (button.dataset.galleryIndex != null) openLightbox(Number(button.dataset.galleryIndex));
+    };
   }
   function renderReviews(reviews, me) {
     document.getElementById('activityReviews').innerHTML = reviews.length ? reviews.map(review => {
-      const own = me?.user_id === review.user_id;
+      const own = isOwnReview(review, me);
       const media = (review.media || []).map(item => mediaHTML(item, own)).join('');
       const replyMedia = (review.reply?.media || []).map(item => mediaHTML(item)).join('');
       const reply = review.reply ? `<div class="business-reply"><b>Phản hồi từ doanh nghiệp</b><p>${api.escapeHTML(review.reply.content)}</p><div class="review-media-list">${replyMedia}</div></div>` : '';
       return `<article class="review-card" data-review-id="${api.escapeHTML(review.review_id)}" data-rating="${review.rating}" data-content="${api.escapeHTML(review.content || '')}"><div class="review-top"><div class="review-name">${api.escapeHTML(review.reviewer_name)}</div><div class="review-stars">${'★'.repeat(Math.max(0, Math.min(5, review.rating)))}</div><div class="review-date">${api.escapeHTML(new Date(review.created_at).toLocaleDateString('vi-VN'))}</div></div><div class="review-text">${api.escapeHTML(review.content || '')}</div><div class="review-media-list">${media}</div>${reply}${own ? '<div class="review-actions"><button class="btn btn-secondary edit-review" type="button">Sửa</button><button class="btn btn-ghost delete-review" type="button">Xóa</button></div>' : ''}</article>`;
     }).join('') : '<p>Chưa có đánh giá.</p>';
   }
+  function setupReviewImageLightbox() {
+    const lightbox = document.getElementById('reviewImageLightbox');
+    const image = document.getElementById('reviewImageLarge');
+    const closeButton = document.getElementById('closeReviewImage');
+    const previousButton = document.getElementById('previousReviewImage');
+    const nextButton = document.getElementById('nextReviewImage');
+    const count = document.getElementById('reviewImageCount');
+    let reviewImages = [];
+    let currentIndex = 0;
+    const showImage = index => {
+      if (!reviewImages.length) return;
+      currentIndex = (index + reviewImages.length) % reviewImages.length;
+      const thumbnail = reviewImages[currentIndex];
+      image.src = thumbnail.dataset.reviewImage;
+      image.alt = thumbnail.alt || 'Ảnh đánh giá phóng to';
+      count.textContent = `${currentIndex + 1} / ${reviewImages.length}`;
+      previousButton.hidden = reviewImages.length < 2;
+      nextButton.hidden = reviewImages.length < 2;
+    };
+    const close = () => {
+      lightbox.classList.remove('open');
+      image.removeAttribute('src');
+      reviewImages = [];
+      count.textContent = '';
+      document.body.style.overflow = '';
+    };
+    document.getElementById('activityReviews').addEventListener('click', event => {
+      const thumbnail = event.target.closest('[data-review-image]');
+      const reviewCard = thumbnail?.closest('[data-review-id]');
+      if (!thumbnail || !reviewCard) return;
+      reviewImages = [...reviewCard.querySelectorAll('[data-review-image]')];
+      currentIndex = reviewImages.indexOf(thumbnail);
+      showImage(currentIndex);
+      lightbox.classList.add('open');
+      document.body.style.overflow = 'hidden';
+    });
+    closeButton.addEventListener('click', close);
+    previousButton.addEventListener('click', () => showImage(currentIndex - 1));
+    nextButton.addEventListener('click', () => showImage(currentIndex + 1));
+    lightbox.addEventListener('click', event => {
+      if (event.target === lightbox) close();
+    });
+    document.addEventListener('keydown', event => {
+      if (!lightbox.classList.contains('open')) return;
+      if (event.key === 'Escape') close();
+      if (event.key === 'ArrowLeft') showImage(currentIndex - 1);
+      if (event.key === 'ArrowRight') showImage(currentIndex + 1);
+    });
+  }
   function buildReviewForm(existingReview, me) {
-    if (!me || existingReview) return;
+    let formArea = document.getElementById('reviewFormArea');
+    if (me && existingReview) {
+      formArea?.remove();
+      return;
+    }
+    if (!formArea) {
+      formArea = document.createElement('div');
+      formArea.id = 'reviewFormArea';
+      document.getElementById('activityReviews').parentElement.after(formArea);
+    }
+    if (!me) {
+      formArea.innerHTML = '<div class="review-form"><h3>Viết đánh giá</h3><p>Đăng nhập để chấm sao và chia sẻ trải nghiệm của bạn.</p><a class="btn btn-primary" href="../log-in.html">Đăng nhập để đánh giá</a></div>';
+      return;
+    }
+    renderReviewEditor(null, formArea, me);
+  }
+
+  function renderReviewEditor(existingReview, formArea, me, { alreadyReviewed = false } = {}) {
     const form = document.createElement('form');
     form.className = 'review-form';
-    form.innerHTML = '<h3>Viết đánh giá</h3><label>Điểm (1–5)<input id="newRating" type="number" min="1" max="5" value="5" required></label><label>Nội dung<textarea id="newReview" rows="3" maxlength="3000"></textarea></label><label>Ảnh/video (có thể chọn nhiều)<input id="newReviewMedia" type="file" accept="image/*,video/*" multiple></label><button class="btn btn-primary" type="submit">Gửi đánh giá</button><p id="reviewStatus" class="form-status"></p>';
-    document.getElementById('activityReviews').parentElement.after(form);
+    const currentRating = existingReview ? Number(existingReview.rating) : 0;
+    const starsMarkup = Array.from({ length: 5 }, (_, index) => {
+      const rating = index + 1;
+      const selected = rating <= currentRating;
+      return `<button class="review-rating-star${selected ? ' selected' : ''}" type="button" role="radio" aria-checked="${rating === currentRating}" aria-label="${rating} sao" data-rating="${rating}" ${alreadyReviewed ? 'disabled' : ''}>★</button>`;
+    }).join('');
+    form.innerHTML = `<h3>${existingReview ? 'Chỉnh sửa đánh giá của bạn' : 'Viết đánh giá'}</h3>${alreadyReviewed ? '<p class="form-status">Bạn đã đánh giá hoạt động này. Hãy dùng nút “Sửa” trên đánh giá hiện có để cập nhật.</p>' : ''}<div class="review-rating-control"><span style="font-size:13px;font-weight:600;">Đánh giá</span><div class="review-rating-stars" role="radiogroup" aria-label="Chọn số sao">${starsMarkup}</div><span class="review-rating-value">${currentRating ? `${currentRating} sao` : 'Chưa chọn'}</span><input class="new-rating" type="hidden" value="${currentRating}"></div><label>Nội dung<textarea class="new-review" rows="3" maxlength="3000" ${alreadyReviewed ? 'disabled' : ''}>${api.escapeHTML(existingReview?.content || '')}</textarea></label><label>Ảnh/video (có thể chọn nhiều)<input class="new-review-media" type="file" accept="image/*,video/*" multiple ${alreadyReviewed ? 'disabled' : ''}></label><div class="review-media-preview" aria-live="polite"></div><div><button class="btn btn-primary" type="submit" ${alreadyReviewed ? 'disabled' : ''}>${existingReview ? 'Lưu thay đổi' : 'Gửi đánh giá'}</button>${existingReview ? '<button class="btn btn-secondary review-form-cancel" type="button">Hủy sửa</button>' : ''}</div><p class="form-status review-status"></p>`;
+    formArea.replaceChildren(form);
+    const uploadInput = form.querySelector('.new-review-media');
+    const preview = form.querySelector('.review-media-preview');
+    let previewUrls = [];
+    uploadInput.addEventListener('change', () => {
+      previewUrls.forEach(url => URL.revokeObjectURL(url));
+      previewUrls = [];
+      preview.replaceChildren();
+      for (const file of uploadInput.files) {
+        const url = URL.createObjectURL(file);
+        previewUrls.push(url);
+        const item = document.createElement('div');
+        item.className = 'review-media-preview-item';
+        if (file.type.startsWith('video/')) {
+          const video = document.createElement('video');
+          video.src = url;
+          video.muted = true;
+          video.preload = 'metadata';
+          item.append(video);
+        } else {
+          const image = document.createElement('img');
+          image.src = url;
+          image.alt = `Ảnh xem trước: ${file.name}`;
+          item.append(image);
+        }
+        preview.append(item);
+      }
+    });
+    const stars = [...form.querySelectorAll('.review-rating-star')];
+    const updateRating = rating => {
+      form.querySelector('.new-rating').value = String(rating);
+      form.querySelector('.review-rating-value').textContent = `${rating} sao`;
+      stars.forEach((star, index) => {
+        const selected = index < rating;
+        star.classList.toggle('selected', selected);
+        star.setAttribute('aria-checked', String(Number(star.dataset.rating) === rating));
+      });
+    };
+    stars.forEach(star => {
+      star.addEventListener('click', () => updateRating(Number(star.dataset.rating)));
+      star.addEventListener('mouseenter', () => {
+        stars.forEach((item, index) => item.classList.toggle('preview', index < Number(star.dataset.rating)));
+      });
+    });
+    form.querySelector('.review-rating-stars').addEventListener('mouseleave', () => stars.forEach(star => star.classList.remove('preview')));
+    form.querySelector('.review-form-cancel')?.addEventListener('click', () => formArea.remove());
+    if (alreadyReviewed) return;
     form.addEventListener('submit', async event => {
       event.preventDefault();
-      const rating = Number(document.getElementById('newRating').value);
-      if (!Number.isInteger(rating) || rating < 1 || rating > 5) return;
-      const button = form.querySelector('button[type=submit]'); const status = document.getElementById('reviewStatus');
+      const rating = Number(form.querySelector('.new-rating').value);
+      if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+        form.querySelector('.review-status').textContent = 'Vui lòng chọn số sao trước khi gửi đánh giá.';
+        return;
+      }
+      const button = form.querySelector('button[type=submit]'); const status = form.querySelector('.review-status');
       button.disabled = true; status.textContent = 'Đang gửi đánh giá…';
       try {
-        const review = await api.request('/reviews', { method: 'POST', body: { activity_id: id, rating, content: document.getElementById('newReview').value.trim() || null } });
-        for (const file of [...document.getElementById('newReviewMedia').files]) {
+        const payload = { rating, content: form.querySelector('.new-review').value.trim() || null };
+        const review = existingReview
+          ? await api.request(`/reviews/${encodeURIComponent(existingReview.review_id)}`, { method: 'PATCH', body: payload })
+          : await api.request('/reviews', { method: 'POST', body: { activity_id: id, ...payload } });
+        for (const file of [...uploadInput.files]) {
           const body = new FormData(); body.append('file', file);
           await api.request(`/reviews/${encodeURIComponent(review.review_id)}/media/upload`, { method: 'POST', body });
         }
@@ -102,27 +233,16 @@
     text('activityName', activity.name); text('activityMeta', `${activity.business_name} · ${activity.address}${activity.avg_rating == null ? '' : ` · ★ ${activity.avg_rating} (${activity.review_count} đánh giá)`}`);
     text('activityPrice', api.priceLabel(activity.price_text, activity.price)); text('activityDuration', 'Theo khung giờ');
     text('activityHours', api.hours(activity.time_open, activity.time_close)); text('activityDistance', activity.distance_km == null ? 'Chưa chọn vị trí tìm kiếm' : `${activity.distance_km} km`);
-    text('activityDescription', activity.description || 'Chưa có mô tả.'); text('activityMapPin', `${activity.name} · ${activity.address}`);
+    text('activityDescription', activity.description || 'Chưa có mô tả.');
+    text('activityLocation', activity.address || '');
     text('sideActivityPrice', api.priceLabel(activity.price_text, activity.price)); text('sideActivityMeta', api.hours(activity.time_open, activity.time_close));
     text('reviewsTitle', `Đánh giá (${reviews.length})`);
     document.getElementById('activityTags').innerHTML = matched.map(item => `<span class="tag">${api.escapeHTML(item.name)}</span>`).join('');
-    renderGallery(activity); renderReviews(reviews, me); buildReviewForm(reviews.find(review => review.user_id === me?.user_id), me);
-    const mapsLine = document.getElementById('activityMapsLine');
-    const mapsLinkText = document.getElementById('activityMapsLink');
-    if (activity.google_maps_url && mapsLine && mapsLinkText) {
-      mapsLinkText.href = activity.google_maps_url;
-      mapsLinkText.textContent = activity.google_maps_url;
-      mapsLinkText.title = activity.google_maps_url;
-      mapsLine.style.display = '';
-    }
-    const mapLink = document.getElementById('mapLink');
+    renderGallery(activity); renderReviews(reviews, me); setupReviewImageLightbox(); buildReviewForm(reviews.find(review => isOwnReview(review, me)), me);
     if (activity.google_maps_url) {
-      mapLink.href = activity.google_maps_url;
-      mapLink.target = '_blank';
-      mapLink.rel = 'noopener noreferrer';
-      mapLink.style.display = '';
-      mapLink.dataset.googleMapsUrl = activity.google_maps_url;
-      mapLink.title = activity.google_maps_url;
+      const directionsLink = document.getElementById('activityDirectionsLink');
+      directionsLink.href = activity.google_maps_url;
+      document.getElementById('activityDirectionsRow').hidden = false;
     }
     document.getElementById('detailSearchForm').addEventListener('submit', event => {
       event.preventDefault(); const keyword = document.getElementById('detailSearchInput').value.trim();
@@ -134,9 +254,16 @@
         if (event.target.closest('.delete-review-media')) { if (!confirm('Xóa ảnh/video này khỏi đánh giá?')) return; await api.request(`/reviews/media/${encodeURIComponent(event.target.closest('.delete-review-media').dataset.mediaId)}`, { method: 'DELETE' }); location.reload(); return; }
         if (event.target.closest('.delete-review')) { if (confirm('Xóa đánh giá này?')) { await api.request(`/reviews/${encodeURIComponent(card.dataset.reviewId)}`, { method: 'DELETE' }); location.reload(); } }
         if (event.target.closest('.edit-review')) {
-          const rating = Number(prompt('Điểm mới (1–5):', card.dataset.rating)); if (!Number.isInteger(rating) || rating < 1 || rating > 5) return;
-          const content = prompt('Nội dung mới:', card.dataset.content); if (content === null) return;
-          await api.request(`/reviews/${encodeURIComponent(card.dataset.reviewId)}`, { method: 'PATCH', body: { rating, content: content.trim() || null } }); location.reload();
+          if (card.querySelector('.review-inline-form')) return;
+          const formArea = document.createElement('div');
+          formArea.className = 'review-inline-form';
+          card.append(formArea);
+          renderReviewEditor({
+            review_id: card.dataset.reviewId,
+            rating: Number(card.dataset.rating),
+            content: card.dataset.content,
+          }, formArea, me);
+          formArea.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
       } catch (error) { alert(error.message); }
     });

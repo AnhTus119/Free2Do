@@ -7,10 +7,60 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="app-style.css">
 <style>
-  .gallery{display:grid;grid-template-columns:2fr 1fr 1fr;grid-template-rows:1fr 1fr;gap:8px;height:340px;border-radius:20px;overflow:hidden;margin-bottom:28px;}
-  .gallery div{display:flex;align-items:center;justify-content:center;font-size:36px;}
-  .gallery .g1{grid-row:1/3;background:#F3D9A6;}
+  .activity-photo-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr));gap:8px;height:320px;margin-bottom:28px;}
+  .activity-photo-grid--0{grid-template-columns:1fr;grid-template-rows:1fr;}
+  .activity-photo-grid--1{grid-template-columns:1fr;grid-template-rows:1fr;}
+  .activity-photo-grid--2{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:1fr;}
+  .activity-photo-grid--3{grid-template-columns:2fr 1fr;grid-template-rows:repeat(2,minmax(0,1fr));}
+  .activity-photo-grid--4{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr));}
+  .activity-photo-grid--5{grid-template-columns:2fr 1fr 1fr;grid-template-rows:repeat(2,minmax(0,1fr));}
+  .activity-photo-grid--3 .activity-photo-item:first-child,.activity-photo-grid--5 .activity-photo-item:first-child{grid-row:1/3;}
+  .activity-photo-grid--3 .activity-photo-item:nth-child(2){grid-column:2;grid-row:1;}
+  .activity-photo-grid--3 .activity-photo-item:nth-child(3){grid-column:2;grid-row:2;}
+  .activity-photo-grid--5 .activity-photo-item:nth-child(2){grid-column:2;grid-row:1;}
+  .activity-photo-grid--5 .activity-photo-item:nth-child(3){grid-column:3;grid-row:1;}
+  .activity-photo-grid--5 .activity-photo-item:nth-child(4){grid-column:2;grid-row:2;}
+  .activity-photo-grid--5 .activity-photo-item:nth-child(5){grid-column:3;grid-row:2;}
+  .activity-photo-item{position:relative;display:flex;align-items:center;justify-content:center;min-width:0;min-height:0;padding:0;border:0;border-radius:10px;overflow:hidden;background:#fff;color:inherit;cursor:zoom-in;}
+  .activity-photo-item img,.activity-photo-item video{display:block;width:100%;height:100%;object-fit:cover;}
+  .activity-photo-more{position:absolute;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.56);color:#fff;font-size:clamp(22px,3vw,38px);font-weight:700;}
+  .activity-photo-empty{grid-column:1/-1;display:grid;place-items:center;border-radius:10px;background:#F3D9A6;color:var(--muted);font-size:16px;}
+  .activity-directions-row{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-top:10px;font-size:13.5px;line-height:1.5;}
+  .activity-directions-label{display:inline-flex;align-items:center;gap:6px;color:#c94e6c;font-size:14px;font-weight:700;}
+  .activity-directions-label svg{width:16px;height:16px;flex:none;transition:transform .15s;}
+  .activity-directions-row:hover .activity-directions-label svg{transform:translateX(3px);}
+  .activity-directions-link{display:inline-flex;align-items:center;gap:7px;padding:8px 12px;border:1px solid #f3c8d1;border-radius:999px;background:#fff5f7;color:#c94e6c;font-weight:600;text-decoration:none;transition:background .15s,border-color .15s,transform .15s;}
+  .activity-directions-link:hover{background:#fde8ed;border-color:#eaa8b7;transform:translateY(-1px);}
+  .activity-directions-link:focus-visible{outline:3px solid #df5c7b55;outline-offset:2px;}
+  .activity-directions-link svg{width:16px;height:16px;flex:none;}
   .detail-grid{display:grid;grid-template-columns:1.6fr 1fr;gap:32px;align-items:start;}
+  .review-rating-control{display:flex;align-items:center;gap:6px;}
+  .review-rating-stars{display:flex;align-items:center;gap:4px;}
+  .review-rating-star{border:0;background:transparent;padding:0 2px;color:#c8bcae;font-size:32px;line-height:1;cursor:pointer;transition:color .15s,transform .15s;}
+  .review-rating-star:hover{transform:scale(1.12);}
+  .review-rating-star.selected,.review-rating-star.preview{color:#e7a928;}
+  .review-rating-value{min-width:74px;color:var(--muted);font-size:13px;}
+  .review-media-item img{cursor:zoom-in;transition:transform .15s;}
+  .review-media-item img:hover{transform:scale(1.03);}
+  .review-image-lightbox{position:fixed;inset:0;z-index:3000;display:none;align-items:center;justify-content:center;padding:56px 20px 20px;background:rgba(0,0,0,.88);}
+  .review-image-lightbox.open{display:flex;}
+  .review-image-lightbox img{display:block;max-width:min(92vw,1400px);max-height:86vh;object-fit:contain;border-radius:8px;}
+  .review-image-lightbox-nav{position:absolute;top:50%;transform:translateY(-50%);width:46px;height:46px;border:0;border-radius:50%;background:rgba(255,255,255,.14);color:#fff;font-size:32px;line-height:1;cursor:pointer;}
+  .review-image-lightbox-nav:hover{background:rgba(255,255,255,.26);}
+  .review-image-lightbox-nav[hidden]{display:none;}
+  #previousReviewImage{left:18px;}
+  #nextReviewImage{right:18px;}
+  .review-image-lightbox-count{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);color:#fff;font-size:13px;}
+  .review-image-lightbox-close{position:absolute;top:14px;right:18px;width:44px;height:44px;border:0;border-radius:50%;background:rgba(255,255,255,.14);color:#fff;font-size:32px;line-height:1;cursor:pointer;}
+  .review-image-lightbox-close:hover{background:rgba(255,255,255,.26);}
+  .review-media-preview{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;}
+  .review-media-preview-item{width:92px;height:76px;position:relative;overflow:hidden;border:1px solid var(--line);border-radius:9px;background:var(--paper);}
+  .review-media-preview-item img,.review-media-preview-item video{width:100%;height:100%;display:block;object-fit:cover;}
+  .review-submitted{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px 20px;margin-top:16px;}
+  .review-submitted h3{margin:0 0 6px;font-size:15px;}
+  .review-submitted p{margin:0;color:var(--muted);font-size:13px;line-height:1.5;}
+  .review-form-cancel{margin-left:8px;}
+  @media(max-width:600px){.review-form-cancel{margin:8px 0 0;width:100%;}}
 </style>
 <style>
 /* ===== Font ===== */
@@ -52,13 +102,13 @@ html,body,input,button,select,textarea{font-family:'Inter',system-ui,-apple-syst
 @media(max-width:900px){
   .detail-grid{grid-template-columns:1fr;gap:20px}
   .detail-grid [style*="sticky"]{position:static !important}
-  .gallery{height:260px}
   #activityName{font-size:22px !important}
 }
 @media(max-width:600px){
-  .gallery{grid-template-columns:2fr 1fr;height:200px;border-radius:14px}
-  .gallery>div:nth-child(n+4){display:none}
-  .gallery .g1{font-size:44px}
+  .activity-photo-grid{height:230px;gap:5px}
+  .activity-photo-grid--3{grid-template-columns:1.5fr 1fr}
+  .activity-photo-grid--5{grid-template-columns:1.5fr 1fr 1fr}
+  .activity-photo-item{border-radius:6px}
 }
 </style>
 </head>
@@ -87,6 +137,7 @@ html,body,input,button,select,textarea{font-family:'Inter',system-ui,-apple-syst
       <a href="home.html" class="nav-link">Trang chủ</a>
       <a class="nav-link" href="search.html">Tìm kiếm</a>
       <a href="account.html#yeuthich" class="nav-link">Yêu thích</a>
+      <a href="group.html" class="nav-link">Nhóm</a>
     </div>
   <div class="nav-right">
     
@@ -105,13 +156,7 @@ html,body,input,button,select,textarea{font-family:'Inter',system-ui,-apple-syst
 <div class="wrap" style="padding-top:28px;padding-bottom:60px;">
   <a href="search.html" data-back style="font-size:13px;color:var(--muted);text-decoration:none;">← Quay lại</a>
 
-  <div class="gallery" id="activityGallery" style="margin-top:16px;">
-    <div class="g1" id="galleryIcon">✨</div>
-    <div style="background:#EADFCB;">🖼️</div>
-    <div style="background:#F6D2D8;">🖼️</div>
-    <div style="background:#DDE3CB;">🖼️</div>
-    <div style="background:#E4D5EC;">🖼️</div>
-  </div>
+  <div class="activity-photo-grid" id="activityGallery" style="margin-top:16px;" aria-label="Hình ảnh hoạt động"></div>
 
   <div class="detail-grid">
     <div>
@@ -129,14 +174,11 @@ html,body,input,button,select,textarea{font-family:'Inter',system-ui,-apple-syst
 
       <div class="section-title" style="font-size:16px;">Mô tả</div>
       <p id="activityDescription" style="font-size:13.5px;line-height:1.7;color:var(--ink);"></p>
-      <p id="activityMapsLine" style="display:none;font-size:13.5px;line-height:1.7;margin:8px 0 0;min-width:0;"><b>Google Maps:</b> <a id="activityMapsLink" href="#" target="_blank" rel="noopener noreferrer" style="color:#df5c7b;display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom;"></a></p>
 
-      <div class="section-title" style="font-size:16px;margin-top:28px;">Vị trí</div>
-      <div class="map-box" style="height:220px;margin-top:12px;">
-        <div class="map-grid-bg"></div>
-        <div class="map-pin" id="activityMapPin" style="left:50%;top:45%;"></div>
-        <a id="mapLink" href="#" class="btn btn-secondary map-cta" style="background:#fff;display:none;">Xem đường đi</a>
-      </div>
+      <section style="margin-top:24px;">
+        <h2 class="section-title" style="display:flex;align-items:baseline;gap:6px;font-size:16px;margin:0;"><span>Vị trí:</span><span id="activityLocation" style="font-size:16px;font-weight:400;"></span></h2>
+        <div id="activityDirectionsRow" class="activity-directions-row" hidden><span class="activity-directions-label">Xem đường đi<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span><a id="activityDirectionsLink" class="activity-directions-link" href="#" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 14 21 3"/><path d="M15 3h6v6"/><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/></svg><span>Google Maps</span></a></div>
+      </section>
 
       <div class="section-title" id="reviewsTitle" style="font-size:16px;margin-top:32px;"></div>
       <div style="background:#fff;border:1px solid var(--line);border-radius:16px;padding:8px 20px;margin-top:12px;">
@@ -157,10 +199,18 @@ html,body,input,button,select,textarea{font-family:'Inter',system-ui,-apple-syst
   </div>
 </div>
 
+<div class="review-image-lightbox" id="reviewImageLightbox" role="dialog" aria-modal="true" aria-label="Ảnh đánh giá">
+  <button class="review-image-lightbox-close" id="closeReviewImage" type="button" aria-label="Đóng ảnh">&times;</button>
+  <button class="review-image-lightbox-nav" id="previousReviewImage" type="button" aria-label="Ảnh trước" hidden>‹</button>
+  <img id="reviewImageLarge" alt="Ảnh đánh giá phóng to">
+  <button class="review-image-lightbox-nav" id="nextReviewImage" type="button" aria-label="Ảnh tiếp theo" hidden>›</button>
+  <span class="review-image-lightbox-count" id="reviewImageCount" aria-live="polite"></span>
+</div>
+
 <div class="mobile-nav-panel" id="mobile-nav">
   <div class="mobile-nav-content">
     <button class="mobile-nav-close" type="button" onclick="toggleMobileMenu()">&times;</button>
-    <a href="home.html" class="mobile-nav-link">Trang chủ</a><a href="search.html" class="mobile-nav-link">Tìm kiếm</a><a href="account.html#yeuthich" class="mobile-nav-link">Yêu thích</a>
+    <a href="home.html" class="mobile-nav-link">Trang chủ</a><a href="search.html" class="mobile-nav-link">Tìm kiếm</a><a href="account.html#yeuthich" class="mobile-nav-link">Yêu thích</a><a href="group.html" class="mobile-nav-link">Nhóm</a>
   </div>
 </div>
 <script>
@@ -188,6 +238,6 @@ document.addEventListener('click', function (e) {
 </script>
 <script src="../js/config.js"></script>
 <script src="../js/customer-api.js?v=20261003-speed"></script>
-<script src="../js/customer-detail.js?v=20261003-speed"></script>
+<script src="../js/customer-detail.js?v=20261013-location-label"></script>
 </body>
 </html>

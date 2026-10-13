@@ -46,6 +46,25 @@
   .copy-link-btn{height:42px;border:1.5px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);cursor:pointer;font:700 12.5px 'Inter',sans-serif;padding:0 12px;}
   .copy-link-btn:hover{border-color:var(--rose);color:var(--rose-dark);}
   .member-form{border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:12px;position:relative;}
+  .group-name-field{display:block;margin-bottom:16px;font-size:12px;font-weight:700;color:var(--brown);}
+  .group-name-field input{width:100%;height:42px;margin-top:7px;border:1.5px solid var(--line);border-radius:10px;padding:0 12px;font-family:inherit;font-size:13px;}
+  .group-name-field input:focus{outline:none;border-color:var(--rose);}
+  .your-groups-panel{margin-top:28px;background:#fff;border:1px solid var(--line);border-radius:18px;padding:20px;}
+  .your-groups-panel h2{font-size:18px;margin:0 0 14px;}
+  .your-groups-list{display:grid;gap:10px;}
+  .your-group-card{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;width:100%;padding:14px 16px;text-align:left;border:1px solid var(--line);border-radius:12px;background:#fff;color:var(--ink);cursor:pointer;font-family:inherit;}
+  .your-group-card:hover{border-color:var(--rose);}
+  .your-group-name{font-size:14px;font-weight:700;}
+  .your-group-meta{display:flex;gap:12px;flex-wrap:wrap;margin-top:5px;color:var(--muted);font-size:12px;}
+  .your-group-role{padding:5px 10px;border-radius:100px;background:var(--cream);color:var(--brown);font-size:11px;font-weight:700;white-space:nowrap;}
+  .your-groups-empty{margin:0;color:var(--muted);font-size:13px;}
+  .group-back-button{margin-bottom:18px;}
+  .group-vote-summary{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:18px;}
+  .group-vote-summary h3{font-size:15px;margin:0 0 10px;}
+  .group-vote-row{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-top:1px solid var(--line);font-size:13px;}
+  .group-vote-row:first-of-type{border-top:0;}
+  .group-vote-choice{font-weight:600;text-align:right;}
+  #groupWorkspace.group-home-mode>:not(.group-overlay){display:none;}
   .remove-member-btn{position:absolute;right:12px;top:12px;border:0;background:transparent;color:var(--danger);font-size:20px;line-height:1;cursor:pointer;}
   .member-form h3{font-size:14px;margin:0 0 14px;}
   .member-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
@@ -67,6 +86,26 @@
   .activity-popup-meta div{background:var(--paper);border-radius:10px;padding:10px;}
   .group-actions{display:flex;gap:10px;margin-top:18px;}
   .group-actions .btn{flex:1;}
+  .group-tab-header{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:28px;}
+  .group-tab-header .tabs{margin-bottom:0;}
+  .group-invite-toolbar{display:none;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap;}
+  .group-invite-toolbar .copy-link-btn{white-space:nowrap;}
+  .group-link-status{font-size:12px;color:var(--success);min-height:1em;}
+  .group-lifecycle-actions{display:flex;justify-content:flex-end;margin:12px 0 18px;}
+  .group-lifecycle-actions .btn{border-color:var(--danger);color:var(--danger);}
+  .invite-success{display:none;}
+  .invite-success p{color:var(--muted);font-size:14px;line-height:1.6;}
+  .invite-success .invite-row{margin:20px 0 8px;}
+  .invite-copy-status{min-height:20px;color:var(--success);font-size:13px;font-weight:600;}
+  .invite-close-row{display:flex;justify-content:flex-end;margin-top:16px;}
+  .invite-consent{text-align:center;max-width:440px;}
+  .invite-consent h2{font-size:21px;margin:0 0 8px;}
+  .invite-consent p{color:var(--muted);line-height:1.6;margin:0 0 20px;}
+  .invite-consent .group-actions{margin-top:0;}
+  .confirm-modal{width:min(440px,100%);}
+  .confirm-modal p{font-size:15px;line-height:1.6;margin:0;}
+  .confirm-modal .group-actions{margin-top:22px;}
+  @media(max-width:700px){.group-tab-header{align-items:stretch;flex-direction:column}.group-invite-toolbar{justify-content:flex-start}.group-invite-toolbar .copy-link-btn{flex:1}}
   .member-edit-modal{width:min(620px,100%);}
   .member-edit-heading{display:flex;align-items:center;gap:12px;}
   .member-edit-heading .member-avatar{width:46px;height:46px;background:var(--cream);font-size:17px;}
@@ -155,7 +194,7 @@ html,body,input,button,select,textarea{font-family:'Inter',system-ui,-apple-syst
     <a href="home.html" class="nav-logo" style="text-decoration:none; color:inherit;"><img src="Logo.svg" alt="logo" style="width:38px;height:auto;">FREE2DO</a>
     <div class="nav-search"><svg class="icon"><use href="#icon-search"></use></svg><input type="text" placeholder="Tìm hoạt động, địa điểm..."></div>
   </div>
-  <div class="nav-center"><a href="home.html" class="nav-link">Trang chủ</a><a class="nav-link" href="search.html">Tìm kiếm</a><a href="account.html#yeuthich" class="nav-link">Yêu thích</a></div>
+  <div class="nav-center"><a href="home.html" class="nav-link">Trang chủ</a><a class="nav-link" href="search.html">Tìm kiếm</a><a href="account.html#yeuthich" class="nav-link">Yêu thích</a><a href="group.html" class="nav-link active">Nhóm</a></div>
   <div class="nav-right">
     
     <div class="nav-icon"><svg class="icon"><use href="#icon-bell"></use></svg><span class="dot-badge"></span></div>
@@ -164,30 +203,46 @@ html,body,input,button,select,textarea{font-family:'Inter',system-ui,-apple-syst
 </div>
 
 <div class="wrap" style="padding-top:32px;padding-bottom:60px;max-width:900px;">
-  <div class="section-title"><svg class="icon icon-lg"><use href="#icon-users"></use></svg> Lên kế hoạch nhóm</div>
-  <div class="section-sub">Mỗi người có thời gian, vị trí, ngân sách và sở thích khác nhau — FREE2DO tìm hoạt động phù hợp nhất cho cả nhóm.</div>
+  <div id="groupHome">
+    <div class="section-title"><svg class="icon icon-lg"><use href="#icon-users"></use></svg> Lên kế hoạch nhóm</div>
+    <div class="section-sub">Mỗi người có thời gian, vị trí, ngân sách và sở thích khác nhau — FREE2DO tìm hoạt động phù hợp nhất cho cả nhóm.</div>
+    <div id="groupStart" style="background:#fff;border:1px solid var(--line);border-radius:18px;padding:28px;text-align:center;">
+      <div class="section-title" style="font-size:18px;">Tạo nhóm mới</div>
+      <p class="section-sub" style="margin-bottom:18px;">Tạo nhóm, chia sẻ link mời và tìm hoạt động phù hợp cho cả nhóm.</p>
+      <button class="btn btn-primary" type="button" onclick="openGroupModal()"><svg class="icon icon-white"><use href="#icon-users"></use></svg> Tạo nhóm mới</button>
+    </div>
+    <section class="your-groups-panel" aria-labelledby="yourGroupsTitle">
+      <h2 id="yourGroupsTitle">Nhóm của tôi</h2>
+      <div class="your-groups-list" id="yourGroupsList"><p class="your-groups-empty">Đang tải danh sách nhóm...</p></div>
+    </section>
+  </div>
 
-  <div class="tabs">
-    <button class="tab-btn" data-tab="matching" onclick="selectTab('matching')">Ghép lịch nhóm</button>
-    <button class="tab-btn" data-tab="expense" onclick="selectTab('expense')">Chia chi phí</button>
+  <div id="groupWorkspace" class="group-home-mode">
+  <button class="btn btn-secondary group-back-button" type="button" onclick="returnToGroupList()">← Quay lại nhóm của tôi</button>
+  <div class="section-title" id="currentGroupTitle"></div>
+  <div class="section-sub">Ghép lịch, chốt hoạt động và theo dõi chi phí cùng các thành viên.</div>
+  <div class="group-tab-header">
+    <div class="tabs">
+      <button class="tab-btn" data-tab="matching" onclick="selectTab('matching')">Ghép lịch nhóm</button>
+      <button class="tab-btn" data-tab="expense" onclick="selectTab('expense')">Chia chi phí</button>
+    </div>
+    <div class="group-invite-toolbar" id="groupInviteToolbar">
+      <button class="copy-link-btn" type="button" onclick="copyGroupLink()">Sao chép link nhóm</button>
+      <span class="group-link-status" id="groupLinkStatus" aria-live="polite"></span>
+    </div>
   </div>
 
   <!-- ===== TAB 1: GHÉP LỊCH NHÓM ===== -->
   <div class="tab-pane" id="pane-matching">
-    <div id="groupStart" style="background:#fff;border:1px solid var(--line);border-radius:18px;padding:28px;text-align:center;">
-      <div class="section-title" style="font-size:18px;">Bắt đầu ghép lịch nhóm</div>
-      <p class="section-sub" style="margin-bottom:18px;">Tạo nhóm, thêm thông tin thành viên rồi tìm hoạt động phù hợp cho tất cả.</p>
-      <button class="btn btn-primary" type="button" onclick="openGroupModal()"><svg class="icon icon-white"><use href="#icon-users"></use></svg> Tạo nhóm</button>
-    </div>
-
     <div class="created-members" id="createdMembers">
       <div class="section-title" id="memberCountTitle" style="font-size:15px;"></div>
       <div id="memberCards"></div>
+      <div class="group-lifecycle-actions" id="groupLifecycleActions"></div>
       <button class="btn btn-primary btn-block" type="button" onclick="showGroupResult()">Tìm hoạt động phù hợp cho cả nhóm</button>
-      <div id="groupHistory" style="margin-top:24px"></div>
     </div>
 
     <div class="group-result" id="group-result" style="display:none;">
+      <div id="groupVoteSummary" class="group-vote-summary"></div>
       <div id="bestMatch"></div>
       <div class="suggestions" id="suggestions">
         <div class="section-title" style="font-size:15px;">Gợi ý phù hợp khác</div>
@@ -195,7 +250,7 @@ html,body,input,button,select,textarea{font-family:'Inter',system-ui,-apple-syst
       </div>
 
       <div style="display:flex;gap:10px;margin-top:20px;">
-        <button class="btn btn-primary" style="flex:1;" onclick="selectTab('expense')">Chốt hoạt động & Chia chi phí</button>
+        <button class="btn btn-primary" id="resultExpenseButton" style="flex:1;" onclick="selectTab('expense')" disabled>Chờ host chốt hoạt động</button>
         <button class="btn btn-secondary" type="button" id="suggestionsToggle" onclick="toggleSuggestions()">Xem gợi ý khác</button>
       </div>
     </div>
@@ -203,19 +258,52 @@ html,body,input,button,select,textarea{font-family:'Inter',system-ui,-apple-syst
 
   <div class="group-overlay" id="groupOverlay" role="dialog" aria-modal="true" aria-labelledby="groupModalTitle">
     <div class="group-modal">
-      <div class="group-modal-head">
+      <div id="groupFormStep">
+        <div class="group-modal-head">
         <div><h2 id="groupModalTitle">Tạo nhóm ghép lịch</h2><p>Nhập thông tin của bạn để tạo nhóm và gửi link mời.</p></div>
         <button class="modal-close" type="button" onclick="closeGroupModal()" aria-label="Đóng">×</button>
+        </div>
+        <label class="group-name-field" id="groupNameField">Tên nhóm<input id="groupNameInput" type="text" maxlength="60" required placeholder="Ví dụ: Cuối tuần đi chơi"></label>
+        <div id="memberForms"></div>
+        <button class="add-member-btn" type="button" onclick="addMemberForm()" style="display:none"><svg class="icon"><use href="#icon-plus"></use></svg> Thêm thành viên</button>
+        <div class="group-actions">
+          <button class="btn btn-secondary" type="button" onclick="closeGroupModal()">Hủy</button>
+          <button class="btn btn-primary" type="button" onclick="createGroup()">Tạo nhóm</button>
+        </div>
       </div>
-      <div class="invite-row">
-        <input id="inviteLink" type="text" readonly placeholder="Link mời tham gia nhóm">
-        <button class="copy-link-btn" type="button" id="copyInviteButton" onclick="createInviteLink()">Tạo link nhóm</button>
+      <div class="invite-success" id="inviteSuccessStep">
+        <div class="group-modal-head">
+          <div><h2>Mời bạn bè vào nhóm</h2><p>Tạo link mời và gửi cho bạn bè để cùng tham gia.</p></div>
+          <button class="modal-close" type="button" onclick="closeGroupModal()" aria-label="Đóng">×</button>
+        </div>
+        <div class="invite-row">
+          <input id="inviteLink" type="text" readonly aria-label="Link mời tham gia nhóm">
+          <button class="copy-link-btn" type="button" id="copyInviteButton" onclick="copyInviteLink()">Sao chép link</button>
+        </div>
+        <div class="invite-copy-status" id="inviteCopyStatus" aria-live="polite"></div>
+        <div class="invite-close-row"><button class="btn btn-primary" type="button" onclick="closeGroupModal()">Đóng</button></div>
       </div>
-      <div id="memberForms"></div>
-      <button class="add-member-btn" type="button" onclick="addMemberForm()" style="display:none"><svg class="icon"><use href="#icon-plus"></use></svg> Thêm thành viên</button>
+    </div>
+  </div>
+
+  <div class="group-overlay" id="groupInviteConsent" role="dialog" aria-modal="true" aria-labelledby="inviteConsentTitle">
+    <div class="group-modal invite-consent">
+      <h2 id="inviteConsentTitle">Host mời bạn vào nhóm</h2>
+      <p>Bạn có muốn tham gia nhóm này không?</p>
       <div class="group-actions">
-        <button class="btn btn-secondary" type="button" onclick="closeGroupModal()">Hủy</button>
-        <button class="btn btn-primary" type="button" onclick="createGroup()">Tạo nhóm</button>
+        <button class="btn btn-secondary" type="button" onclick="declineGroupInvite()">Từ chối</button>
+        <button class="btn btn-primary" type="button" onclick="acceptGroupInvite()">Tham gia</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="group-overlay" id="groupActionConfirm" role="dialog" aria-modal="true" aria-labelledby="groupActionConfirmTitle">
+    <div class="group-modal confirm-modal">
+      <div class="group-modal-head"><h2 id="groupActionConfirmTitle">Xác nhận</h2></div>
+      <p id="groupActionConfirmText"></p>
+      <div class="group-actions">
+        <button class="btn btn-secondary" type="button" onclick="closeGroupActionConfirm()">Hủy</button>
+        <button class="btn btn-primary" type="button" id="confirmGroupActionButton" onclick="confirmGroupAction()">Chắc chắn</button>
       </div>
     </div>
   </div>
@@ -248,12 +336,13 @@ html,body,input,button,select,textarea{font-family:'Inter',system-ui,-apple-syst
 
   </div>
 
+  </div>
 </div>
 
 <div class="mobile-nav-panel" id="mobile-nav">
   <div class="mobile-nav-content">
     <button class="mobile-nav-close" type="button" onclick="toggleMobileMenu()">&times;</button>
-    <a href="home.html" class="mobile-nav-link">Trang chủ</a><a href="search.html" class="mobile-nav-link">Tìm kiếm</a><a href="account.html#yeuthich" class="mobile-nav-link">Yêu thích</a>
+    <a href="home.html" class="mobile-nav-link">Trang chủ</a><a href="search.html" class="mobile-nav-link">Tìm kiếm</a><a href="account.html#yeuthich" class="mobile-nav-link">Yêu thích</a><a href="group.html" class="mobile-nav-link active">Nhóm</a>
   </div>
 </div>
 <script>
@@ -271,7 +360,7 @@ function toggleMobileMenu(){
 </script>
 <script src="../js/config.js"></script>
 <script src="../js/customer-api.js"></script>
-<script src="../js/group.js"></script>
+<script src="../js/group.js?v=20261012-group-flow"></script>
 
 </body>
 </html>

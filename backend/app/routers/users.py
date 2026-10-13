@@ -93,3 +93,4 @@ def update_my_categories(
     db.commit()
     db.refresh(user)
     return [uc.category for uc in user.categories]
+

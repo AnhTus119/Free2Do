@@ -1,10 +1,14 @@
 (function () {
   'use strict';
   const api = window.CustomerAPI;
+  const CUSTOM_INTERESTS_KEY = 'free2do_custom_interests';
   const title = document.querySelector('#pane-hoso [style*="font-size:19px"]');
   const subtitle = title?.nextElementSibling;
   let available = [];
   let selected = new Set();
+  let customInterests = [];
+  let customInterestInputOpen = false;
+  let customInterestDraft = '';
   let currentUser = null;
   function selectTab(tab) {
     document.querySelectorAll('.tab-pane').forEach(p => p.classList.toggle('active', p.id === `pane-${tab}`));
@@ -14,15 +18,20 @@
   window.selectTab = selectTab;
   window.toggleEdit = () => { document.getElementById('edit-mode').style.display = document.getElementById('edit-mode').style.display === 'none' ? 'block' : 'none'; };
   window.saveProfile = async () => {
-    const button = document.querySelector('#edit-mode button'); button.disabled = true;
+    const button = document.getElementById('profileSaveButton'); button.disabled = true;
     try {
       const name = document.getElementById('profileName').value.trim();
       const phone = document.getElementById('profilePhone').value.trim();
+      customInterests = collectCustomInterests();
       if (!name) throw new Error('Họ và tên không được để trống.');
+      if (customInterests.length > 20) throw new Error('Bạn chỉ có thể lưu tối đa 20 sở thích cá nhân.');
+      localStorage.setItem(CUSTOM_INTERESTS_KEY, JSON.stringify(customInterests));
       const [profile] = await Promise.all([
         api.request('/users/me', { method: 'PATCH', body: { name, phone: phone || null } }),
         api.request('/users/me/categories', { method: 'PUT', body: { category_ids: [...selected] } }),
       ]);
+      customInterests = collectCustomInterests();
+      localStorage.setItem(CUSTOM_INTERESTS_KEY, JSON.stringify(customInterests));
       currentUser = profile;
       if (title) title.textContent = profile.name;
       if (subtitle) subtitle.textContent = [profile.email, profile.phone].filter(Boolean).join(' · ');
@@ -31,18 +40,98 @@
       document.getElementById('save-toast').textContent = '✓ Đã cập nhật hồ sơ và sở thích.';
       document.getElementById('save-toast').style.display = 'block';
       document.getElementById('edit-mode').style.display = 'none';
+      customInterestInputOpen = false;
+      customInterestDraft = '';
       renderCategories();
     } catch (error) { alert(error.message); } finally { button.disabled = false; }
   };
   function renderCategories() {
-    document.querySelector('#view-mode .chip-row').innerHTML = available.filter(c => selected.has(c.category_id)).map(c => `<span class="chip active">${api.escapeHTML(c.name)}</span>`).join('') || '<span>Chưa chọn sở thích.</span>';
-    document.querySelector('#edit-mode .chip-row').innerHTML = available.map(c => `<button type="button" class="chip ${selected.has(c.category_id) ? 'active' : ''}" data-category-id="${api.escapeHTML(c.category_id)}">${api.escapeHTML(c.name)}</button>`).join('');
+    const chosenCategories = available.filter(category => selected.has(category.category_id));
+    const viewChips = [
+      ...chosenCategories.map(category => `<span class="chip active">${api.escapeHTML(category.name)}</span>`),
+      ...customInterests.map(interest => `<span class="chip active">${api.escapeHTML(interest)}</span>`),
+    ];
+    document.querySelector('#view-mode .chip-row').innerHTML = viewChips.join('') || '<span>Chưa chọn sở thích.</span>';
+    const categoryChips = available.map(category => `<button type="button" class="chip ${selected.has(category.category_id) ? 'active' : ''}" data-category-id="${api.escapeHTML(category.category_id)}">${api.escapeHTML(category.name)}</button>`).join('');
+    const customChips = customInterests.map((interest, index) => `<button type="button" class="chip active" data-remove-custom-interest="${index}" aria-label="Xóa ${api.escapeHTML(interest)}">${api.escapeHTML(interest)} ×</button>`).join('');
+    const addControl = customInterestInputOpen
+      ? `<input class="custom-interest-input" type="text" maxlength="60" placeholder="Nhập sở thích" aria-label="Sở thích cá nhân" value="${api.escapeHTML(customInterestDraft)}">`
+      : '<button type="button" class="chip" data-add-custom-interest>+Thêm</button>';
+    document.querySelector('#edit-mode .chip-row').innerHTML = `<div class="custom-interest-editor">${categoryChips}${customChips}${addControl}</div>`;
+  }
+  function collectCustomInterests() {
+    const interests = [...customInterests];
+    const input = document.querySelector('.custom-interest-input');
+    const pending = (input?.value ?? customInterestDraft).trim();
+    if (pending) interests.push(pending);
+    const unique = [];
+    const seen = new Set();
+    interests.forEach(interest => {
+      const value = interest.trim();
+      const key = value.toLocaleLowerCase();
+      if (value && !seen.has(key)) {
+        unique.push(value);
+        seen.add(key);
+      }
+    });
+    return unique;
+  }
+  function loadCustomInterests() {
+    try {
+      const savedInterests = JSON.parse(localStorage.getItem(CUSTOM_INTERESTS_KEY) || '[]');
+      customInterests = Array.isArray(savedInterests)
+        ? savedInterests.filter(interest => typeof interest === 'string').map(interest => interest.trim()).filter(Boolean)
+        : [];
+    } catch (error) {
+      console.warn('Không thể đọc sở thích cá nhân đã lưu trên trình duyệt:', error);
+      customInterests = [];
+    }
+    renderCategories();
   }
   document.querySelector('#edit-mode .chip-row').onclick = e => {
-    const button = e.target.closest('[data-category-id]'); if (!button) return;
+    const button = e.target.closest('button');
+    if (!button) return;
+    if (button.hasAttribute('data-add-custom-interest')) {
+      customInterestInputOpen = true;
+      renderCategories();
+      document.querySelector('.custom-interest-input')?.focus();
+      return;
+    }
+    if (button.hasAttribute('data-remove-custom-interest')) {
+      customInterests.splice(Number(button.dataset.removeCustomInterest), 1);
+      renderCategories();
+      return;
+    }
+    if (!button.dataset.categoryId) return;
     if (selected.has(button.dataset.categoryId)) selected.delete(button.dataset.categoryId); else selected.add(button.dataset.categoryId);
     renderCategories();
   };
+  document.querySelector('#edit-mode .chip-row').onkeydown = e => {
+    if (!e.target.matches('.custom-interest-input')) return;
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      const input = e.target;
+      const interest = input.value.trim();
+      if (!interest) return;
+      if (collectCustomInterests().length > 20) {
+        alert('Bạn chỉ có thể lưu tối đa 20 sở thích cá nhân.');
+        return;
+      }
+      customInterests = collectCustomInterests();
+      customInterestDraft = '';
+      customInterestInputOpen = true;
+      renderCategories();
+      document.querySelector('.custom-interest-input')?.focus();
+    } else if (e.key === 'Escape') {
+      customInterestInputOpen = false;
+      customInterestDraft = '';
+      renderCategories();
+    }
+  };
+  document.querySelector('#edit-mode .chip-row').oninput = e => {
+    if (e.target.matches('.custom-interest-input')) customInterestDraft = e.target.value;
+  };
+  loadCustomInterests();
   document.getElementById('favoriteActivities').onclick = async e => {
     const button = e.target.closest('[data-remove-id]'); if (!button) return;
     button.disabled = true;
@@ -87,7 +176,8 @@
     const [categoryRows, presets] = await Promise.all([api.request('/categories'), api.request('/media/avatar-presets')]);
     available = categoryRows;
     document.getElementById('avatarPresets').innerHTML = presets.map(item => `<button type="button" class="chip" data-preset-id="${api.escapeHTML(item.preset_id)}"><img src="${api.escapeHTML(item.media_url)}" alt="${api.escapeHTML(item.name)}" style="width:36px;height:36px;border-radius:50%;object-fit:cover"> ${api.escapeHTML(item.name)}</button>`).join('') || '<span>Chưa có ảnh mẫu.</span>';
-    selected = new Set((await api.request('/users/me/categories')).map(c => c.category_id));
+    const userCategories = await api.request('/users/me/categories');
+    selected = new Set(userCategories.map(category => category.category_id));
     renderCategories(); await renderBookmarks();
     const historyItems = await api.request('/users/me/search-history');
     const history = document.querySelector('#pane-lichsu');

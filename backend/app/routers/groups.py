@@ -1,5 +1,6 @@
 import asyncio
 import json
+import random
 import secrets
 from collections import defaultdict
 from datetime import UTC, datetime
@@ -169,6 +170,12 @@ def _group_out(
         category.category_id: category.name
         for category in db.query(models.Category).all()
     }
+    votes = {
+        vote.member_id: vote
+        for vote in db.query(models.GroupActivityVote)
+        .filter(models.GroupActivityVote.group_id == group.group_id)
+        .all()
+    }
     members = []
     total = 0.0
     paid = 0.0
@@ -200,6 +207,8 @@ def _group_out(
                 category_names=[category_map[value] for value in category_ids if value in category_map],
                 is_host=member.is_host,
                 is_ready=member.is_ready,
+                activity_vote_id=votes[member.member_id].activity_id if member.member_id in votes else None,
+                confirmation_status=votes[member.member_id].confirmation_status if member.member_id in votes else None,
                 leave_requested_at=member.leave_requested_at,
                 leave_status=member.leave_status,
                 is_online=bool(member.user_id and member.user_id in online_user_ids),
@@ -222,6 +231,10 @@ def _group_out(
         status=group.status,
         search_started=group.search_started,
         all_ready=bool(group.members) and all(member.is_ready for member in group.members),
+        confirmation_complete=bool(group.selected_activity_id) and bool(group.members) and all(
+            votes.get(member.member_id) and votes[member.member_id].confirmation_status == "accepted"
+            for member in group.members
+        ),
         selected_activity=_activity_out(db, group.selected_activity),
         members=members,
         total_amount=total,
@@ -421,6 +434,10 @@ async def update_member(
         setattr(member, field, value)
     member.is_ready = False
     group.search_started = False
+    group.selected_activity_id = None
+    db.query(models.GroupActivityVote).filter(
+        models.GroupActivityVote.group_id == group_id
+    ).delete(synchronize_session=False)
     now = _now()
     member.updated_at = now
     group.updated_at = now
@@ -464,6 +481,10 @@ async def start_group_search(
     if not group.members or not all(member.is_ready for member in group.members):
         raise HTTPException(status.HTTP_409_CONFLICT, "Tất cả thành viên cần nhấn sẵn sàng trước")
     group.search_started = True
+    group.selected_activity_id = None
+    db.query(models.GroupActivityVote).filter(
+        models.GroupActivityVote.group_id == group_id
+    ).delete(synchronize_session=False)
     group.updated_at = _now()
     db.commit()
     db.refresh(group)
@@ -584,7 +605,107 @@ async def group_recommendations(
             match_score=round(sum(member_scores.values()) / len(member_scores)),
             member_scores=member_scores,
         ))
-    return sorted(results, key=lambda item: (-item.match_score, item.price or 0))[:20]
+    return sorted(results, key=lambda item: (-item.match_score, item.price or 0))[:11]
+
+
+@router.post("/{group_id}/members/{member_id}/vote", response_model=schemas.GroupOut)
+async def vote_group_activity(
+    group_id: str,
+    member_id: str,
+    payload: schemas.GroupActivitySelect,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    group, _ = _require_group_member(db, group_id, user.user_id)
+    member = next((item for item in group.members if item.member_id == member_id), None)
+    if not member or member.user_id != user.user_id:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Mỗi thành viên chỉ được tự chọn hoạt động yêu thích")
+    if not group.search_started or group.selected_activity_id:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Nhóm hiện không nhận lựa chọn hoạt động")
+    recommendations = await group_recommendations(group_id, db, user)
+    if payload.activity_id not in {item.activity_id for item in recommendations}:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Hoạt động không nằm trong danh sách gợi ý của nhóm")
+
+    vote = db.query(models.GroupActivityVote).filter(
+        models.GroupActivityVote.group_id == group_id,
+        models.GroupActivityVote.member_id == member_id,
+    ).first()
+    if vote:
+        vote.activity_id = payload.activity_id
+    else:
+        db.add(models.GroupActivityVote(
+            group_id=group_id,
+            member_id=member_id,
+            activity_id=payload.activity_id,
+            confirmation_status="pending",
+        ))
+    group.updated_at = _now()
+    db.commit()
+    db.refresh(group)
+    await _changed(group_id)
+    return _group_out(db, group, user.user_id, await group_connections.online_users(group_id))
+
+
+def _set_final_activity(db: Session, group: models.Group, activity_id: str) -> None:
+    activity = (
+        db.query(models.Activity)
+        .filter(models.Activity.activity_id == activity_id, models.Activity.status == "active")
+        .first()
+    )
+    if not activity:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Không tìm thấy hoạt động")
+    votes = db.query(models.GroupActivityVote).filter(
+        models.GroupActivityVote.group_id == group.group_id
+    ).all()
+    vote_by_member = {vote.member_id: vote for vote in votes}
+    if len(vote_by_member) != len(group.members) or any(
+        member.member_id not in vote_by_member for member in group.members
+    ):
+        raise HTTPException(status.HTTP_409_CONFLICT, "Tất cả thành viên cần chọn một hoạt động trước")
+
+    group.selected_activity_id = activity.activity_id
+    group.updated_at = _now()
+    amount = float(activity.price or 0)
+    for member in group.members:
+        vote = vote_by_member[member.member_id]
+        vote.confirmation_status = "accepted" if member.is_host else "pending"
+        payment = member.payment
+        if payment:
+            payment.amount = amount
+            payment.status = "unpaid"
+            payment.paid_at = None
+            payment.reminded_at = None
+            payment.overdue_since = None
+            payment.updated_at = group.updated_at
+
+
+@router.post("/{group_id}/randomize", response_model=schemas.GroupOut)
+async def randomize_group_activity(
+    group_id: str,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    group, _ = _require_group_member(db, group_id, user.user_id)
+    if group.host_user_id != user.user_id:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Chỉ host được random hoạt động")
+    if not group.search_started or group.selected_activity_id:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Nhóm hiện không thể random hoạt động")
+    votes = db.query(models.GroupActivityVote).filter(
+        models.GroupActivityVote.group_id == group_id
+    ).all()
+    vote_by_member = {vote.member_id: vote for vote in votes}
+    if len(vote_by_member) != len(group.members) or any(
+        member.member_id not in vote_by_member for member in group.members
+    ):
+        raise HTTPException(status.HTTP_409_CONFLICT, "Tất cả thành viên cần chọn hoạt động trước khi random")
+    choices = [vote.activity_id for vote in votes]
+    if len(set(choices)) < 2:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Mọi người đã chọn cùng một hoạt động; hãy chốt lựa chọn chung")
+    _set_final_activity(db, group, random.choice(choices))
+    db.commit()
+    db.refresh(group)
+    await _changed(group_id)
+    return _group_out(db, group, user.user_id, await group_connections.online_users(group_id))
 
 
 @router.put("/{group_id}/activity", response_model=schemas.GroupOut)
@@ -597,23 +718,57 @@ async def select_group_activity(
     group, _ = _require_group_member(db, group_id, user.user_id)
     if group.host_user_id != user.user_id:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Chỉ host được chốt hoạt động")
-    activity = (
-        db.query(models.Activity)
-        .filter(models.Activity.activity_id == payload.activity_id, models.Activity.status == "active")
-        .first()
-    )
-    if not activity:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Không tìm thấy hoạt động")
-    group.selected_activity_id = activity.activity_id
-    group.updated_at = _now()
-    amount = float(activity.price or 0)
-    for payment in group.payments:
-        payment.amount = amount
-        payment.status = "unpaid"
-        payment.paid_at = None
-        payment.reminded_at = None
-        payment.overdue_since = None
-        payment.updated_at = group.updated_at
+    if not group.search_started or group.selected_activity_id:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Nhóm hiện không thể chốt hoạt động")
+    votes = db.query(models.GroupActivityVote).filter(
+        models.GroupActivityVote.group_id == group_id
+    ).all()
+    vote_by_member = {vote.member_id: vote for vote in votes}
+    if len(vote_by_member) != len(group.members) or any(
+        member.member_id not in vote_by_member for member in group.members
+    ):
+        raise HTTPException(status.HTTP_409_CONFLICT, "Tất cả thành viên cần chọn hoạt động trước")
+    if {vote.activity_id for vote in votes} != {payload.activity_id}:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Chỉ được chốt khi tất cả thành viên chọn cùng hoạt động")
+    _set_final_activity(db, group, payload.activity_id)
+    db.commit()
+    db.refresh(group)
+    await _changed(group_id)
+    return _group_out(db, group, user.user_id, await group_connections.online_users(group_id))
+
+
+@router.patch("/{group_id}/members/{member_id}/confirmation", response_model=schemas.GroupOut)
+async def respond_to_group_activity(
+    group_id: str,
+    member_id: str,
+    payload: schemas.GroupActivityConfirmation,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    group, _ = _require_group_member(db, group_id, user.user_id)
+    member = next((item for item in group.members if item.member_id == member_id), None)
+    if not member or member.user_id != user.user_id:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Chỉ được xác nhận hoạt động cho chính mình")
+    if not group.selected_activity_id:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Host chưa chọn hoạt động cho nhóm")
+    if member.is_host and payload.action == "reject":
+        raise HTTPException(status.HTTP_409_CONFLICT, "Host không thể từ chối hoạt động đã chốt")
+    vote = db.query(models.GroupActivityVote).filter(
+        models.GroupActivityVote.group_id == group_id,
+        models.GroupActivityVote.member_id == member_id,
+    ).first()
+    if not vote:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Không tìm thấy lựa chọn hoạt động của thành viên")
+    now = _now()
+    if payload.action == "reject":
+        db.delete(vote)
+        if member.payment:
+            db.delete(member.payment)
+        db.delete(member)
+    else:
+        vote.confirmation_status = "accepted"
+        member.updated_at = now
+    group.updated_at = now
     db.commit()
     db.refresh(group)
     await _changed(group_id)
@@ -631,6 +786,20 @@ async def update_payment(
     group, _ = _require_group_member(db, group_id, user.user_id)
     if group.host_user_id != user.user_id:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Chỉ host được cập nhật thanh toán")
+    if not group.selected_activity_id:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Nhóm chưa chốt hoạt động")
+    votes = {
+        vote.member_id: vote
+        for vote in db.query(models.GroupActivityVote)
+        .filter(models.GroupActivityVote.group_id == group_id)
+        .all()
+    }
+    if not group.members or any(
+        votes.get(member.member_id) is None
+        or votes[member.member_id].confirmation_status != "accepted"
+        for member in group.members
+    ):
+        raise HTTPException(status.HTTP_409_CONFLICT, "Tất cả thành viên cần đồng ý trước khi chia chi phí")
     payment = next((item for item in group.payments if item.member_id == member_id), None)
     if not payment:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Không tìm thấy thanh toán")

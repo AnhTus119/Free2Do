@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -)",
+      "Bash(which google-chrome *)",
+      "Read(//Applications/Google Chrome.app/**)",
+      "Bash(\"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome\" --headless --disable-gpu --screenshot=/tmp/free2do-home.png --window-size=1440,1400 \"file://$\\(pwd\\)/home.html\")",
+      "Read(//tmp/**)",
+      "Bash(\"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome\" --headless --disable-gpu --screenshot=/tmp/free2do-search.png --window-size=1440,1600 \"file://$\\(pwd\\)/search.html\")",
+      "Bash(\"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome\" --headless --disable-gpu --screenshot=/tmp/free2do-group.png --window-size=1440,1200 \"file://$\\(pwd\\)/group.html\")",
+      "Bash(\"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome\" --headless --disable-gpu --screenshot=/tmp/free2do-detail.png --window-size=1440,1400 \"file://$\\(pwd\\)/activity-detail.html\")",
+      "Bash(rm -f /tmp/free2do-home.png /tmp/free2do-search.png /tmp/free2do-group.png /tmp/free2do-detail.png)",
+      "Bash(\"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome\" --headless --disable-gpu --screenshot=/tmp/free2do-home2.png --window-size=1440,900 \"file://$\\(pwd\\)/home.html\")",
+      "Bash(\"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome\" --headless --disable-gpu --screenshot=/tmp/free2do-account2.png --window-size=1440,700 \"file://$\\(pwd\\)/account.html\")",
+      "Bash(\"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome\" --headless --disable-gpu --screenshot=/tmp/free2do-account3.png --window-size=1440,1000 \"file://$\\(pwd\\)/account.html\")",
+      "Bash(\"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome\" --headless --disable-gpu --screenshot=/tmp/free2do-account4.png --window-size=1440,700 \"file://$\\(pwd\\)/account.html\")"
+    ],
+    "additionalDirectories": [
+      "/private/tmp"
+    ]
+  }
+}

@@ -433,6 +433,10 @@ class GroupLeaveRequest(BaseModel):
     action: Literal["approve", "reject"]
 
 
+class GroupActivityConfirmation(BaseModel):
+    action: Literal["accept", "reject"]
+
+
 class GroupPaymentAction(BaseModel):
     action: Literal["paid", "unpaid", "remind"]
 
@@ -461,6 +465,8 @@ class GroupMemberOut(BaseModel):
     category_names: list[str]
     is_host: bool
     is_ready: bool = False
+    activity_vote_id: Optional[str] = None
+    confirmation_status: Optional[str] = None
     leave_requested_at: Optional[datetime] = None
     leave_status: str = "none"
     is_online: bool = False
@@ -490,6 +496,7 @@ class GroupOut(BaseModel):
     status: str
     search_started: bool = False
     all_ready: bool = False
+    confirmation_complete: bool = False
     selected_activity: Optional[GroupSelectedActivityOut] = None
     members: list[GroupMemberOut]
     total_amount: float

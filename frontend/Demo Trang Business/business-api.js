@@ -15,6 +15,9 @@
     }
     const fetchOptions = { ...options, headers };
     delete fetchOptions.auth;
+    const cache = window.FREE2DO_CACHE;
+    const isRead = !fetchOptions.method || String(fetchOptions.method).toUpperCase() === 'GET';
+    if (isRead) { const hit = cache.get(path); if (hit !== undefined) return hit; } else cache.clear();
     if (fetchOptions.body && !(fetchOptions.body instanceof FormData) && typeof fetchOptions.body !== 'string') {
       headers.set('Content-Type', 'application/json');
       fetchOptions.body = JSON.stringify(fetchOptions.body);
@@ -24,11 +27,13 @@
     if (!response.ok) {
       if (response.status === 401) {
         localStorage.removeItem('token');
+        cache.clear();
         location.href = '../log-in.html';
       }
       const detail = payload?.detail;
       throw new Error(typeof detail === 'string' ? detail : `Yêu cầu thất bại (${response.status}).`);
     }
+    if (isRead) cache.set(path, payload);
     return payload;
   }
 

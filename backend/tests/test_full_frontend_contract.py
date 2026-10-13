@@ -102,10 +102,10 @@ class FullFrontendContractTests(unittest.TestCase):
         detail = (self.frontend / "Demo Trang Customer" / "activity-detail.html").read_text(encoding="utf-8")
         detail_source = (self.frontend / "js" / "customer-detail.js").read_text(encoding="utf-8")
         self.assertIn('id="reportActivity"', detail)
-        self.assertIn('id="mapLink"', detail)
+        self.assertIn('id="activityDirectionsLink"', detail)
         self.assertIn('id="detailSearchForm"', detail)
         self.assertIn("api.requireUser()", detail_source)
-        self.assertIn("mapLink.href = activity.google_maps_url", detail_source)
+        self.assertIn("directionsLink.href", detail_source)
 
     def test_map_icons_exist_and_zoom_does_not_depend_on_leaflet(self):
         icon_source = (self.frontend / "js" / "customer-activity-icons.js").read_text(encoding="utf-8")

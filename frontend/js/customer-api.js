@@ -8,6 +8,8 @@
     const body = options.body && !isForm && typeof options.body !== 'string'
       ? JSON.stringify(options.body) : options.body;
     const isRead = !options.method || String(options.method).toUpperCase() === 'GET';
+    const cache = window.FREE2DO_CACHE;
+    if (isRead) { const hit = cache.get(path); if (hit !== undefined) return hit; } else cache.clear();
     let response;
     // Render gói Free có thể đang "ngủ" nên lần gọi đầu hay bị rớt kết nối: yêu cầu đọc dữ liệu
     // được thử lại 1 lần trước khi báo lỗi. Thời gian chờ 45s để đủ cho cold-start.
@@ -32,7 +34,7 @@
     }
     const payload = await response.json().catch(() => null);
     if (!response.ok) {
-      if (response.status === 401 && token) localStorage.removeItem('token');
+      if (response.status === 401 && token) { localStorage.removeItem('token'); cache.clear(); }
       const detail = payload?.detail;
       const message = Array.isArray(detail)
         ? detail.map(item => item.msg).filter(Boolean).join(', ')
@@ -41,6 +43,7 @@
       error.status = response.status;
       throw error;
     }
+    if (isRead) cache.set(path, payload);
     return payload;
   }
   async function requireUser() {

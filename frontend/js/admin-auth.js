@@ -26,6 +26,7 @@
 
   function goToLogin() {
     clearToken();
+    window.FREE2DO_CACHE.clear();
     window.location.href = 'admin-login.html';
   }
 
@@ -41,6 +42,10 @@
       goToLogin();
       throw new Error('Chưa đăng nhập');
     }
+
+    const cache = window.FREE2DO_CACHE;
+    const isRead = !options.method || String(options.method).toUpperCase() === 'GET';
+    if (isRead) { const hit = cache.get(path); if (hit !== undefined) return hit; } else cache.clear();
 
     const response = await fetch(`${API_BASE_URL}${path}`, {
       ...options,
@@ -67,6 +72,7 @@
       throw new Error((data && data.detail) || 'Có lỗi xảy ra, vui lòng thử lại.');
     }
 
+    if (isRead) cache.set(path, data);
     return data;
   }
 

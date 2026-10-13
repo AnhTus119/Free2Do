@@ -49,8 +49,8 @@
     };
   }
 
-  function mapActivity(activity, detail, reviews) {
-    const source = detail || activity;
+  function mapActivity(activity) {
+    const source = activity;
     const category = categoryName(source.category_ids);
     return {
       id: activity.activity_id, name: activity.name, businessId: activity.business_id,
@@ -87,12 +87,10 @@
 
     const profiles = await Promise.all(businessUsers.map(user =>
       auth.authFetch(`/operator/business-profiles/${encodeURIComponent(user.user_id)}`).catch(() => null)));
-    const details = await Promise.all(activities.map(activity =>
-      auth.authFetch(`/operator/activities/${encodeURIComponent(activity.activity_id)}`).catch(() => null)));
     const reviewLists = await Promise.all(activities.map(activity =>
       auth.authFetch(`/activities/${encodeURIComponent(activity.activity_id)}/reviews`).catch(() => [])));
 
-    state.activities = activities.map((activity, index) => mapActivity(activity, details[index], reviewLists[index]));
+    state.activities = activities.map((activity, index) => mapActivity(activity));
     state.participations = reviewLists.flat().map(review => ({
       activityId: review.activity_id, customerId: review.user_id, customerName: review.reviewer_name,
       date: viDate(review.created_at), status: 'active', rating: review.rating,

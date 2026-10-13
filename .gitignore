@@ -19,3 +19,7 @@ Thumbs.db
 
 # Logs
 *.log
+# Local only
+backend/BACKEND_CODE_EXPLAINED.md
+.pytest_cache/
+.claude/

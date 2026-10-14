@@ -217,6 +217,7 @@ def search_activities(
                 avg_rating=round(float(avg_rating), 1) if avg_rating is not None else None,
                 review_count=review_count or 0,
                 image_url=image,
+                business_logo_url=activity.business.avatar_url,
             )
         )
 

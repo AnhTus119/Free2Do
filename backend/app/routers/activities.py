@@ -71,6 +71,7 @@ def _to_detail(
     origin_latitude: float | None = None,
     origin_longitude: float | None = None,
     stats: dict[str, tuple[float | None, int]] | None = None,
+    include_business_media: bool = False,
 ) -> schemas.ActivityPublicOut:
     if stats is None:
         stats = _review_stats(db, [activity.activity_id])
@@ -79,6 +80,12 @@ def _to_detail(
         **schemas.Activity.model_validate(activity).model_dump(),
         business_name=activity.business.business_name,
         business_avatar_url=activity.business.avatar_url,
+        # Chỉ trang chi tiết mới cần ảnh gallery của doanh nghiệp (tránh N+1 truy vấn ở danh sách).
+        business_media=[
+            schemas.ActivityBusinessPhoto(media_url=item.media_url, media_type=item.media_type)
+            for item in sorted(activity.business.media, key=lambda m: (m.created_at, m.media_id))
+            if item.media_kind == "gallery"
+        ] if include_business_media else [],
         category_ids=[c.category_id for c in activity.categories],
         media=[schemas.ActivityMedia.model_validate(m) for m in sorted(activity.media, key=lambda item: (item.media_kind != "cover", item.media_id))],
         avg_rating=round(float(avg_rating), 1) if avg_rating else None,
@@ -141,7 +148,7 @@ def get_activity(
     )
     if not activity or activity.status not in ("active", "pending"):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Không tìm thấy hoạt động")
-    return _to_detail(db, activity, latitude, longitude)
+    return _to_detail(db, activity, latitude, longitude, include_business_media=True)
 
 
 # ---------------------------------------------------------------------------

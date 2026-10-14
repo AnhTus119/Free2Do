@@ -4,7 +4,31 @@
   const api = window.CustomerAPI;
   const GROUP_NAMES_KEY = 'free2do_group_names';
   const params = new URLSearchParams(location.search);
-  const inviteCode = params.get('groupInvite');
+
+  // Hỗ trợ link cũ /g/<slug>--<code>, query ?groupInvite=<code>,
+  // và link mới chỉ có slug ở root: /ten-nhom.
+  // Link ngắn: /g/<mã>. Mã mời chỉ gồm chữ + số; slug cũ luôn có dấu "-".
+  function groupSegmentFromPath() {
+    const match = decodeURIComponent(location.pathname).match(/\/g\/([^/]+)\/?$/);
+    return match ? match[1] : null;
+  }
+  function inviteCodeFromPath() {
+    const segment = groupSegmentFromPath();
+    if (!segment) return null;
+    const legacy = segment.match(/--([A-Za-z0-9]+)$/);
+    if (legacy) return legacy[1];
+    return /^[A-Za-z0-9]+$/.test(segment) ? segment : null;
+  }
+  function groupSlugFromPath() {
+    const path = decodeURIComponent(location.pathname);
+    const segment = groupSegmentFromPath();
+    if (segment) return /^[A-Za-z0-9]+$/.test(segment) || /--[A-Za-z0-9]+$/.test(segment) ? null : segment;
+    if (/\.html?$/i.test(path) || path === '/') return null;
+    const match = path.match(/^\/([^/]+)\/?$/);
+    return match ? match[1] : null;
+  }
+  let inviteCode = params.get('groupInvite') || inviteCodeFromPath();
+  const incomingGroupSlug = inviteCode ? null : groupSlugFromPath();
   let currentUser = null;
   let categories = [];
   let currentGroup = null;
@@ -131,11 +155,24 @@
     form.remove();
   };
 
+  function slugifyGroupName(name) {
+    const slug = String(name || 'nhom-free2do')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/đ/g, 'd')
+      .replace(/Đ/g, 'D')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 48)
+      .replace(/-+$/g, '');
+    return slug || 'nhom-free2do';
+  }
+
   function inviteUrl(group) {
-    const url = new URL(location.href);
-    url.search = '';
-    url.searchParams.set('groupInvite', group.invite_code);
-    return url.toString();
+    // Link rút gọn cùng domain với web: https://<domain>/g/<mã mời>.
+    // Các link cũ (/g/ten--ma và /ten-nhom) vẫn mở được.
+    return `${location.origin}/g/${encodeURIComponent(group.invite_code)}`;
   }
 
   async function copyText(text) {
@@ -206,7 +243,7 @@
       }
       currentGroup = joining
         ? await api.request(`/groups/invite/${encodeURIComponent(inviteCode)}/join`, { method: 'POST', body: members[0] })
-        : await api.request('/groups', { method: 'POST', body: { host: members[0] } });
+        : await api.request('/groups', { method: 'POST', body: { host: members[0], group_name: groupName } });
       if (!joining) {
         try {
           saveGroupName(currentGroup.invite_code, groupName);
@@ -839,12 +876,21 @@
     initializeGroupPage();
   };
 
-  function initialize() {
-    if (inviteCode && sessionStorage.getItem('pending_group_invite') !== inviteCode) {
-      document.getElementById('groupInviteConsent').classList.add('open');
-      return;
+  async function initialize() {
+    try {
+      if (!inviteCode && incomingGroupSlug) {
+        const resolved = await api.request(`/groups/slug/${encodeURIComponent(incomingGroupSlug)}`);
+        inviteCode = resolved.invite_code;
+      }
+      if (inviteCode && sessionStorage.getItem('pending_group_invite') !== inviteCode) {
+        document.getElementById('groupInviteConsent').classList.add('open');
+        return;
+      }
+      initializeGroupPage();
+    } catch (error) {
+      console.error('Không thể mở link nhóm:', error);
+      alert(error.message || 'Không tìm thấy nhóm hoặc link mời không còn hợp lệ.');
     }
-    initializeGroupPage();
   }
 
   document.getElementById('groupOverlay').addEventListener('click', function (event) {
@@ -860,6 +906,12 @@
     if (event.target === this) closeGroupActionConfirm();
   });
   window.addEventListener('beforeunload', () => socket?.close());
+  // Quay lại tab sau một lúc: đồng bộ ngay và nối lại kết nối realtime nếu đã rớt.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible' || !currentGroup) return;
+    refreshGroup();
+    if (!socket || socket.readyState > WebSocket.OPEN) connectRealtime();
+  });
   setInterval(() => {
     if (!socket || socket.readyState !== WebSocket.OPEN) refreshGroup();
   }, 8000);

@@ -310,6 +310,8 @@ class Group(Base):
     __tablename__ = "groups"
     group_id = Column(String, primary_key=True, default=gen_id)
     invite_code = Column(String, nullable=False, unique=True, index=True)
+    # Human-readable URL slug. Unique so a name-only URL always identifies one group.
+    slug = Column(String, nullable=True, unique=True, index=True)
     host_user_id = Column(String, ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False, index=True)
     selected_activity_id = Column(String, ForeignKey("activities.activity_id", ondelete="SET NULL"))
     status = Column(String, nullable=False, default="active")

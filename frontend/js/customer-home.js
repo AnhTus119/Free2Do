@@ -31,8 +31,7 @@
   const activityImage = item => item.image_url
     || item.media?.find(media => media.media_type === 'image')?.media_url || null;
   function activityCard(item) {
-    const image = activityImage(item);
-    return `<a class="activity-card" href="${api.escapeHTML(detailHref(item))}"><div class="activity-image">${image ? `<img src="${api.escapeHTML(image)}" alt="">` : '<span>Chưa có ảnh</span>'}</div><div class="activity-body"><div class="activity-title">${api.escapeHTML(item.name)}</div><div class="activity-meta">${api.escapeHTML(item.business_name)} · ${api.escapeHTML(item.address)}</div><div>${api.escapeHTML(api.priceLabel(item.price_text, item.price))} · ★ ${item.avg_rating ?? '—'} (${item.review_count})</div></div></a>`;
+    return `<a class="activity-card" href="${api.escapeHTML(detailHref(item))}"><div class="activity-image">${window.Free2DoBusinessMedia.thumbHTML(item)}</div><div class="activity-body"><div class="activity-title">${api.escapeHTML(item.name)}</div><div class="activity-meta">${api.escapeHTML(item.business_name)} · ${api.escapeHTML(item.address)}</div><div>${api.escapeHTML(api.priceLabel(item.price_text, item.price))} · ★ ${item.avg_rating ?? '—'} (${item.review_count})</div></div></a>`;
   }
   function detailHref(item) {
     const query = new URLSearchParams({ id: item.activity_id });
@@ -65,7 +64,7 @@
   }
   function renderMapResults(items) {
     mapCount.textContent = items.length;
-    mapResults.innerHTML = items.length ? items.map(item => { const icon = activityImage(item); return `<a class="map-side-item" data-activity-id="${api.escapeHTML(item.activity_id)}" href="${api.escapeHTML(detailHref(item))}"><div class="map-side-img">${icon ? `<img src="${api.escapeHTML(icon)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:8px">` : '✨'}</div><div class="map-side-info"><h4>${api.escapeHTML(item.name)}</h4><p>${item.distance_km ?? '—'} km · ${api.escapeHTML(api.priceLabel(item.price_text, item.price))} · ★ ${item.avg_rating ?? '—'}</p><span class="map-match-badge">${item.match_score}% phù hợp</span></div></a>`; }).join('') : '<p style="padding:20px;color:var(--muted);">Không có hoạt động phù hợp.</p>';
+    mapResults.innerHTML = items.length ? items.map(item => { const icon = window.Free2DoBusinessMedia.thumb(item); return `<a class="map-side-item" data-activity-id="${api.escapeHTML(item.activity_id)}" href="${api.escapeHTML(detailHref(item))}"><div class="map-side-img">${icon ? `<img src="${api.escapeHTML(icon)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:8px">` : '✨'}</div><div class="map-side-info"><h4>${api.escapeHTML(item.name)}</h4><p>${item.distance_km ?? '—'} km · ${api.escapeHTML(api.priceLabel(item.price_text, item.price))} · ★ ${item.avg_rating ?? '—'}</p><span class="map-match-badge">${item.match_score}% phù hợp</span></div></a>`; }).join('') : '<p style="padding:20px;color:var(--muted);">Không có hoạt động phù hợp.</p>';
     try { mapController?.render(position, Number(radiusSlider.value), items); }
     catch (error) { console.warn('Không thể vẽ bản đồ:', error); }
   }

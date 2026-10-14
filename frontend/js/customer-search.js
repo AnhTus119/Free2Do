@@ -80,7 +80,7 @@
     detailResults.innerHTML = `<p>${safe}</p>`;
   }
   function imageHTML(item) {
-    return item.image_url ? `<img src="${api.escapeHTML(item.image_url)}" alt="" style="width:100%;height:100%;object-fit:cover">` : '✨';
+    return window.Free2DoBusinessMedia.thumbHTML(item, '✨');
   }
   function detailHref(item) {
     const query = new URLSearchParams({ id: item.activity_id });

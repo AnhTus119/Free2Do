@@ -12,10 +12,12 @@ window.FREE2DO_BACKEND_READY = fetch(
   { cache: "no-store" },
 ).then(response => response.ok).catch(() => false);
 
-// Cache các request GET trong sessionStorage: chuyển trang rồi quay lại sẽ dùng dữ liệu cũ,
-// chỉ tải mới khi người dùng reload trang (F5) hoặc sau khi có thao tác ghi (POST/PATCH/DELETE).
+// Cache các request GET trong sessionStorage (mỗi tab một bộ nhớ riêng):
+//  - chuyển trang rồi quay lại trong vòng 5 phút: dùng lại dữ liệu cũ, không gọi lại API;
+//  - quá 5 phút, hoặc người dùng reload (F5), hoặc có thao tác ghi (POST/PATCH/PUT/DELETE): tải mới.
 window.FREE2DO_CACHE = (() => {
   const PREFIX = 'f2d:';
+  const TTL_MS = 5 * 60 * 1000;
   const clear = () => {
     try { Object.keys(sessionStorage).filter(k => k.startsWith(PREFIX)).forEach(k => sessionStorage.removeItem(k)); } catch (e) { /* storage bị chặn */ }
   };
@@ -23,7 +25,16 @@ window.FREE2DO_CACHE = (() => {
   const key = path => `${PREFIX}${(localStorage.getItem('token') || '').slice(-16)}|${path}`;
   return {
     clear,
-    get(path) { try { const raw = sessionStorage.getItem(key(path)); return raw ? JSON.parse(raw) : undefined; } catch (e) { return undefined; } },
-    set(path, value) { try { sessionStorage.setItem(key(path), JSON.stringify(value)); } catch (e) { /* đầy bộ nhớ: bỏ qua */ } },
+    TTL_MS,
+    get(path) {
+      try {
+        const raw = sessionStorage.getItem(key(path));
+        if (!raw) return undefined;
+        const entry = JSON.parse(raw);
+        if (!entry || typeof entry.t !== 'number' || Date.now() - entry.t > TTL_MS) { sessionStorage.removeItem(key(path)); return undefined; }
+        return entry.v;
+      } catch (e) { return undefined; }
+    },
+    set(path, value) { try { sessionStorage.setItem(key(path), JSON.stringify({ t: Date.now(), v: value })); } catch (e) { /* đầy bộ nhớ: bỏ qua */ } },
   };
 })();

@@ -14,7 +14,8 @@
   };
   function renderGallery(activity) {
     const gallery = document.getElementById('activityGallery');
-    const media = [...(activity.media || [])].sort((a, b) => (a.media_kind === 'cover' ? -1 : 0) - (b.media_kind === 'cover' ? -1 : 0));
+    const businessPhotos = window.Free2DoBusinessMedia?.gallery(activity) || [];
+    const media = [...(activity.media || []), ...businessPhotos].sort((a, b) => (a.media_kind === 'cover' ? -1 : 0) - (b.media_kind === 'cover' ? -1 : 0));
     const visibleMedia = media.slice(0, 5);
     gallery.classList.remove('activity-photo-grid--1', 'activity-photo-grid--2', 'activity-photo-grid--3', 'activity-photo-grid--4', 'activity-photo-grid--5');
     gallery.classList.add(`activity-photo-grid--${visibleMedia.length}`);
@@ -38,7 +39,7 @@
         const url = api.escapeHTML(item.media_url);
         lightbox.querySelector('[data-image]').innerHTML = item.media_type === 'video'
           ? `<video src="${url}" controls autoplay style="max-width:88vw;max-height:86vh"></video>`
-          : `<img src="${url}" alt="${api.escapeHTML(activity.name)}" style="max-width:88vw;max-height:86vh;object-fit:contain">`;
+          : `<img src="${url}" alt="${api.escapeHTML(activity.name)}" style="max-width:88vw;max-height:86vh;object-fit:contain;border-radius:14px">`;
         lightbox.querySelector('[data-count]').textContent = `${index + 1} / ${media.length}`;
       };
       show(index);

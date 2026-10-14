@@ -185,6 +185,7 @@ class ActivityWithScore(Activity):
     avg_rating: Optional[float] = None
     review_count: int = 0
     image_url: Optional[str] = None
+    business_logo_url: Optional[str] = None
 
     @model_validator(mode="after")
     def _fill_google_maps_url(self):
@@ -403,6 +404,7 @@ class GroupMemberInput(BaseModel):
 
 class GroupCreateRequest(BaseModel):
     host: GroupMemberInput
+    group_name: Optional[str] = Field(None, min_length=1, max_length=200)
 
     @model_validator(mode="before")
     @classmethod
@@ -490,6 +492,7 @@ class GroupSelectedActivityOut(BaseModel):
 class GroupOut(BaseModel):
     group_id: str
     invite_code: str
+    slug: Optional[str] = None
     invite_url: str
     host_user_id: str
     is_host: bool
@@ -537,10 +540,16 @@ class ActivityDetail(Activity):
     avg_rating: Optional[float] = None
     review_count: int = 0
 
+class ActivityBusinessPhoto(BaseModel):
+    """Ảnh gallery của doanh nghiệp, hiển thị thêm trong trang chi tiết hoạt động."""
+    media_url: str
+    media_type: str = "image"
+
 class ActivityPublicOut(ActivityDetail):
     """Hoạt động công khai kèm tên doanh nghiệp để frontend không phải dùng dữ liệu mẫu."""
     business_name: str
     business_avatar_url: Optional[str] = None
+    business_media: list[ActivityBusinessPhoto] = Field(default_factory=list)
     distance_km: Optional[float] = None
 
     @model_validator(mode="after")

@@ -21,7 +21,7 @@
     const owned = activities.filter(item => item.business_id === id);
     document.getElementById('businessActivities').innerHTML = owned.length ? owned.map(item => {
       const image = (item.media || []).find(asset => asset.media_type === 'image');
-      return `<a class="activity-card" href="activity-detail.html?id=${encodeURIComponent(item.activity_id)}"><div class="activity-image">${image ? `<img src="${api.escapeHTML(image.media_url)}" alt="${api.escapeHTML(item.name)}">` : '<span>Chưa có ảnh</span>'}</div><div class="activity-body"><b>${api.escapeHTML(item.name)}</b><div class="activity-meta">${api.escapeHTML(item.address)} · ${api.escapeHTML(api.priceLabel(item.price_text, item.price))}</div></div></a>`;
+      return `<a class="activity-card" href="activity-detail.html?id=${encodeURIComponent(item.activity_id)}"><div class="activity-image">${window.Free2DoBusinessMedia.thumbHTML({ ...item, image_url: image?.media_url })}</div><div class="activity-body"><b>${api.escapeHTML(item.name)}</b><div class="activity-meta">${api.escapeHTML(item.address)} · ${api.escapeHTML(api.priceLabel(item.price_text, item.price))}</div></div></a>`;
     }).join('') : '<p>Doanh nghiệp chưa có hoạt động đang mở.</p>';
     if (localStorage.getItem('token')) await api.requireUser();
   }

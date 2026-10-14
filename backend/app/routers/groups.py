@@ -2,6 +2,8 @@ import asyncio
 import json
 import random
 import secrets
+import re
+import unicodedata
 from collections import defaultdict
 from datetime import UTC, datetime
 from typing import Optional
@@ -159,6 +161,16 @@ def _activity_out(db: Session, activity: Optional[models.Activity]) -> Optional[
     )
 
 
+def _slugify_group_name(name: str) -> str:
+    value = name.replace("đ", "d").replace("Đ", "D")
+    value = unicodedata.normalize("NFD", value).encode("ascii", "ignore").decode("ascii")
+    value = value.lower()
+    value = re.sub(r"[^a-z0-9]+", "-", value).strip("-")[:80].rstrip("-")
+    if not value:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Tên nhóm không tạo được đường dẫn hợp lệ")
+    return value
+
+
 def _group_out(
     db: Session,
     group: models.Group,
@@ -225,6 +237,7 @@ def _group_out(
     return schemas.GroupOut(
         group_id=group.group_id,
         invite_code=group.invite_code,
+        slug=group.slug,
         invite_url=f"?groupInvite={group.invite_code}",
         host_user_id=group.host_user_id,
         is_host=group.host_user_id == current_user_id,
@@ -260,8 +273,22 @@ async def create_group(
 ):
     _validate_categories(db, payload.host.category_ids)
     now = _now()
+    group_slug = None
+    invite_code = secrets.token_urlsafe(9).replace("-", "").replace("_", "")[:12]
+    if payload.group_name:
+        # Keep the URL readable while allowing duplicate group names. The short
+        # suffix comes from the existing invite code, so no extra DB field is needed.
+        base_slug = _slugify_group_name(payload.group_name)[:64].rstrip("-")
+        while True:
+            group_slug = f"{base_slug}-{invite_code[-5:].lower()}"
+            slug_exists = db.query(models.Group.group_id).filter(models.Group.slug == group_slug).first()
+            code_exists = db.query(models.Group.group_id).filter(models.Group.invite_code == invite_code).first()
+            if not slug_exists and not code_exists:
+                break
+            invite_code = secrets.token_urlsafe(9).replace("-", "").replace("_", "")[:12]
     group = models.Group(
-        invite_code=secrets.token_urlsafe(9).replace("-", "").replace("_", "")[:12],
+        invite_code=invite_code,
+        slug=group_slug,
         host_user_id=user.user_id,
         status="active",
         created_at=now,
@@ -296,9 +323,18 @@ async def create_group(
         db.commit()
     except IntegrityError as exc:
         db.rollback()
-        raise HTTPException(status.HTTP_409_CONFLICT, "Không thể tạo nhóm, vui lòng thử lại") from exc
+        raise HTTPException(status.HTTP_409_CONFLICT, "Không thể tạo mã link nhóm duy nhất. Vui lòng thử lại.") from exc
     db.refresh(group)
     return _group_out(db, group, user.user_id)
+
+
+@router.get("/slug/{slug}")
+def resolve_group_slug(slug: str, db: Session = Depends(get_db)):
+    """Resolve a human-readable invitation URL to its existing invite code."""
+    group = db.query(models.Group).filter(models.Group.slug == slug, models.Group.status == "active").first()
+    if not group:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy nhóm với đường dẫn này")
+    return {"invite_code": group.invite_code}
 
 
 @router.get("/invite/{invite_code}", response_model=schemas.GroupOut)

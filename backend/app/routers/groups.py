@@ -858,10 +858,10 @@ async def update_payment(
                 recipient,
                 f"Nhắc thanh toán nhóm FREE2DO — {group.selected_activity.name if group.selected_activity else 'hoạt động nhóm'}",
                 f"Yo bro, trưởng nhóm có nhờ tôi nhắc bạn thanh toán {payment.amount:,.0f} đ cho hoạt động "
-                f"{group.selected_activity.name if group.selected_activity else 'đã chọn'}. "
-                f"này đấy nhớ không?"
-                "Nếu đã thanh toán rồi thì liên hệ lại với trưởng nhóm để cập nhật trạng thái nhé."
-                f"Còn chưa chuyển thì tự giác đê, đừng để anh nhắc nhiều, rách việc đấy.",
+                f"{group.selected_activity.name if group.selected_activity else 'đã chọn'} "
+                f"hôm bữa đấy nhớ không?"
+                "\nNếu đã thanh toán rồi thì liên hệ lại với trưởng nhóm để cập nhật trạng thái nhé."
+                f"\nCòn chưa chuyển thì tự giác đê, anh biết nhà em đấy.",
             )
         except Exception as exc:
             raise HTTPException(status.HTTP_502_BAD_GATEWAY, "Không gửi được email nhắc thanh toán") from exc

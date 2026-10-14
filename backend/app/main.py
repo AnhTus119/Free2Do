@@ -1,10 +1,15 @@
-from fastapi import FastAPI, HTTPException, status
+import logging
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI, HTTPException, Request, status
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from sqlalchemy import text
 from app.config import settings
 from app.utils.email import get_email_provider
 from app.database import engine
+from app.schema_sync import find_schema_gaps, sync_schema_safely
 from app.routers import (
     search,
     auth,
@@ -25,8 +30,31 @@ from app.routers import (
     ai,
 )
 
-app = FastAPI(title="Free2Do API", version="1.1.0")
+logger = logging.getLogger("free2do.api")
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    # Tự bổ sung bảng/cột còn thiếu để không phụ thuộc vào việc đã chạy migrate hay chưa.
+    sync_schema_safely(engine)
+    yield
+
+
+app = FastAPI(title="Free2Do API", version="1.1.0", lifespan=lifespan)
 app.add_middleware(GZipMiddleware, minimum_size=1000, compresslevel=5)
+
+
+# Lỗi 500 chưa được xử lý sẽ thoát khỏi CORSMiddleware nên trình duyệt chỉ thấy lỗi CORS
+# ("không kết nối được máy chủ"). Middleware này nằm BÊN TRONG CORS để 500 vẫn có header CORS
+# và frontend đọc được thông báo lỗi thật.
+@app.middleware("http")
+async def keep_cors_on_server_errors(request: Request, call_next):
+    try:
+        return await call_next(request)
+    except Exception:  # noqa: BLE001
+        logger.exception("Unhandled error on %s %s", request.method, request.url.path)
+        return JSONResponse(status_code=500, content={"detail": "Máy chủ gặp lỗi. Vui lòng thử lại sau."})
+
 cors_origins = [origin.strip() for origin in settings.CORS_ORIGINS.split(",") if origin.strip()]
 app.add_middleware(
     CORSMiddleware,
@@ -91,9 +119,15 @@ def health_ready():
                 )
     except Exception as exc:
         raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "Database chưa sẵn sàng") from exc
+    try:
+        schema_gaps = find_schema_gaps(engine)
+    except Exception:  # noqa: BLE001
+        schema_gaps = ["không đọc được schema"]
     return {
         "status": "ready",
         "database": "connected",
+        # Danh sách bảng/cột còn thiếu trong database; [] nghĩa là schema đầy đủ.
+        "schema": schema_gaps,
         "postgis_enabled": postgis_enabled,
         "supabase_storage_configured": bool(
             settings.SUPABASE_URL and settings.SUPABASE_SERVICE_KEY

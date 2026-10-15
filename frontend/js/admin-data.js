@@ -53,7 +53,7 @@
     const source = activity;
     const category = categoryName(source.category_ids);
     return {
-      id: activity.activity_id, name: activity.name, businessId: activity.business_id,
+      id: activity.activity_id, code: activity.code || 'Chưa có mã', name: activity.name, businessId: activity.business_id,
       businessName: activity.business_name, type: activityType(category), category,
       price: activity.price_text || auth.formatPrice(activity.price), rawPrice: activity.price,
       hours: auth.formatHours(activity.time_open, activity.time_close), address: activity.address,

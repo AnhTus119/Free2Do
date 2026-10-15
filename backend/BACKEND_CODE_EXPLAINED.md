@@ -94,6 +94,22 @@ def gen_id() -> str:
 ```
 Hàm sinh UUID ngẫu nhiên làm khóa chính, dùng làm `default=gen_id` cho mọi cột `*_id`. Vì sao không để Postgres tự sinh (`SERIAL`)? Vì UUID string không đoán được thứ tự, an toàn hơn khi expose `activity_id` ra API công khai (đối thủ không đếm được có bao nhiêu record).
 
+### `Activity.code` — mã hiển thị `A{n}`
+```python
+code = Column(String, unique=True, index=True, default=next_activity_code)
+```
+`activity_id` (UUID, hoặc `A001`... với dữ liệu seed cũ) vẫn là khóa chính và là thứ mọi khóa ngoại trỏ tới. `code` chỉ để **hiển thị/tra cứu**: `A1`, `A2`, ... `A100`, không đệm số 0.
+`next_activity_code` chạy mỗi khi INSERT một `Activity` (router, seed, test... đều đi qua đây):
+- PostgreSQL: `nextval('activity_code_seq')`. Sequence an toàn khi nhiều request đồng thời và không bao giờ trả lại số cũ, nên mã của hoạt động đã xóa **không bị dùng lại** (cho phép khoảng trống).
+- SQLite (test/chạy local): `max + 1`.
+Sequence, cột `NOT NULL`, chỉ mục unique và việc đánh mã cho dữ liệu cũ (theo `created_at`, tie-break theo `activity_id`) nằm trong `migrations/2026-10-16_ui_round2.sql`. **Phải chạy file đó trước khi deploy**, nếu không `nextval` sẽ lỗi khi tạo hoạt động mới.
+
+### `BusinessRequestProof` — ảnh minh chứng đơn đăng ký doanh nghiệp
+Bảng `business_request_proofs` (`request_id` FK → `business_requests`, xóa đơn thì xóa theo). File nằm ở thư mục `business-proofs/{request_id}/` trong bucket Storage. Tách hẳn khỏi `activities_media`: ảnh minh chứng **không bao giờ** được ghi vào bảng ảnh hoạt động.
+
+### `SearchHistory.location_label`
+Tên vị trí người dùng chọn lúc tìm (vd "Cầu Giấy"), frontend gửi kèm `POST /search`. Bản ghi cũ để `NULL`, giao diện hiện "Vị trí đã chọn".
+
 ### `Account` — bảng trung tâm nhất
 ```python
 password_hash = Column(String, nullable=True)  # null nếu đăng ký bằng Google
@@ -293,7 +309,11 @@ with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as server:
 ```
 `starttls()` nâng cấp kết nối lên mã hóa TLS (bắt buộc với Gmail ở port 587). `server.login` dùng **App Password** (không phải mật khẩu Gmail thật) — lý do phải tạo App Password thay vì dùng mật khẩu thường đã giải thích ở các bước trước.
 
-**Ai import file này:** `routers/auth.py`, `test_email.py`.
+**Ai import file này:** `routers/auth.py`, `routers/business_requests.py`, `routers/activities.py`, `routers/reports.py`, `routers/groups.py`, `test_email.py`.
+
+`send_activity_approved_email(activity)` / `send_activity_hidden_email(activity)` nhận thẳng object `Activity` và là **best-effort**: tự lấy `email` hoặc `recovery_email` của chủ doanh nghiệp, bỏ qua nếu không có (doanh nghiệp đăng ký bằng số điện thoại), và nuốt mọi lỗi gửi (ghi log). Trước đây lỗi email (Render chặn SMTP, email `None`...) làm `PATCH /operator/activities/{id}/hide` và `PATCH /operator/reports/{id}/resolve` trả **500**; với báo cáo, email còn gửi *trước* `commit` nên hoạt động không được ẩn.
+
+**Không còn gửi Gmail cho operator** khi có doanh nghiệp/hoạt động mới chờ duyệt (`utils/operator_alerts.py` đã xóa). Operator thấy việc chờ duyệt qua chuông thông báo trong web (`GET /notifications`, loại `pending_request` / `pending_activity`). Cột `operators.email_notifications` vẫn còn trong DB nhưng không còn được dùng.
 
 ---
 
@@ -434,6 +454,28 @@ Mỗi `router` (định nghĩa trong `routers/*.py`) là 1 nhóm endpoint độc
 | `seed_db.py` | Tạo 7 account operator mẫu, bỏ qua nếu email đã tồn tại | Sau `init_db.py`, khi cần data test |
 
 Điểm chung: cả 4 file đều **đứng ngoài package `app/`** (không có `from . import`, mà dùng `from app.xxx import yyy`) — nên bắt buộc chạy từ thư mục `backend/`, không phải từ trong `app/`.
+
+---
+
+## 13b. Cập nhật 2026-10-16 (UI round 2): endpoint mới/đổi
+
+| Endpoint | Thay đổi |
+|---|---|
+| `POST /business-requests/{request_id}/proofs` | **Mới.** Multipart `files` (nhiều file). Chỉ chủ đơn, đơn đang `pending`. Chỉ nhận ảnh JPG/PNG/WEBP, loại file xác định bằng **magic bytes** (không tin `Content-Type`), tối đa 5 ảnh/đơn, mỗi ảnh ≤ `MAX_IMAGE_UPLOAD_MB`. Trả lại `BusinessRequest` kèm `proofs`. |
+| `GET /business-requests/me`, `GET /operator/business-requests` | Mỗi đơn có thêm `proofs: [{proof_id, media_url, created_at}]`. Operator lọc thêm được `?user_id=`. |
+| `POST /business-requests`, `POST /activities` | Không gửi email cho operator nữa. |
+| `POST /activities`, `POST /operator/activities` | Chống tạo trùng: cùng doanh nghiệp + cùng tên trong `DUPLICATE_WINDOW_SECONDS` (10 giây) thì trả lại bản ghi vừa tạo thay vì tạo bản thứ hai. Nguyên nhân gốc ở frontend (nút "Lưu và gửi duyệt" không bị khóa trong lúc chờ xác minh Google Maps) đã sửa; guard này chỉ là lớp phòng thủ. |
+| `GET /operator/activities` | Thêm `?business_id=` để lọc theo doanh nghiệp. |
+| Mọi response hoạt động (`Activity`, `ActivityPublicOut`, `ActivityAdminOut`...) | Thêm `code` (A{n}). `BusinessReviewOut` và `BusinessActivityPerformance` thêm `activity_code`. |
+| `GET /operator/reports` | Thêm `activity_name`, `activity_code`, `reporter_name`. `activity_id` vẫn là id nội bộ để frontend link tới. |
+| `GET /operator/complaints` | Thêm `activity_id`, `activity_code`, `complainant_name` (tên doanh nghiệp), `review_created_at`, `reply_content` (phản hồi của doanh nghiệp). |
+| `PATCH /operator/complaints/{id}/resolve` (`delete_review`) | Xóa luôn phản hồi + media phản hồi của đánh giá trước khi xóa đánh giá (trước đây vi phạm khóa ngoại → 500 nếu đánh giá đã được phản hồi). |
+| `POST /complaints` | Không đổi: doanh nghiệp khiếu nại được kể cả khi đã phản hồi; chỉ chặn khi đánh giá đang có một khiếu nại chờ xử lý (409). |
+| `POST /search` | Nhận thêm `location_label`, lưu vào `search_history.location_label`. |
+
+`services/supabase_storage.validate_upload` giờ kiểm tra magic bytes cho **mọi** ảnh tải lên (avatar, ảnh hoạt động, ảnh review...): file khai `image/png` nhưng nội dung không phải PNG bị từ chối (400).
+
+Kiểm tra: `tests/test_ui_round2.py` (mã A{n}, ẩn hoạt động khi email lỗi, khiếu nại sau phản hồi rồi xóa đánh giá, lọc theo doanh nghiệp, chống tạo trùng, minh chứng chỉ nhận ảnh và tối đa 5).
 
 ---
 

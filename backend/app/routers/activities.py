@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Literal, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session, joinedload, selectinload
@@ -12,11 +12,11 @@ import requests
 
 from app.utils.geocoding import address_matches_place, address_shape_ok, geocode_address, resolve_location
 from app.utils.google_maps import is_google_maps_url
-from app.utils.operator_alerts import notify_operators_by_email
 from app.utils.distance import haversine_km
 from app.services.supabase_storage import delete_asset
 
 router = APIRouter(prefix="/activities", tags=["activities"])
+DUPLICATE_WINDOW_SECONDS = 10
 
 
 def _coordinates(latitude, longitude, google_maps_url, address=None):
@@ -184,6 +184,19 @@ def _create_activity_record(
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from exc
     except Exception as exc:
         raise HTTPException(status.HTTP_502_BAD_GATEWAY, "Không thể xác định vị trí hoạt động") from exc
+    # Chặn bấm lặp/gửi lại: cùng doanh nghiệp + cùng tên trong vài giây -> trả lại bản ghi vừa tạo.
+    recent = (
+        db.query(models.Activity)
+        .filter(
+            models.Activity.business_id == business.user_id,
+            models.Activity.name == payload.name,
+            models.Activity.created_at >= now - timedelta(seconds=DUPLICATE_WINDOW_SECONDS),
+        )
+        .order_by(models.Activity.created_at.desc())
+        .first()
+    )
+    if recent:
+        return recent
     activity = models.Activity(
         business_id=business.user_id,
         name=payload.name,
@@ -220,11 +233,7 @@ def create_activity(
     business: models.BusinessProfile = Depends(get_current_business_user),
 ):
     activity = _create_activity_record(db, business, payload)
-    notify_operators_by_email(
-        db,
-        "Free2Do: hoạt động mới chờ duyệt",
-        f"Doanh nghiệp {business.business_name} vừa gửi hoạt động '{activity.name}' chờ duyệt.",
-    )
+    # Operator nhận thông báo trong web (GET /notifications, loại pending_activity), không gửi Gmail.
     return _to_detail(db, activity)
 
 
@@ -344,12 +353,15 @@ def operator_create_activity(
 @operator_router.get("", response_model=list[schemas.ActivityAdminOut])
 def list_activities_for_review(
     status_filter: Optional[str] = Query(None, alias="status"),
+    business_id: Optional[str] = Query(None),
     db: Session = Depends(get_db),
     _operator: models.Operator = Depends(get_current_operator),
 ):
     query = db.query(models.Activity).options(*DETAIL_LOAD_OPTIONS)
     if status_filter:
         query = query.filter(models.Activity.status == status_filter)
+    if business_id:
+        query = query.filter(models.Activity.business_id == business_id)
     activities = query.order_by(models.Activity.created_at.desc()).all()
     stats = _review_stats(db, [activity.activity_id for activity in activities])
 
@@ -488,7 +500,7 @@ def approve_activity(
     db.commit()
     db.refresh(activity)
 
-    send_activity_approved_email(activity.business.user.account.email, activity.name)
+    send_activity_approved_email(activity)
     return activity
 
 
@@ -511,5 +523,5 @@ def hide_activity(
     db.commit()
     db.refresh(activity)
 
-    send_activity_hidden_email(activity.business.user.account.email, activity.name)
+    send_activity_hidden_email(activity)
     return activity

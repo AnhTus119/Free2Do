@@ -80,6 +80,19 @@ def ensure_bucket() -> None:
     _bucket_ready = True
 
 
+def sniff_image_type(content: bytes) -> str | None:
+    """Loại ảnh thật theo magic bytes, không tin Content-Type do trình duyệt gửi."""
+    if content.startswith(b"\xff\xd8\xff"):
+        return "image/jpeg"
+    if content.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "image/png"
+    if content[:4] == b"RIFF" and content[8:12] == b"WEBP":
+        return "image/webp"
+    if content[:6] in (b"GIF87a", b"GIF89a"):
+        return "image/gif"
+    return None
+
+
 def validate_upload(content: bytes, content_type: str, allow_video: bool) -> str:
     allowed = IMAGE_TYPES | (VIDEO_TYPES if allow_video else set())
     if content_type not in allowed:
@@ -90,6 +103,8 @@ def validate_upload(content: bytes, content_type: str, allow_video: bool) -> str
         raise InvalidMedia("File rỗng")
     if len(content) > limit_mb * 1024 * 1024:
         raise InvalidMedia(f"File vượt quá giới hạn {limit_mb} MB")
+    if media_type == "image" and sniff_image_type(content) != content_type:
+        raise InvalidMedia("Nội dung file không phải ảnh hợp lệ")
     return media_type
 
 

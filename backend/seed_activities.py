@@ -254,6 +254,8 @@ def main():
                 updated_at=now,
             )
             if activity is None:
+                # activity_id "A001"... chỉ là khóa nội bộ của dữ liệu seed; mã hiển thị (code = A{n})
+                # do models.next_activity_code cấp từ sequence như mọi hoạt động mới.
                 activity = models.Activity(activity_id=activity_id, created_at=now, **values)
                 db.add(activity)
                 db.flush()

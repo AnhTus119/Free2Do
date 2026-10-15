@@ -51,7 +51,7 @@
     document.title = `FREE2DO Admin — ${activity.name}`;
     document.querySelector('.profile-logo').textContent = activity.icon || '🗓️';
     document.querySelector('.profile-name').textContent = activity.name;
-    document.querySelector('.profile-meta').innerHTML = `Mã Hoạt động: ${data.escapeHTML(activity.id)} · Doanh nghiệp: ${businessDisplay}`;
+    document.querySelector('.profile-meta').innerHTML = `Mã Hoạt động: ${data.escapeHTML(activity.code)} · Doanh nghiệp: ${businessDisplay}`;
     document.querySelector('.profile-head > .badge').outerHTML = badge(activity.status);
 
     const cards = document.querySelectorAll('.profile-grid .card');

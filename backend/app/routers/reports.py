@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.database import get_db
 from app import models, schemas
@@ -47,10 +47,17 @@ def list_reports(
     db: Session = Depends(get_db),
     _operator: models.Operator = Depends(get_current_operator),
 ):
-    query = db.query(models.Report)
+    query = db.query(models.Report).options(joinedload(models.Report.activity), joinedload(models.Report.user))
     if status_filter:
         query = query.filter(models.Report.status == status_filter)
-    return query.order_by(models.Report.created_at.desc()).all()
+    return [
+        schemas.Report.model_validate(report).model_copy(update={
+            "activity_name": report.activity.name if report.activity else None,
+            "activity_code": report.activity.code if report.activity else None,
+            "reporter_name": report.user.name if report.user else None,
+        })
+        for report in query.order_by(models.Report.created_at.desc()).all()
+    ]
 
 
 @operator_router.patch("/{report_id}/resolve", response_model=schemas.MessageResponse)
@@ -68,14 +75,17 @@ def resolve_report(
     if report.status != "pending":
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Báo cáo đã được xử lý")
 
+    hidden_activity = None
     if payload.action == "hide_activity":
         activity = report.activity
         if activity.status in ("pending", "active"):
             activity.status = "hidden"
             activity.verified_by = operator.operator_id
             activity.verified_at = datetime.utcnow()
-            send_activity_hidden_email(activity.business.user.account.email, activity.name)
+            hidden_activity = activity
 
     db.delete(report)
     db.commit()
+    if hidden_activity is not None:
+        send_activity_hidden_email(hidden_activity)  # sau commit, lỗi email không làm hỏng thao tác
     return {"message": "Đã xử lý và xóa báo cáo"}

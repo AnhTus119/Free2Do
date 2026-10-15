@@ -47,7 +47,7 @@
 
     document.getElementById('businessActivityTitle').textContent = `Hoạt động của Doanh nghiệp này (${business.activityCount})`;
     document.getElementById('businessActivityRows').innerHTML = activities.length ? activities.map(activity => `<tr>
-      <td>${data.escapeHTML(activity.id)}</td><td>${data.escapeHTML(activity.address)}</td><td>${data.escapeHTML(activity.hours)}</td>
+      <td class="cell-code">${data.escapeHTML(activity.code)}</td><td>${data.escapeHTML(activity.address)}</td><td>${data.escapeHTML(activity.hours)}</td>
       <td>${badge(activity.status)}</td><td><a class="row-btn" href="activity-profile.html?id=${encodeURIComponent(activity.id)}">Xem</a></td>
     </tr>`).join('') : '<tr><td colspan="5" style="text-align:center;">Doanh nghiệp chưa có hoạt động.</td></tr>';
 

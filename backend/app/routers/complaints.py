@@ -84,6 +84,8 @@ def list_complaints(
         joinedload(models.Complaint.review).joinedload(models.Review.activity),
         joinedload(models.Complaint.review).joinedload(models.Review.user),
         joinedload(models.Complaint.review).selectinload(models.Review.media),
+        joinedload(models.Complaint.review).joinedload(models.Review.reply),
+        joinedload(models.Complaint.user).joinedload(models.User.business_profile),
     )
     if status_filter:
         query = query.filter(models.Complaint.status == status_filter)
@@ -98,6 +100,14 @@ def list_complaints(
         created_at=item.created_at,
         resolved_at=item.resolved_at,
         activity_name=item.review.activity.name if item.review and item.review.activity else None,
+        activity_id=item.review.activity_id if item.review else None,
+        activity_code=item.review.activity.code if item.review and item.review.activity else None,
+        complainant_name=(
+            item.user.business_profile.business_name if item.user and item.user.business_profile
+            else (item.user.name if item.user else None)
+        ),
+        review_created_at=item.review.created_at if item.review else None,
+        reply_content=item.review.reply.content if item.review and item.review.reply else None,
         reviewer_name=item.review.user.name if item.review and item.review.user else None,
         review_rating=item.review.rating if item.review else None,
         review_content=item.review.content if item.review else None,
@@ -126,6 +136,11 @@ def resolve_complaint(
         # vì complaints.review_id là FK not null -- xóa review trước sẽ vi phạm ràng buộc.
         db.query(models.Complaint).filter(models.Complaint.review_id == review_id).delete()
         db.query(models.ReviewMedia).filter(models.ReviewMedia.review_id == review_id).delete()
+        # Phản hồi của doanh nghiệp (và media của phản hồi) cũng trỏ FK tới review.
+        reply_ids = [row.reply_id for row in db.query(models.ReviewReply.reply_id).filter(models.ReviewReply.review_id == review_id)]
+        if reply_ids:
+            db.query(models.ReviewReplyMedia).filter(models.ReviewReplyMedia.reply_id.in_(reply_ids)).delete(synchronize_session=False)
+            db.query(models.ReviewReply).filter(models.ReviewReply.reply_id.in_(reply_ids)).delete(synchronize_session=False)
         db.query(models.Review).filter(models.Review.review_id == review_id).delete()
         db.commit()
         return {"message": "Đã xóa đánh giá và xử lý khiếu nại"}

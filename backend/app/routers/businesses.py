@@ -51,6 +51,7 @@ def _review_out(review: models.Review) -> schemas.BusinessReviewOut:
         review_id=review.review_id,
         user_id=review.user_id,
         activity_id=review.activity_id,
+        activity_code=review.activity.code,
         activity_name=review.activity.name,
         reviewer_name=review.user.name,
         rating=review.rating,
@@ -277,6 +278,7 @@ def get_business_analytics(
         performance.append(
             schemas.BusinessActivityPerformance(
                 activity_id=activity.activity_id,
+                activity_code=activity.code,
                 activity_name=activity.name,
                 status=activity.status,
                 review_count=review_count,

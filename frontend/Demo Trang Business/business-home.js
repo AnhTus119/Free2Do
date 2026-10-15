@@ -40,9 +40,9 @@ async function loadDashboard() {
     document.getElementById('stat-total').textContent = BusinessAPI.formatNumber(dashboard.activity_count);
     document.getElementById('stat-active').textContent = BusinessAPI.formatNumber(dashboard.active_activity_count);
     document.getElementById('stat-bookmarks').textContent = BusinessAPI.formatNumber(dashboard.bookmark_count);
-    document.getElementById('stat-rating').textContent = dashboard.average_rating == null ? '—' : dashboard.average_rating.toFixed(1);
+    document.getElementById('stat-rating').textContent = dashboard.average_rating == null ? 'Chưa có' : dashboard.average_rating.toFixed(1);
     const average = analytics.summary.period_average_rating || 0;
-    document.getElementById('ratingAvg').textContent = average ? average.toLocaleString('vi-VN', { maximumFractionDigits: 1 }) : '—';
+    document.getElementById('ratingAvg').textContent = average ? average.toLocaleString('vi-VN', { maximumFractionDigits: 1 }) : 'Chưa có';
     document.getElementById('ratingTotal').textContent = `(${analytics.summary.period_review_count} đánh giá trong kỳ)`;
     document.getElementById('ratingStars').innerHTML = starMarkup(average);
     drawCharts(analytics);

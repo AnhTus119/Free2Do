@@ -6,7 +6,7 @@
   const get = auth.authFetch;
   const e = auth.escapeHTML;
   const labels = { active: 'Hoạt động', pending: 'Chờ duyệt', hidden: 'Đã ẩn', cancelled: 'Đã hủy', blocked: 'Đã khóa', suspended: 'Tạm ngưng', approved: 'Đã duyệt', rejected: 'Từ chối' };
-  const badge = status => `<span class="badge ${e(status)}">${e(labels[status] || status || '—')}</span>`;
+  const badge = status => `<span class="badge ${e(status)}">${e(labels[status] || status || 'Chưa có')}</span>`;
   const date = value => value ? new Date(value).toLocaleDateString('vi-VN') : 'Chưa có dữ liệu';
   const value = input => input === null || input === undefined || input === '' ? 'Chưa có dữ liệu' : e(input);
   const normal = input => String(input ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();

@@ -131,10 +131,14 @@
 
   function formatHours(timeOpen, timeClose) {
     if (!timeOpen && !timeClose) return 'Chưa cập nhật';
-    const fmt = (value) => new Date(value).toLocaleString('vi-VN', {
-      hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit',
-    });
-    if (timeOpen && timeClose) return `${fmt(timeOpen)} – ${fmt(timeClose)}`;
+    // Giờ mở/đóng cửa lưu kèm ngày giả 2000-01-01 (chỉ là giờ trong ngày) nên chỉ hiện HH:mm.
+    const fmt = (value) => {
+      const date = new Date(value);
+      return date.getFullYear() === 2000
+        ? date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+        : date.toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' });
+    };
+    if (timeOpen && timeClose) return `${fmt(timeOpen)} - ${fmt(timeClose)}`;
     return fmt(timeOpen || timeClose);
   }
 

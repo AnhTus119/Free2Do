@@ -522,15 +522,7 @@
     ).textContent =
       'Chưa có hình ảnh minh họa';
 
-    document.getElementById(
-      'bizModalLicense'
-    ).className =
-      'modal-image modal-license empty';
-
-    document.getElementById(
-      'bizModalLicense'
-    ).textContent =
-      'Chưa có minh chứng giấy phép hoạt động';
+    renderBusinessProofs(business);
 
     document.getElementById(
       'bizModalApprove'
@@ -545,6 +537,25 @@
     };
 
     businessModal.classList.add('open');
+  }
+
+  // Minh chứng = ảnh doanh nghiệp gửi kèm đơn đăng ký (bảng riêng, không phải ảnh hoạt động).
+  async function renderBusinessProofs(business) {
+    const box = document.getElementById('bizModalLicense');
+    box.className = 'modal-image modal-license empty';
+    box.textContent = 'Đang tải minh chứng...';
+    try {
+      const requests = business.requestId
+        ? [await window.AdminAuth.authFetch(`/operator/business-requests/${encodeURIComponent(business.requestId)}`)]
+        : await window.AdminAuth.authFetch(`/operator/business-requests?user_id=${encodeURIComponent(business.id)}&status=approved`);
+      const proofs = requests.find(item => item.proofs?.length)?.proofs || [];
+      if (!proofs.length) { box.textContent = 'Doanh nghiệp chưa gửi ảnh minh chứng'; return; }
+      box.className = 'modal-license f2d-thumbs';
+      box.setAttribute('data-zoom-group', '');
+      box.innerHTML = proofs.map((proof, index) => `<button type="button" class="f2d-thumb" data-zoom="${data.escapeHTML(proof.media_url)}" aria-label="Phóng to minh chứng ${index + 1}"><img src="${data.escapeHTML(proof.media_url)}" alt="Minh chứng ${index + 1}" loading="lazy"></button>`).join('');
+    } catch (error) {
+      box.textContent = error.message;
+    }
   }
 
   async function decideBusiness(id, status) {

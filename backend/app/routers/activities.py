@@ -398,7 +398,7 @@ def get_activity_summary(
     )
 
 
-@operator_router.get("/{activity_id}", response_model=schemas.ActivityDetail)
+@operator_router.get("/{activity_id}", response_model=schemas.ActivityPublicOut)  # kèm business_name
 def get_activity_for_review(
     activity_id: str,
     db: Session = Depends(get_db),

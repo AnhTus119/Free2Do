@@ -472,6 +472,8 @@ Mỗi `router` (định nghĩa trong `routers/*.py`) là 1 nhóm endpoint độc
 | `PATCH /operator/complaints/{id}/resolve` (`delete_review`) | Xóa luôn phản hồi + media phản hồi của đánh giá trước khi xóa đánh giá (trước đây vi phạm khóa ngoại → 500 nếu đánh giá đã được phản hồi). |
 | `POST /complaints` | Không đổi: doanh nghiệp khiếu nại được kể cả khi đã phản hồi; chỉ chặn khi đánh giá đang có một khiếu nại chờ xử lý (409). |
 | `POST /search` | Nhận thêm `location_label`, lưu vào `search_history.location_label`. |
+| `GET /operator/activities/{id}` | Trả `ActivityPublicOut` (thêm `business_name`) để khung chi tiết báo cáo/khiếu nại hiển thị doanh nghiệp. |
+| `GET /notifications` (operator) | Thông báo báo cáo/khiếu nại link thẳng tới `management.html#report-{id}` / `#complaint-{id}`, trang tự mở khung chi tiết. |
 
 `services/supabase_storage.validate_upload` giờ kiểm tra magic bytes cho **mọi** ảnh tải lên (avatar, ảnh hoạt động, ảnh review...): file khai `image/png` nhưng nội dung không phải PNG bị từ chối (400).
 

@@ -35,7 +35,7 @@
     tbody.innerHTML = participants.length ? participants.map(item => {
       const customer = data.customers.find(entry => entry.id === item.customerId);
       if (!customer) return '';
-      const stars = item.rating ? '★'.repeat(item.rating) + '☆'.repeat(5 - item.rating) : '—';
+      const stars = item.rating ? '★'.repeat(item.rating) + '☆'.repeat(5 - item.rating) : 'Chưa có';
       return `<tr><td class="cell-title"><a href="customer-profile.html?id=${encodeURIComponent(customer.id)}" style="color:inherit;text-decoration:none;">${data.escapeHTML(customer.name)}</a></td><td>${data.escapeHTML(item.date)}</td><td>${badge(item.status)}</td><td>${stars}</td></tr>`;
     }).join('') : '<tr><td colspan="4" style="text-align:center;">Chưa có khách hàng tham gia.</td></tr>';
   }
@@ -48,7 +48,7 @@
       ? `<a href="business-profile.html?id=${encodeURIComponent(business.id)}" style="color:var(--rose-dark);font-weight:600;text-decoration:none;">${data.escapeHTML(business.name)}</a>`
       : data.escapeHTML(data.businessName(activity));
 
-    document.title = `FREE2DO Admin — ${activity.name}`;
+    document.title = `FREE2DO Admin | ${activity.name}`;
     document.querySelector('.profile-logo').textContent = activity.icon || '🗓️';
     document.querySelector('.profile-name').textContent = activity.name;
     document.querySelector('.profile-meta').innerHTML = `Mã Hoạt động: ${data.escapeHTML(activity.code)} · Doanh nghiệp: ${businessDisplay}`;
@@ -69,9 +69,13 @@
       'Đánh giá trung bình': activity.rating ? `${activity.rating.toFixed(1)} ★` : 'Chưa có đánh giá',
       'Ngày tạo': data.escapeHTML(activity.createdAt)
     });
+    // Ảnh/video của chính hoạt động (activities_media), hiển thị dạng ảnh, click để phóng to.
+    // Minh chứng đăng ký doanh nghiệp nằm ở hồ sơ doanh nghiệp, không lẫn vào đây.
     document.getElementById('activityMedia').innerHTML = activity.media.length
-      ? activity.media.map(item => `<div class="alert-row"><div class="alert-text"><a href="${data.escapeHTML(safeMediaUrl(item.media_url))}" target="_blank" rel="noopener">${data.escapeHTML(item.media_type)} — ${data.escapeHTML(item.media_url)}</a></div></div>`).join('')
-      : '<div class="alert-row"><div class="alert-text">Chưa có file minh chứng trong cơ sở dữ liệu.</div></div>';
+      ? `<div class="f2d-thumbs" data-zoom-group>${activity.media.map((item, index) => item.media_type === 'video'
+        ? `<div class="f2d-thumb"><video src="${data.escapeHTML(safeMediaUrl(item.media_url))}" controls preload="metadata"></video></div>`
+        : `<button type="button" class="f2d-thumb" data-zoom="${data.escapeHTML(safeMediaUrl(item.media_url))}" aria-label="Phóng to ảnh ${index + 1}"><img src="${data.escapeHTML(safeMediaUrl(item.media_url))}" alt="Ảnh hoạt động ${index + 1}" loading="lazy"></button>`).join('')}</div>`
+      : '<p class="f2d-empty">Hoạt động chưa có ảnh/video.</p>';
     renderParticipants();
     document.getElementById('toggleActivityVisibility').textContent = activity.status === 'hidden' ? '👁️ Hiện Hoạt động' : '🙈 Ẩn Hoạt động';
     document.getElementById('approveActivity').hidden = activity.status === 'active';

@@ -194,7 +194,7 @@
         }
       } catch (error) { F2D.toast(error.message, 'error'); }
     });
-    document.title = `FREE2DO — ${activity.name}`;
+    document.title = `FREE2DO | ${activity.name}`;
     const favorite = document.getElementById('favoriteButton'); const label = document.getElementById('favoriteLabel'); let saved = false;
     if (me?.account_type === 'user') saved = bookmarks.some(item => item.activity_id === id);
     const updateFavorite = () => { label.textContent = saved ? 'Đã yêu thích' : 'Lưu vào yêu thích'; favorite.classList.toggle('is-favorite', saved); }; updateFavorite();

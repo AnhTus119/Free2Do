@@ -92,11 +92,11 @@ def _operator_notifications(db: Session) -> list[schemas.NotificationOut]:
     for report in (db.query(models.Report).options(joinedload(models.Report.activity)).filter(models.Report.status == "pending")
                    .order_by(models.Report.created_at.desc()).limit(LIMIT)):
         result.append(_item(f"report:{report.report_id}", "report", "Báo cáo hoạt động mới",
-                            f"{report.activity.name}: {report.reason}", "management.html", report.created_at))
+                            f"{report.activity.name}: {report.reason}", f"management.html#report-{report.report_id}", report.created_at))
     for complaint in (db.query(models.Complaint).filter(models.Complaint.status == "pending")
                       .order_by(models.Complaint.created_at.desc()).limit(LIMIT)):
         result.append(_item(f"complaint:{complaint.complaint_id}", "complaint", "Khiếu nại đánh giá mới",
-                            complaint.reason, "management.html", complaint.created_at))
+                            complaint.reason, f"management.html#complaint-{complaint.complaint_id}", complaint.created_at))
     return result
 
 

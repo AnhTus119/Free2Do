@@ -112,11 +112,11 @@
   window.removeMemberForm = function (button) {
     const form = button.closest('.member-form');
     if (form.dataset.host === 'true') {
-      alert('Thành viên số 1 là host và không thể xóa.');
+      F2D.toast('Thành viên số 1 là host và không thể xóa.', 'error');
       return;
     }
     if (document.querySelectorAll('#memberForms .member-form').length === 1) {
-      alert('Nhóm cần ít nhất một thành viên.');
+      F2D.toast('Nhóm cần ít nhất một thành viên.', 'error');
       return;
     }
     form.remove();
@@ -146,7 +146,7 @@
 
   window.createInviteLink = function () {
     if (!currentGroup) {
-      alert('Hãy nhập thông tin và tạo nhóm trước khi sao chép link mời.');
+      F2D.toast('Hãy nhập thông tin và tạo nhóm trước khi sao chép link mời.', 'error');
       return;
     }
     const input = document.getElementById('inviteLink');
@@ -183,14 +183,14 @@
     const forms = [...document.querySelectorAll('#memberForms .member-form')];
     const members = forms.map(memberPayload);
     if (!members.length || members.some(member => !validMember(member))) {
-      alert('Vui lòng nhập đầy đủ thông tin cho tất cả thành viên.');
+      F2D.toast('Vui lòng nhập đầy đủ thông tin cho tất cả thành viên.', 'error');
       return;
     }
     try {
       const joining = joinMode;
       const groupName = document.getElementById('groupNameInput').value.trim();
       if (!joining && !groupName) {
-        alert('Vui lòng nhập tên nhóm.');
+        F2D.toast('Vui lòng nhập tên nhóm.', 'error');
         return;
       }
       currentGroup = joining
@@ -212,7 +212,7 @@
         document.body.style.overflow = 'hidden';
       }
     } catch (error) {
-      alert(error.message);
+      F2D.toast(error.message, 'error');
     }
   };
 
@@ -290,7 +290,7 @@
       applyGroup(await api.request(`/groups/${currentGroup.group_id}/members/${member.member_id}/ready`, {
         method: 'PATCH', body: { is_ready: !member.is_ready },
       }));
-    } catch (error) { alert(error.message); }
+    } catch (error) { F2D.toast(error.message, 'error'); }
   };
 
   window.requestGroupLeave = async function (index) {
@@ -298,15 +298,15 @@
     if (!member || currentGroup.is_host || member.user_id !== currentUser?.user_id) return;
     try {
       applyGroup(await api.request(`/groups/${currentGroup.group_id}/members/${member.member_id}/leave-request`, { method: 'POST' }));
-      alert('Yêu cầu từ chối tham gia đã được gửi và đang chờ host duyệt.');
+      F2D.toast('Yêu cầu từ chối tham gia đã được gửi và đang chờ host duyệt.');
     }
-    catch (error) { alert(error.message); }
+    catch (error) { F2D.toast(error.message, 'error'); }
   };
   window.resolveGroupLeave = async function (index, action) {
     const member = groupMembers[index];
     if (!currentGroup?.is_host || !member) return;
     try { applyGroup(await api.request(`/groups/${currentGroup.group_id}/members/${member.member_id}/leave-request`, { method: 'PATCH', body: { action } })); }
-    catch (error) { alert(error.message); }
+    catch (error) { F2D.toast(error.message, 'error'); }
   };
 
   window.openGroupActionConfirm = function (action) {
@@ -345,7 +345,7 @@
       return;
     }
     if (action === 'deleteActivity') {
-      alert('Chưa thể xóa hoạt động đã chọn vì API hiện tại chưa hỗ trợ thao tác này. Chưa có thay đổi nào được lưu.');
+      F2D.toast('Chưa thể xóa hoạt động đã chọn vì API hiện tại chưa hỗ trợ thao tác này. Chưa có thay đổi nào được lưu.', 'error');
       return;
     }
     if (action === 'deleteGroup') {
@@ -360,7 +360,7 @@
         currentGroup = null;
         returnToGroupList();
       } catch (error) {
-        alert(error.message);
+        F2D.toast(error.message, 'error');
       }
     }
   };
@@ -373,13 +373,13 @@
         method: 'PATCH', body: { action },
       });
       if (action === 'reject') {
-        alert('Bạn đã rời khỏi nhóm.');
+        F2D.toast('Bạn đã rời khỏi nhóm.');
         returnToGroupList();
       } else {
         applyGroup(group);
       }
     } catch (error) {
-      alert(error.message);
+      F2D.toast(error.message, 'error');
     }
   };
 
@@ -393,7 +393,7 @@
         return;
       }
       list.innerHTML = rows.map(group => {
-        const createdAt = group.created_at ? new Date(group.created_at).toLocaleDateString('vi-VN') : 'Không rõ';
+        const createdAt = F2D.date(group.created_at, 'Không rõ');
         const role = group.is_host ? 'Host' : 'Thành viên';
         return `<button type="button" class="your-group-card" onclick="openPastGroup('${escapeValue(group.invite_code)}')"><span><span class="your-group-name">${escapeValue(displayGroupName(group))}</span><span class="your-group-meta"><span>Ngày lập: ${escapeValue(createdAt)}</span><span>${Number(group.members.length)} thành viên</span></span></span><span class="your-group-role">${role}</span></button>`;
       }).join('');
@@ -409,7 +409,7 @@
       applyGroup(group);
       connectRealtime();
     }
-    catch (error) { alert(error.message); }
+    catch (error) { F2D.toast(error.message, 'error'); }
   };
 
   window.returnToGroupList = function () {
@@ -439,7 +439,7 @@
   window.openMemberEdit = function (index) {
     const member = groupMembers[index];
     if (!currentGroup.is_host && member.user_id !== currentUser.user_id) {
-      alert('Bạn chỉ được sửa thông tin của mình.');
+      F2D.toast('Bạn chỉ được sửa thông tin của mình.', 'error');
       return;
     }
     editingMemberIndex = index;
@@ -465,7 +465,7 @@
       category_ids: [...document.querySelectorAll('[name="edit-interests"]:checked')].map(input => input.value),
     };
     if (!validMember(payload)) {
-      alert('Vui lòng nhập đầy đủ thông tin thành viên.');
+      F2D.toast('Vui lòng nhập đầy đủ thông tin thành viên.', 'error');
       return;
     }
     try {
@@ -473,7 +473,7 @@
       closeMemberEdit();
       if (document.getElementById('group-result').style.display === 'block') await showGroupResult();
     } catch (error) {
-      alert(error.message);
+      F2D.toast(error.message, 'error');
     }
   };
 
@@ -600,7 +600,7 @@
     try {
       applyGroup(await api.request(`/groups/${currentGroup.group_id}/voting/close`, { method: 'POST' }));
     } catch (error) {
-      alert(error.message);
+      F2D.toast(error.message, 'error');
     }
   };
 
@@ -646,10 +646,10 @@
       if (!currentGroup.search_started) applyGroup(await api.request(`/groups/${currentGroup.group_id}/start`, { method: 'POST' }));
       const hasRecommendations = await loadGroupRecommendations();
       if (!hasRecommendations) {
-        alert('Không tìm thấy hoạt động phù hợp cho nhóm.');
+        F2D.toast('Không tìm thấy hoạt động phù hợp cho nhóm.', 'error');
       }
     } catch (error) {
-      alert(error.message);
+      F2D.toast(error.message, 'error');
     }
   };
 
@@ -699,7 +699,7 @@
     if (!member || currentGroup.selected_activity || currentGroup.voting_closed) return;
     const activity = findActivity(activityId);
     if (!activity) {
-      alert('Không tìm thấy hoạt động. Hãy tải lại gợi ý và thử lại.');
+      F2D.toast('Không tìm thấy hoạt động. Hãy tải lại gợi ý và thử lại.', 'error');
       return;
     }
     try {
@@ -708,7 +708,7 @@
       }));
       if (document.getElementById('activityOverlay').classList.contains('open')) openActivityPopup(activityId);
     } catch (error) {
-      alert(error.message);
+      F2D.toast(error.message, 'error');
     }
   };
 
@@ -717,7 +717,7 @@
     try {
       applyGroup(await api.request(`/groups/${currentGroup.group_id}/randomize`, { method: 'POST' }));
     } catch (error) {
-      alert(error.message);
+      F2D.toast(error.message, 'error');
     }
   };
 
@@ -740,7 +740,7 @@
     try {
       applyGroup(await api.request(`/groups/${currentGroup.group_id}/activity`, { method: 'PUT', body: { activity_id: pick.activity_id } }));
     } catch (error) {
-      alert(error.message);
+      F2D.toast(error.message, 'error');
     }
   };
 
@@ -802,7 +802,7 @@
     const input = document.getElementById('expenseTotalInput');
     const total = Number(input?.value);
     if (!Number.isSafeInteger(total) || total < 0) {
-      alert('Vui lòng nhập tổng chi phí là số nguyên không âm.');
+      F2D.toast('Vui lòng nhập tổng chi phí là số nguyên không âm.', 'error');
       return;
     }
     try {
@@ -811,7 +811,7 @@
         body: { total_amount: total },
       }));
     } catch (error) {
-      alert(error.message);
+      F2D.toast(error.message, 'error');
     }
   }
 
@@ -826,7 +826,7 @@
   }
 
   async function paymentAction(index, action) {
-    if (!currentGroup.is_host) return alert('Chỉ host được cập nhật thanh toán.');
+    if (!currentGroup.is_host) return F2D.toast('Chỉ host được cập nhật thanh toán.', 'error');
     try {
       const member = groupMembers[index];
       const group = await api.request(`/groups/${currentGroup.group_id}/payments/${member.member_id}`, { method: 'PATCH', body: { action } });
@@ -836,7 +836,7 @@
       }
       applyGroup(group);
     } catch (error) {
-      alert(error.message);
+      F2D.toast(error.message, 'error');
     }
   }
 
@@ -918,7 +918,7 @@
       }
     } catch (error) {
       userSessionStarted = false;
-      alert(error.message);
+      F2D.toast(error.message, 'error');
     }
   }
 

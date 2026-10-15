@@ -14,14 +14,7 @@
   let searchSeq = 0;
 
   const escape = value => auth.escapeHTML(value);
-  function toast(message, isError = false) {
-    const box = $('opToast');
-    box.textContent = message;
-    box.classList.toggle('error', isError);
-    box.hidden = false;
-    clearTimeout(toast.timer);
-    toast.timer = setTimeout(() => { box.hidden = true; }, 3800);
-  }
+  const toast = (message, isError = false) => window.F2D.toast(message, isError ? 'error' : 'success');
   function setError(id, message, inputId) {
     const box = $(id);
     box.textContent = message || '';

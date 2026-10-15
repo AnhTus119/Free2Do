@@ -5,14 +5,14 @@ const filters = { media: false, rating: 0 };
 const stars = rating => `<span style="color:#F5B921;letter-spacing:1px;">${'★'.repeat(rating)}${'☆'.repeat(5 - rating)}</span>`;
 const mediaHTML = (items, editable = false) => items?.length ? `<div class="rv-media">${items.map(item => `<span>${item.media_type === 'video'
   ? `<video class="rv-thumb" src="${BusinessAPI.escapeHTML(item.media_url)}" controls></video>`
-  : `<img class="rv-thumb" src="${BusinessAPI.escapeHTML(item.media_url)}" alt="Ảnh đánh giá">`}${editable ? `<button class="row-btn danger" data-action="delete-reply-media" data-media-id="${BusinessAPI.escapeHTML(item.media_id)}">Xóa file</button>` : ''}</span>`).join('')}</div>` : '';
+  : `<img class="rv-thumb" src="${BusinessAPI.escapeHTML(item.media_url)}" data-zoom alt="Ảnh đánh giá">`}${editable ? `<button class="row-btn danger" data-action="delete-reply-media" data-media-id="${BusinessAPI.escapeHTML(item.media_id)}">Xóa file</button>` : ''}</span>`).join('')}</div>` : '';
 
 function card(review) {
   const complaint = complaints.get(review.review_id);
   const reply = review.reply;
-  return `<article class="rv-card${complaint ? ' complained' : ''}" data-id="${BusinessAPI.escapeHTML(review.review_id)}">
+  return `<article data-zoom-group class="rv-card${complaint ? ' complained' : ''}" data-id="${BusinessAPI.escapeHTML(review.review_id)}">
     <div class="rv-top"><div class="nav-avatar" style="width:32px;height:32px;font-size:12px;">${BusinessAPI.escapeHTML(review.reviewer_name.charAt(0))}</div>
-      <b>${BusinessAPI.escapeHTML(review.reviewer_name)}</b>${stars(review.rating)}<span class="rv-date">${BusinessAPI.formatDate(review.created_at)}</span></div>
+      <b>${BusinessAPI.escapeHTML(review.reviewer_name)}</b>${stars(review.rating)}<span class="rv-date">${BusinessAPI.formatDateTime(review.created_at)}</span></div>
     <div class="rv-meta">Hoạt động: <b>${BusinessAPI.escapeHTML(review.activity_name)}</b></div>
     <p class="rv-text">${BusinessAPI.escapeHTML(review.content || 'Không có nội dung.')}</p>
     ${mediaHTML(review.media)}

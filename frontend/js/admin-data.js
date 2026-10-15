@@ -21,7 +21,7 @@
     'ăn uống': 'food', 'giải trí': 'entertainment', 'thể thao': 'entertainment',
     workshop: 'workshop', 'làm đẹp': 'beauty',
   };
-  const viDate = value => value ? new Date(value).toLocaleDateString('vi-VN') : 'Chưa có dữ liệu';
+  const viDate = value => window.F2D.date(value);
   const normalize = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
   const parseViDate = value => {
     const parts = String(value || '').split('/').map(Number);
@@ -62,7 +62,7 @@
       longitude: activity.longitude, status: activity.status,
       description: activity.description || 'Chưa có mô tả.', verifiedBy: activity.verified_by || '',
       expireAt: viDate(activity.expire_at), views: null, participants: source.review_count || 0,
-      rating: source.avg_rating, createdAt: viDate(activity.created_at), media: source.media || [], icon: '✨',
+      rating: source.avg_rating, createdAt: window.F2D.dateTime(activity.created_at), media: source.media || [], icon: '✨',
     };
   }
 

@@ -121,10 +121,10 @@
     locationInput.addEventListener('keydown', event => {
       if (event.key !== 'Enter') return;
       event.preventDefault();
-      resolveTypedLocation().catch(error => alert(error.message));
+      resolveTypedLocation().catch(error => F2D.toast(error.message, 'error'));
     });
     locationInput.addEventListener('change', () => {
-      locationResolveTimer = setTimeout(() => resolveTypedLocation().catch(error => alert(error.message)), 0);
+      locationResolveTimer = setTimeout(() => resolveTypedLocation().catch(error => F2D.toast(error.message, 'error')), 0);
     });
     interestBox.addEventListener('click', event => {
       const chip = event.target.closest('[data-category-id]');
@@ -140,7 +140,7 @@
         locationLabel = 'Vị trí hiện tại';
         mapLocation.textContent = 'Vị trí hiện tại';
         await searchNearby(false);
-      } catch (error) { alert(error.message); }
+      } catch (error) { F2D.toast(error.message, 'error'); }
     });
     mapResults.addEventListener('pointerover', event => { const item = event.target.closest('[data-activity-id]'); if (item) mapController?.highlight(item.dataset.activityId, true); });
     mapResults.addEventListener('pointerout', event => { const item = event.target.closest('[data-activity-id]'); if (item) mapController?.highlight(item.dataset.activityId, false); });
@@ -150,7 +150,7 @@
       locationLabel = 'Vị trí đã chọn trên bản đồ';
       locationInput.value = locationLabel;
       mapLocation.textContent = locationLabel;
-      await searchNearby(false).catch(error => alert(error.message));
+      await searchNearby(false).catch(error => F2D.toast(error.message, 'error'));
     });
   }
   async function load() {
@@ -192,10 +192,10 @@
         const resolved = await api.request(`/search/location?query=${encodeURIComponent(typedLocation)}`);
         position = { latitude: resolved.latitude, longitude: resolved.longitude };
         locationLabel = resolved.display_name || typedLocation;
-      } catch (error) { alert(error.message); return; }
+      } catch (error) { F2D.toast(error.message, 'error'); return; }
     }
     if (!window.Free2DoMap.validCoordinate(position?.latitude, position?.longitude)) {
-      alert('Chưa xác định được vị trí. Hãy cho phép truy cập GPS hoặc nhập địa chỉ khác.');
+      F2D.toast('Chưa xác định được vị trí. Hãy cho phép truy cập GPS hoặc nhập địa chỉ khác.', 'error');
       return;
     }
     const params = new URLSearchParams({ latitude: position.latitude, longitude: position.longitude, location_label: locationLabel,

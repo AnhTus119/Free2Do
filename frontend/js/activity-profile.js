@@ -80,11 +80,11 @@
   document.getElementById('toggleActivityVisibility').addEventListener('click', async () => {
     try {
       await data.setStatus('activity', activity.id, activity.status === 'hidden' ? 'active' : 'hidden'); render();
-    } catch (error) { alert(error.message); }
+    } catch (error) { F2D.toast(error.message, 'error'); }
   });
   document.getElementById('approveActivity').addEventListener('click', async () => {
     try { await data.setStatus('activity', activity.id, 'active'); render(); }
-    catch (error) { alert(error.message); }
+    catch (error) { F2D.toast(error.message, 'error'); }
   });
 
   data.ready.then(() => { id ||= data.activities[0]?.id; render(); }).catch(error => {

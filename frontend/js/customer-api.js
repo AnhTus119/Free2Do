@@ -2,7 +2,12 @@
   'use strict';
   const base = window.FREE2DO_CONFIG.API_BASE_URL;
   const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
-  async function request(path, options = {}) {
+  // Mọi yêu cầu ghi đi qua F2D.mutate (js/main.js): khóa nút vừa bấm + toast thành công/thất bại.
+  function request(path, options = {}) {
+    const { toast, ...rest } = options;
+    return window.F2D ? window.F2D.mutate(rest.method, path, () => send(path, rest), { toast }) : send(path, rest);
+  }
+  async function send(path, options = {}) {
     const token = localStorage.getItem('token');
     const isForm = options.body instanceof FormData;
     const body = options.body && !isForm && typeof options.body !== 'string'

@@ -132,7 +132,6 @@
     </div>
   </div>
 </div>
-<div class="op-toast" id="opToast" role="status" hidden></div>
 <style>
   .op-overlay{position:fixed;inset:0;z-index:2500;background:rgba(32,22,12,.55);backdrop-filter:blur(3px);display:flex;align-items:flex-start;justify-content:center;padding:4vh 16px;overflow-y:auto;opacity:0;transition:opacity .2s ease;}
   .op-overlay.show{opacity:1;}
@@ -166,14 +165,11 @@
   .op-btn{border:0;border-radius:999px;padding:12px 28px;background:#DB6680;color:#fff;font:700 14px Inter,sans-serif;cursor:pointer;transition:filter .15s,transform .1s;}
   .op-btn:hover:not(:disabled){filter:brightness(.95);} .op-btn:active:not(:disabled){transform:scale(.98);}
   .op-btn:disabled{opacity:.5;cursor:not-allowed;} .op-btn.ghost{background:#fff;color:#5A4A3A;border:1.5px solid #E5D9C4;}
-  .op-toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:3500;background:#2B2118;color:#fff;padding:12px 22px;border-radius:999px;font:600 14px Inter,sans-serif;box-shadow:0 12px 30px rgba(0,0,0,.25);animation:opToast .22s ease-out;}
-  .op-toast[hidden]{display:none;} .op-toast.error{background:#C0392B;}
-  @keyframes opToast{from{opacity:0;transform:translate(-50%,10px);}to{opacity:1;transform:translateX(-50%);}}
   @keyframes opFade{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:none;}}
   @media (max-width:640px){.op-modal{padding:24px 18px;}.op-grid{grid-template-columns:1fr;}}
-  @media (prefers-reduced-motion:reduce){.op-overlay,.op-modal{transition:none;}.op-toast,.op-biz-card{animation:none;}}
+  @media (prefers-reduced-motion:reduce){.op-overlay,.op-modal{transition:none;}.op-biz-card{animation:none;}}
 </style>
-<script src="js/config.js"></script>
+<script src="js/config.js"></script><script src="js/main.js"></script>
 <script src="js/admin-auth.js"></script>
 <script src="js/admin-shell.js"></script>
 <script src="js/notifications.js"></script>

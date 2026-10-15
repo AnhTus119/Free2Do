@@ -36,7 +36,12 @@
    * Nếu 401 -> tự đăng xuất và chuyển về trang login.
    * Ném lỗi (Error) kèm message tiếng Việt lấy từ backend khi request thất bại.
    */
-  async function authFetch(path, options = {}) {
+  // Mọi yêu cầu ghi đi qua F2D.mutate (js/main.js): khóa nút vừa bấm + toast thành công/thất bại.
+  function authFetch(path, options = {}) {
+    const { toast, ...rest } = options;
+    return window.F2D ? window.F2D.mutate(rest.method, path, () => send(path, rest), { toast }) : send(path, rest);
+  }
+  async function send(path, options = {}) {
     const token = getToken();
     if (!token) {
       goToLogin();

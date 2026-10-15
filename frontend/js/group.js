@@ -1097,14 +1097,16 @@
     let hash = 0;
     for (const char of String(activity.activity_id)) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
     const text = CHEERS[hash % CHEERS.length].replace('{name}', escapeValue(view.name));
-    const confetti = Array.from({ length: 18 }, (_, i) => `<i style="left:${(i * 37) % 100}%;animation-delay:${(i % 6) * 0.12}s;background:${['#DB6680', '#F3D9A6', '#9CC5A1', '#8FB8DE'][i % 4]}"></i>`).join('');
-    showWidget(`<div class="g-confetti" aria-hidden="true">${confetti}</div>
-      <div class="g-decision-kicker">${currentGroup.final_method === 'random' ? 'Đã chốt từ kết quả random' : 'Hoạt động nhiều phiếu nhất'}</div>
+    showWidget(`<div class="g-decision-kicker">${currentGroup.final_method === 'random' ? 'Đã chốt từ kết quả random' : 'Hoạt động nhiều phiếu nhất'}</div>
       <h2 class="g-decision-title">Chúc mừng cả nhóm! 🎉</h2>
       ${slotHTML({ business_logo_url: activity.business_logo_url, media_url: activity.media_url, name: activity.name }, 'g-slot-win')}
       <p class="g-cheer">${text}</p>
       <p class="g-decision-meta">Bước tiếp theo: các thành viên xác nhận tham gia, sau đó mở phần chia chi phí.</p>
       <div class="g-decision-actions"><button class="btn btn-primary" type="button" onclick="closeDecisionWidget()">Tiếp tục</button></div>`, 'celebrate');
+    // Pháo giấy tưng bừng: một loạt bắn ngay, loạt thứ hai sau 1,1 giây.
+    const card = document.querySelector('.g-decision-card');
+    F2D.confetti(card);
+    setTimeout(() => { if (widgetState === 'celebrate') F2D.confetti(card, { pieces: 90 }); }, 1100);
   }
 
   function syncDecisionWidget() {

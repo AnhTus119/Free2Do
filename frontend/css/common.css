@@ -118,3 +118,46 @@
 .f2d-sr-only{position:absolute !important;width:1px !important;height:1px !important;padding:0 !important;margin:-1px !important;overflow:hidden !important;clip:rect(0,0,0,0) !important;white-space:nowrap !important;border:0 !important;}
 .btn:disabled,.btn[disabled],.row-btn:disabled{opacity:.55;cursor:not-allowed;}
 .btn.is-busy:disabled{opacity:.75;cursor:progress;}
+
+/* ---------- Chiều sâu: lớp bong bóng nền ---------- */
+.f2d-ambient{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none;}
+.f2d-bubble{position:absolute;left:var(--x);top:var(--y);width:var(--s);height:var(--s);margin:calc(var(--s) / -2) 0 0 calc(var(--s) / -2);border-radius:50%;opacity:.32;filter:blur(1px);animation:f2d-float var(--t) ease-in-out var(--d) infinite alternate;will-change:transform;}
+.f2d-bubble.rose{background:color-mix(in srgb,var(--rose,#DB6680) 28%,transparent);}
+.f2d-bubble.pink{background:color-mix(in srgb,var(--pink,#FF9DA3) 34%,transparent);}
+.f2d-bubble.cream{background:color-mix(in srgb,var(--cream,#FFEBC6) 85%,transparent);}
+.f2d-bubble.sage{background:color-mix(in srgb,var(--sage,#B2BD8B) 30%,transparent);}
+@keyframes f2d-float{
+  0%{transform:translate3d(0,0,0) scale(1);}
+  50%{transform:translate3d(28px,-36px,0) scale(1.06);}
+  100%{transform:translate3d(-22px,18px,0) scale(.96);}
+}
+
+/* ---------- Hiện dần khi cuộn tới ---------- */
+.f2d-reveal:not(.f2d-done){opacity:0;transform:translateY(18px);}
+.f2d-reveal.f2d-in:not(.f2d-done){transition:opacity .55s cubic-bezier(.2,.7,.2,1) var(--rd,0ms),transform .55s cubic-bezier(.2,.7,.2,1) var(--rd,0ms);}
+.f2d-reveal.f2d-in:not(.f2d-done){opacity:1;transform:none;}
+.f2d-reveal:not(.f2d-in){transition:none;}
+
+/* ---------- Nút: nhấc nhẹ khi hover, lún khi bấm, gợn sóng tại điểm bấm ---------- */
+.btn,.qa-btn,.row-btn,.rv-pill,.page-btn,.search-history-again{transition:transform .18s cubic-bezier(.2,.8,.2,1),background-color .2s ease,color .2s ease,border-color .2s ease,box-shadow .2s ease;}
+.btn:hover:not(:disabled),.qa-btn:hover:not(:disabled),.search-history-again:hover{transform:translateY(-1px);}
+.btn:active:not(:disabled),.qa-btn:active:not(:disabled),.row-btn:active:not(:disabled),.search-history-again:active{transform:translateY(0) scale(.97);}
+.f2d-has-ripple{overflow:hidden;isolation:isolate;}
+.f2d-ripple{position:absolute;border-radius:50%;background:currentColor;opacity:.18;transform:scale(0);pointer-events:none;z-index:-1;animation:f2d-ripple .55s cubic-bezier(.2,.7,.2,1) forwards;}
+@keyframes f2d-ripple{to{transform:scale(1);opacity:0;}}
+
+/* Thẻ: nổi nhẹ khi hover để tạo chiều sâu giữa các lớp */
+.activity-card,.search-history-card,.request-card,.rv-card,.bp-card,.biz-stat-card,.stat-card{transition:transform .25s cubic-bezier(.2,.8,.2,1),box-shadow .25s ease,border-color .25s ease,opacity .55s ease;}
+.activity-card:hover,.biz-stat-card:hover,.stat-card:hover{transform:translateY(-3px);box-shadow:0 14px 30px rgba(110,82,72,.12);}
+
+/* ---------- Pháo giấy (F2D.confetti) ---------- */
+.f2d-confetti{position:absolute;inset:0;overflow:hidden;pointer-events:none;border-radius:inherit;z-index:3;}
+.f2d-confetti i{position:absolute;left:0;top:0;width:8px;height:12px;border-radius:2px;will-change:transform,opacity;}
+.f2d-confetti i.dot{width:8px;height:8px;border-radius:50%;}
+.f2d-confetti i.ribbon{width:4px;height:16px;border-radius:2px;}
+
+@media (prefers-reduced-motion:reduce){
+  .f2d-bubble{animation:none;}
+  .f2d-reveal{opacity:1;transform:none;transition:none;}
+  .btn,.qa-btn,.row-btn,.activity-card{transition:none;}
+}

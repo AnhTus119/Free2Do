@@ -53,6 +53,34 @@ html,body,input,button,select,textarea{font-family:'Inter',system-ui,-apple-syst
   #avatarUploadForm{display:flex;flex-direction:column;gap:10px}
   #pane-hoso>div:first-child .btn{margin-left:0 !important;width:100%;justify-content:center}
 }
+
+/* ===== Hộp "Trở thành Business" đầu trang hồ sơ ===== */
+.biz-cta{position:relative;display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:22px;padding:22px 26px;margin-bottom:22px;border-radius:22px;background:color-mix(in srgb,var(--cream) 70%,#fff);overflow:hidden;isolation:isolate}
+.biz-cta::after{content:"";position:absolute;right:-60px;top:-70px;width:220px;height:220px;border-radius:50%;background:color-mix(in srgb,var(--pink) 30%,transparent);z-index:-1;animation:f2d-float 18s ease-in-out infinite alternate}
+.biz-cta-art{width:112px;height:84px;flex:0 0 auto}
+.shop-wall{fill:#fff}.awning-base{fill:var(--rose)}.awning-stripe{fill:#fff;opacity:.85}.shop-door{fill:var(--brown)}.shop-window{fill:color-mix(in srgb,var(--sage) 70%,#fff)}.shop-knob{fill:var(--cream)}.shop-spark{fill:#F5B921;transform-origin:80px 16px;animation:bizSpark 3.2s ease-in-out infinite}
+.shop-awning{transform-origin:80px 30px;animation:bizAwning 4s ease-in-out infinite}
+.biz-cta-text h2{margin:0 0 6px;font-size:19px;font-weight:800;line-height:1.3}
+.biz-cta-text p{margin:0;font-size:14px;line-height:1.55;color:var(--brown);max-width:52ch}
+.biz-cta-btn{position:relative;display:inline-flex;align-items:center;gap:12px;height:50px;padding:0 10px 0 22px;border-radius:999px;background:var(--ink);color:#fff;font-weight:700;font-size:14.5px;text-decoration:none;white-space:nowrap;overflow:hidden;isolation:isolate;transition:transform .2s cubic-bezier(.2,.8,.2,1)}
+.biz-cta-btn::before{content:"";position:absolute;inset:0;background:var(--rose);border-radius:inherit;transform:scaleX(0);transform-origin:left;transition:transform .45s cubic-bezier(.65,0,.35,1);z-index:-1}
+.biz-cta-label{transition:transform .35s cubic-bezier(.2,.8,.2,1)}
+.biz-cta-arrow{position:relative;display:inline-flex;width:32px;height:32px;border-radius:50%;background:#fff;color:var(--ink);overflow:hidden;transition:color .3s ease}
+.biz-cta-arrow svg{position:absolute;inset:7px;width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;transition:transform .4s cubic-bezier(.65,0,.35,1)}
+.biz-cta-arrow svg:last-child{transform:translateX(-28px)}
+.biz-cta-btn:hover,.biz-cta-btn:focus-visible{color:#fff;text-decoration:none}
+.biz-cta-btn:hover::before,.biz-cta-btn:focus-visible::before{transform:scaleX(1)}
+.biz-cta-btn:hover .biz-cta-label,.biz-cta-btn:focus-visible .biz-cta-label{transform:translateX(-3px)}
+.biz-cta-btn:hover .biz-cta-arrow,.biz-cta-btn:focus-visible .biz-cta-arrow{color:var(--rose)}
+.biz-cta-btn:hover .biz-cta-arrow svg:first-child,.biz-cta-btn:focus-visible .biz-cta-arrow svg:first-child{transform:translateX(28px)}
+.biz-cta-btn:hover .biz-cta-arrow svg:last-child,.biz-cta-btn:focus-visible .biz-cta-arrow svg:last-child{transform:none}
+.biz-cta-btn:active{transform:scale(.97)}
+.biz-cta-btn:focus-visible{outline:2px solid var(--rose-dark);outline-offset:3px}
+.biz-cta:hover .shop-awning{animation-duration:1.2s}
+@keyframes bizAwning{0%,100%{transform:rotate(0)}50%{transform:rotate(-2.5deg)}}
+@keyframes bizSpark{0%,100%{transform:scale(.7) rotate(0);opacity:.6}50%{transform:scale(1.15) rotate(25deg);opacity:1}}
+@media(max-width:720px){.biz-cta{grid-template-columns:1fr;text-align:left;padding:20px}.biz-cta-art{width:88px;height:66px}.biz-cta-btn{justify-self:start}}
+@media(prefers-reduced-motion:reduce){.biz-cta::after,.shop-spark,.shop-awning{animation:none}.biz-cta-btn::before,.biz-cta-arrow svg,.biz-cta-label{transition:none}}
 </style>
 </head>
 <body>
@@ -110,6 +138,24 @@ html,body,input,button,select,textarea{font-family:'Inter',system-ui,-apple-syst
 
   <!-- ===== HỒ SƠ CÁ NHÂN ===== -->
   <div class="tab-pane" id="pane-hoso">
+    <section class="biz-cta" aria-labelledby="bizCtaTitle">
+      <svg class="biz-cta-art" viewBox="0 0 160 120" aria-hidden="true">
+        <rect x="22" y="44" width="116" height="66" rx="6" class="shop-wall"/>
+        <g class="shop-awning"><path d="M14 30h132l-8 22H22z" class="awning-base"/><path d="M14 30h22l-4 22H22zM58 30h22l-2 22H60zM102 30h22l0 22h-20z" class="awning-stripe"/></g>
+        <rect x="34" y="64" width="38" height="46" rx="3" class="shop-door"/>
+        <rect x="86" y="64" width="40" height="26" rx="3" class="shop-window"/>
+        <circle cx="66" cy="88" r="2.4" class="shop-knob"/>
+        <path d="M80 8l3 7 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z" class="shop-spark"/>
+      </svg>
+      <div class="biz-cta-text">
+        <h2 id="bizCtaTitle">Bạn có hoạt động muốn giới thiệu?</h2>
+        <p>Đăng ký tài khoản Business để đưa workshop, quán hay sân chơi của bạn tới những người đang rảnh ngay gần đó.</p>
+      </div>
+      <a href="become-business.html" class="biz-cta-btn">
+        <span class="biz-cta-label">Trở thành Business</span>
+        <span class="biz-cta-arrow" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+      </a>
+    </section>
     <div style="display:flex;align-items:center;gap:18px;margin-bottom:28px;">
       <div class="nav-avatar" style="width:64px;height:64px;font-size:22px;">M</div>
       <div>
@@ -141,7 +187,6 @@ html,body,input,button,select,textarea{font-family:'Inter',system-ui,-apple-syst
       <p style="color:var(--muted);font-size:13px">Hoặc chọn một ảnh mẫu:</p><div id="avatarPresets" class="chip-row"></div>
       <button id="removeAvatar" class="btn btn-ghost" type="button">Xóa ảnh đại diện</button>
     </section>
-    <a href="become-business.html" class="btn btn-secondary btn-block" style="margin-top:8px;"><svg class="icon"><use href="#icon-building"></use></svg> Trở thành Business</a>
   </div>
 
   <!-- ===== YÊU THÍCH ===== -->

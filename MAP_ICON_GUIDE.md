@@ -4,7 +4,7 @@ Icon này chỉ dùng làm marker nhỏ trên bản đồ, không phải ảnh b
 
 Icon được lưu tại:
 
-`frontend/img/map-icons/`
+`frontend/assets/map-icons/`
 
 Quy tắc chọn icon nằm trong:
 
@@ -16,7 +16,7 @@ Ví dụ muốn thay icon Bowling:
 
 1. Chuẩn bị ảnh JPG hoặc PNG hình vuông.
 2. Đặt tên ảnh là `bowling.jpg`.
-3. Ghi đè file `frontend/img/map-icons/bowling.jpg`.
+3. Ghi đè file `frontend/assets/map-icons/bowling.jpg`.
 4. Deploy lại frontend lên Vercel.
 
 Không cần sửa JavaScript nếu giữ nguyên tên file.
@@ -29,7 +29,7 @@ Doanh nghiệp chọn một hoặc nhiều tags trong form tạo hoạt động.
 
 Ví dụ thêm icon cho hoạt động Karaoke:
 
-1. Chép ảnh vào `frontend/img/map-icons/karaoke.jpg`.
+1. Chép ảnh vào `frontend/assets/map-icons/karaoke.jpg`.
 2. Tạo tag `Karaoke` trong database hoặc qua API Operator.
 3. Doanh nghiệp chọn tag `Karaoke` khi tạo hoạt động.
 4. Deploy lại frontend. Hệ thống chuẩn hóa tên tag thành `karaoke` và tự tìm `karaoke.jpg`; không cần gắn icon thủ công cho từng hoạt động.
@@ -43,7 +43,7 @@ Tên file tự động là tên tag viết thường, bỏ dấu và thay khoả
 Nếu tên file không giống slug của tag hoặc một icon cần dùng cho nhiều từ khóa, mở `frontend/js/customer-activity-icons.js`, thêm file vào `ICONS`:
 
 ```js
-'karaoke': '../img/map-icons/karaoke.jpg',
+'karaoke': '../assets/map-icons/karaoke.jpg',
 ```
 
 Sau đó thêm quy tắc vào mảng `RULES`:

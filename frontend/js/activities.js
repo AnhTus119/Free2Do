@@ -6,6 +6,10 @@
   const searchInput = document.getElementById('activitySearch');
   const typeFilter = document.getElementById('typeFilter');
   const priceFilter = document.getElementById('priceFilter');
+  const businessFilter = document.getElementById('businessFilter');
+  const activeFilters = document.getElementById('activeFilters');
+  // activities.html?business_id=... (từ hồ sơ doanh nghiệp "Xem tất cả") tự lọc theo doanh nghiệp đó.
+  let selectedBusiness = new URLSearchParams(location.search).get('business_id') || 'all';
   const countLabel = document.getElementById('activityCount');
   const pagination = document.getElementById('activityPagination');
   const statusTabs = document.querySelectorAll('.status-tab');
@@ -34,8 +38,9 @@
     const activities = data.activities.filter(activity => {
       const matchesStatus = selectedStatus === 'all' || activity.status === selectedStatus;
       const matchesType = typeFilter.value === 'all' || activity.type === typeFilter.value;
+      const matchesBusiness = selectedBusiness === 'all' || activity.businessId === selectedBusiness;
       const matchesSearch = !query || data.normalize(`${activity.code} ${activity.name} ${data.businessName(activity)}`).includes(query);
-      return matchesStatus && matchesType && matchesSearch;
+      return matchesStatus && matchesType && matchesBusiness && matchesSearch;
     });
     if (priceFilter.value === 'priceAsc') activities.sort((a, b) => startingPrice(a) - startingPrice(b));
     if (priceFilter.value === 'priceDesc') activities.sort((a, b) => startingPrice(b) - startingPrice(a));
@@ -73,19 +78,44 @@
     pagination.appendChild(makeButton('›', currentPage + 1, currentPage === totalPages ? ' disabled' : ''));
   }
 
+  function renderBusinessFilter() {
+    const businesses = data.businesses.filter(item => !item.requestId).sort((a, b) => a.name.localeCompare(b.name, 'vi'));
+    businessFilter.innerHTML = '<option value="all">Tất cả doanh nghiệp</option>'
+      + businesses.map(item => `<option value="${data.escapeHTML(item.id)}">${data.escapeHTML(item.name)}</option>`).join('');
+    if (selectedBusiness !== 'all' && !businesses.some(item => item.id === selectedBusiness)) {
+      businessFilter.insertAdjacentHTML('beforeend', `<option value="${data.escapeHTML(selectedBusiness)}">Doanh nghiệp không tồn tại</option>`);
+    }
+    businessFilter.value = selectedBusiness;
+    const name = businessFilter.selectedOptions[0]?.textContent;
+    activeFilters.innerHTML = selectedBusiness === 'all' ? ''
+      : `<span class="filter-chip">Doanh nghiệp: ${data.escapeHTML(name)}<button type="button" data-clear-business aria-label="Xóa bộ lọc doanh nghiệp">✕</button></span>`;
+  }
+
+  function setBusiness(value) {
+    selectedBusiness = value || 'all';
+    const url = new URL(location.href);
+    if (selectedBusiness === 'all') url.searchParams.delete('business_id'); else url.searchParams.set('business_id', selectedBusiness);
+    history.replaceState(null, '', url);
+    currentPage = 1;
+    render();
+  }
+
   function render() {
+    renderBusinessFilter();
     const activities = filteredActivities();
     const totalPages = Math.max(1, Math.ceil(activities.length / pageSize));
     currentPage = Math.min(currentPage, totalPages);
     const start = (currentPage - 1) * pageSize;
     renderRows(activities.slice(start, start + pageSize));
     countLabel.textContent = activities.length
-      ? `Hiển thị ${start + 1}–${Math.min(start + pageSize, activities.length)} trong tổng số ${activities.length} Hoạt động`
+      ? `Hiển thị ${start + 1}-${Math.min(start + pageSize, activities.length)} trong tổng số ${activities.length} hoạt động`
       : 'Không có hoạt động phù hợp';
     renderPagination(totalPages); updateCounts();
   }
 
   [searchInput, typeFilter, priceFilter].forEach(control => control.addEventListener(control.tagName === 'INPUT' ? 'input' : 'change', () => { currentPage = 1; render(); }));
+  businessFilter.addEventListener('change', () => setBusiness(businessFilter.value));
+  activeFilters.addEventListener('click', event => { if (event.target.closest('[data-clear-business]')) setBusiness('all'); });
   statusTabs.forEach(tab => tab.addEventListener('click', () => {
     selectedStatus = tab.dataset.status; currentPage = 1;
     statusTabs.forEach(item => item.classList.toggle('active', item === tab)); render();

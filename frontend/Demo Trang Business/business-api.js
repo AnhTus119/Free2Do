@@ -100,7 +100,7 @@
   const formatDateTime = value => window.F2D.dateTime(value, 'Chưa cập nhật');
   const formatTime = value => value ? new Intl.DateTimeFormat('vi-VN', {
     hour: '2-digit', minute: '2-digit'
-  }).format(new Date(value)) : '—';
+  }).format(new Date(value)) : 'Chưa có';
   const statusLabels = {
     active: 'Đang hiển thị', pending: 'Chờ duyệt', hidden: 'Đã ẩn', cancelled: 'Đã hủy'
   };

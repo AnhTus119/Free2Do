@@ -37,7 +37,7 @@
       const name = document.createElement('strong'); name.textContent = item.name || 'Hoạt động';
       const meta = document.createElement('small');
       const distance = item.distance_km == null ? 'Chưa có khoảng cách' : `${item.distance_km} km`;
-      meta.textContent = `${distance} · ${api.priceLabel(item.price_text, item.price)} · ★ ${item.avg_rating ?? '—'} · ${item.match_score}% phù hợp`;
+      meta.textContent = `${distance} · ${api.priceLabel(item.price_text, item.price)} · ★ ${item.avg_rating ?? 'Chưa có'} · ${item.match_score}% phù hợp`;
       card.append(name, meta);
       card.addEventListener('click', () => {
         const context = window.Free2DoCustomerHome?.getAIContext?.() || {};

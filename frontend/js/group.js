@@ -544,7 +544,7 @@
       : '';
     const confirmations = groupMembers.map(member => `<div class="group-vote-row"><span>${escapeValue(member.name)}${member.is_host ? ' · Host' : ''}</span><span class="group-vote-choice">${member.confirmation_status === 'accepted' ? 'Đã đồng ý' : 'Đang chờ xác nhận'}</span></div>`).join('');
     document.getElementById('groupVoteSummary').innerHTML = `<div class="group-vote-summary"><h3>Xác nhận hoạt động</h3>${confirmations}${ownDecision}</div>`;
-    document.getElementById('bestMatch').innerHTML = `<button class="suggestion-card g-row-card" type="button" onclick="openActivityPopup('${escapeValue(view.id)}')" style="width:100%;text-align:left;">${thumbHTML(view, 56)}<div style="min-width:0"><div class="g-chosen-label">Hoạt động nhóm đã chốt</div><div class="activity-title">${escapeValue(view.name)}</div><div class="activity-biz">${escapeValue(view.address)} · ${escapeValue(view.price)}</div><div class="member-crit">★ ${view.rating ?? '—'} · ${escapeValue(view.hours)} · ${escapeValue(view.categories)}</div></div></button>`;
+    document.getElementById('bestMatch').innerHTML = `<button class="suggestion-card g-row-card" type="button" onclick="openActivityPopup('${escapeValue(view.id)}')" style="width:100%;text-align:left;">${thumbHTML(view, 56)}<div style="min-width:0"><div class="g-chosen-label">Hoạt động nhóm đã chốt</div><div class="activity-title">${escapeValue(view.name)}</div><div class="activity-biz">${escapeValue(view.address)} · ${escapeValue(view.price)}</div><div class="member-crit">★ ${view.rating ?? 'Chưa có'} · ${escapeValue(view.hours)} · ${escapeValue(view.categories)}</div></div></button>`;
     document.getElementById('suggestionCards').innerHTML = '';
     document.getElementById('suggestions').style.display = 'none';
     document.getElementById('suggestionsToggle').style.display = 'none';
@@ -687,7 +687,7 @@
       ? `<button class="btn ${voted ? 'btn-secondary g-voted' : 'btn-primary'} suggestion-card-action" type="button" onclick="voteActivity('${escapeValue(view.id)}')">${voted ? '✓ Đã bình chọn · Bỏ chọn' : 'Bình chọn'}</button>`
       : '';
     const badge = votes ? `<span class="g-vote-badge">${votes} phiếu</span>` : '';
-    return `<div class="suggestion-card ${voted ? 'is-voted' : ''}"><button class="suggestion-details g-row-card" type="button" onclick="openActivityPopup('${escapeValue(view.id)}')">${thumbHTML(view, 52)}<div style="min-width:0"><div class="activity-title">${best ? '✨ ' : ''}${escapeValue(view.name)} ${badge}</div><div class="activity-biz">${escapeValue(view.address)} · ${escapeValue(view.price)}</div><div class="member-crit">★ ${view.rating ?? '—'} · ${escapeValue(view.hours)} · ${escapeValue(view.categories)} · ${view.score}% phù hợp</div></div></button>${action}</div>`;
+    return `<div class="suggestion-card ${voted ? 'is-voted' : ''}"><button class="suggestion-details g-row-card" type="button" onclick="openActivityPopup('${escapeValue(view.id)}')">${thumbHTML(view, 52)}<div style="min-width:0"><div class="activity-title">${best ? '✨ ' : ''}${escapeValue(view.name)} ${badge}</div><div class="activity-biz">${escapeValue(view.address)} · ${escapeValue(view.price)}</div><div class="member-crit">★ ${view.rating ?? 'Chưa có'} · ${escapeValue(view.hours)} · ${escapeValue(view.categories)} · ${view.score}% phù hợp</div></div></button>${action}</div>`;
   }
 
   function suggestionCard(activity) {
@@ -762,7 +762,7 @@
       ? `<button type="button" class="btn ${selectedVote ? 'btn-secondary' : 'btn-primary'}" onclick="voteActivity('${escapeValue(id)}')">${selectedVote ? '✓ Đã bình chọn · Bỏ chọn' : 'Bình chọn'}</button>`
       : '';
     document.getElementById('activityPopupTitle').textContent = view.name;
-    document.getElementById('activityPopupBody').innerHTML = `${image}<div class="activity-popup-meta"><div><b>Địa chỉ</b><br>${escapeValue(view.address)}</div><div><b>Giá</b><br>${escapeValue(view.price)}</div><div><b>Thời gian</b><br>${escapeValue(view.hours)}</div><div><b>Đánh giá</b><br>★ ${view.rating ?? '—'}</div></div><p style="line-height:1.6;color:var(--muted);">${escapeValue(view.description)}</p><div class="group-actions"><a href="activity-detail.html?id=${encodeURIComponent(id)}" class="btn btn-secondary">Chi tiết</a>${selectButton}</div>`;
+    document.getElementById('activityPopupBody').innerHTML = `${image}<div class="activity-popup-meta"><div><b>Địa chỉ</b><br>${escapeValue(view.address)}</div><div><b>Giá</b><br>${escapeValue(view.price)}</div><div><b>Thời gian</b><br>${escapeValue(view.hours)}</div><div><b>Đánh giá</b><br>★ ${view.rating ?? 'Chưa có'}</div></div><p style="line-height:1.6;color:var(--muted);">${escapeValue(view.description)}</p><div class="group-actions"><a href="activity-detail.html?id=${encodeURIComponent(id)}" class="btn btn-secondary">Chi tiết</a>${selectButton}</div>`;
     document.getElementById('activityOverlay').classList.add('open');
     document.body.style.overflow = 'hidden';
   };

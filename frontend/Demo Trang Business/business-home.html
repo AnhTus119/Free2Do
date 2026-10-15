@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>FREE2DO Business — Tổng quan</title>
+  <title>FREE2DO Business | Tổng quan</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="app-style.css">
   <style>.rating-summary{display:flex;align-items:center;gap:48px;padding:8px 0}.rating-score{text-align:center;min-width:130px}.rating-score-num{font-size:56px}.rating-stars{position:relative;display:inline-block;line-height:0}.rating-stars-row{display:flex;gap:2px}.rating-stars-fill{position:absolute;inset:0 auto auto 0;overflow:hidden}.rating-stars-fill .rating-stars-row{width:max-content}.rating-chart{flex:1;height:260px}@media(max-width:600px){.rating-summary{flex-direction:column;align-items:stretch}}</style>
@@ -16,10 +16,10 @@
   <main class="wrap" style="padding-top:32px;padding-bottom:60px">
     <div class="welcome" style="margin-bottom:28px"><h2 style="font-size:22px;margin-bottom:6px">Xin chào, <span id="welcome-name">Đang tải...</span></h2><p style="color:var(--muted);font-size:14px">Dữ liệu tổng quan được tính trực tiếp từ hệ thống FREE2DO.</p></div>
     <section class="biz-stats">
-      <div class="biz-stat-card"><div class="biz-stat-num" id="stat-total">—</div><div class="biz-stat-label">Tổng hoạt động</div></div>
-      <div class="biz-stat-card"><div class="biz-stat-num" id="stat-active">—</div><div class="biz-stat-label">Hoạt động đang hiển thị</div></div>
-      <div class="biz-stat-card"><div class="biz-stat-num" id="stat-bookmarks">—</div><div class="biz-stat-label">Lượt lưu hoạt động</div></div>
-      <div class="biz-stat-card"><div class="biz-stat-num" id="stat-rating">—</div><div class="biz-stat-label">Đánh giá trung bình</div></div>
+      <div class="biz-stat-card"><div class="biz-stat-num" id="stat-total">...</div><div class="biz-stat-label">Tổng hoạt động</div></div>
+      <div class="biz-stat-card"><div class="biz-stat-num" id="stat-active">...</div><div class="biz-stat-label">Hoạt động đang hiển thị</div></div>
+      <div class="biz-stat-card"><div class="biz-stat-num" id="stat-bookmarks">...</div><div class="biz-stat-label">Lượt lưu hoạt động</div></div>
+      <div class="biz-stat-card"><div class="biz-stat-num" id="stat-rating">...</div><div class="biz-stat-label">Đánh giá trung bình</div></div>
     </section>
     <section style="background:#fff;border:1px solid var(--line);border-radius:16px;padding:24px;margin-top:24px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px"><h3 class="section-title" style="margin:0">Tương tác từ review và lượt lưu</h3><select id="chartPeriodSelect" onchange="updateChartData()"><option value="7">7 ngày qua</option><option value="15">15 ngày qua</option><option value="30" selected>30 ngày qua</option></select></div>
@@ -27,7 +27,7 @@
     </section>
     <section style="background:#fff;border:1px solid var(--line);border-radius:16px;padding:24px;margin-top:24px">
       <div style="display:flex;justify-content:space-between"><h3 class="section-title">Tổng quan đánh giá trong kỳ</h3><a href="reviews.html" style="color:var(--rose)">Chi tiết đánh giá</a></div>
-      <div class="rating-summary"><div class="rating-score"><div class="rating-score-num" id="ratingAvg">—</div><div class="rating-stars" id="ratingStars"></div><div class="rating-total" id="ratingTotal"></div></div><div class="rating-chart"><canvas id="ratingChart"></canvas></div></div>
+      <div class="rating-summary"><div class="rating-score"><div class="rating-score-num" id="ratingAvg">...</div><div class="rating-stars" id="ratingStars"></div><div class="rating-total" id="ratingTotal"></div></div><div class="rating-chart"><canvas id="ratingChart"></canvas></div></div>
     </section>
   </main>
   <div class="mobile-nav-panel" id="mobile-nav"><div class="mobile-nav-content"><button class="mobile-nav-close" onclick="toggleMobileMenu()">&times;</button><a href="business-home.html" class="mobile-nav-link active">Tổng quan</a><a href="my-activities.html" class="mobile-nav-link">Hoạt động của tôi</a><a href="reviews.html" class="mobile-nav-link">Đánh giá</a><a href="upgrade-plan.html" class="mobile-nav-link">Gói dịch vụ</a></div></div>

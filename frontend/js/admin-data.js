@@ -99,7 +99,7 @@
     state.businesses = businessUsers.map((user, index) => {
       const profile = profiles[index];
       return {
-        id: user.user_id, name: profile?.business_name || user.name,
+        id: user.user_id, code: profile?.business_code || 'Chưa có mã', name: profile?.business_name || user.name,
         address: profile?.business_address || 'Chưa có dữ liệu', type: 'Xem danh sách hoạt động',
         phone: profile?.phone || user.phone || '', hours: 'Xem từng hoạt động', priceRange: 'Xem từng hoạt động',
         status: mapStatus(user.status), verifiedBy: profile?.verified_by || '',
@@ -145,6 +145,7 @@
       const next = status === 'rejected' ? 'hidden' : status;
       await auth.authFetch(`/operator/activities/${encodeURIComponent(id)}/status`, {
         method: 'PATCH', body: JSON.stringify({ status: next }),
+        toast: { active: 'Đã duyệt và hiển thị hoạt động.', hidden: 'Đã ẩn hoạt động.' }[next] || 'Đã cập nhật trạng thái hoạt động.',
       });
       const item = state.activities.find(entry => entry.id === id);
       if (item) item.status = next;
@@ -156,7 +157,9 @@
     if (!item) throw new Error('Không tìm thấy bản ghi cần cập nhật.');
     if (kind === 'business' && item.requestId) {
       const action = status === 'active' ? 'approve' : 'reject';
-      await auth.authFetch(`/operator/business-requests/${encodeURIComponent(item.requestId)}/${action}`, { method: 'PATCH' });
+      await auth.authFetch(`/operator/business-requests/${encodeURIComponent(item.requestId)}/${action}`, {
+        method: 'PATCH', toast: action === 'approve' ? 'Đã duyệt yêu cầu doanh nghiệp.' : 'Đã từ chối yêu cầu doanh nghiệp.',
+      });
       state.businesses = state.businesses.filter(entry => entry.id !== id);
       await refreshSummaries();
       return;
@@ -164,6 +167,7 @@
     const backendStatus = status === 'locked' ? 'blocked' : status;
     await auth.authFetch(`/operator/users/${encodeURIComponent(id)}/status`, {
       method: 'PATCH', body: JSON.stringify({ status: backendStatus }),
+      toast: backendStatus === 'active' ? 'Đã mở khóa tài khoản.' : 'Đã khóa tài khoản.',
     });
     item.status = mapStatus(backendStatus);
     await refreshSummaries();

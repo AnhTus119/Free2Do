@@ -28,7 +28,7 @@
     const query = data.normalize(searchInput.value);
     const businesses = data.businesses.filter(business => {
       const matchesStatus = statusFilter.value === 'all' || business.status === statusFilter.value;
-      const matchesSearch = !query || data.normalize(`${business.id} ${business.name} ${business.address} ${business.type}`).includes(query);
+      const matchesSearch = !query || data.normalize(`${business.code || ''} ${business.name} ${business.address} ${business.type}`).includes(query);
       return matchesStatus && matchesSearch;
     });
     if (activityFilter.value === 'mostActivities') {
@@ -47,7 +47,7 @@
       if (business.status === 'pending') action = '<button class="row-btn approve" data-action="approve">Duyệt</button>';
       if (business.status === 'locked') action = '<button class="row-btn approve" data-action="unlock">Mở khóa</button>';
       return `<tr data-id="${data.escapeHTML(business.id)}">
-        <td>${data.escapeHTML(business.id)}</td>
+        <td class="cell-code">${data.escapeHTML(business.code || 'Chờ duyệt')}</td>
         <td><div class="cell-title">${data.escapeHTML(business.name)}</div><div class="cell-sub">${data.escapeHTML(business.address)}</div></td>
         <td>${data.escapeHTML(business.type)}</td><td>${activityCount(business.id)}</td>
         <td><span class="badge ${data.escapeHTML(business.status)}">${data.statusLabels[business.status]}</span></td>

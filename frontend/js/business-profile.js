@@ -24,10 +24,10 @@
     business = data.businesses.find(item => item.id === id);
     if (!business) { showNotFound(); return; }
     const activities = data.activities.filter(activity => activity.businessId === business.id);
-    document.title = `FREE2DO Admin — ${business.name}`;
+    document.title = `FREE2DO Admin | ${business.name}`;
     document.querySelector('.profile-logo').textContent = business.name.trim().charAt(0).toUpperCase();
     document.querySelector('.profile-name').textContent = business.name;
-    document.querySelector('.profile-meta').textContent = `Mã Doanh nghiệp: ${business.id} · ${business.type} · ${business.address}`;
+    document.querySelector('.profile-meta').textContent = `Mã Doanh nghiệp: ${business.code || 'Yêu cầu chờ duyệt'} · ${business.type} · ${business.address}`;
     document.querySelector('.profile-head > .badge').outerHTML = badge(business.status);
 
     const cards = document.querySelectorAll('.profile-grid .card');
@@ -45,6 +45,8 @@
       'Đánh giá trung bình': business.averageRating == null ? 'Chưa có dữ liệu' : `${business.averageRating.toFixed(1)} ★`
     });
 
+    document.getElementById('businessActivitiesLink').href = `activities.html?business_id=${encodeURIComponent(business.id)}`;
+    renderProofs();
     document.getElementById('businessActivityTitle').textContent = `Hoạt động của Doanh nghiệp này (${business.activityCount})`;
     document.getElementById('businessActivityRows').innerHTML = activities.length ? activities.map(activity => `<tr>
       <td class="cell-code">${data.escapeHTML(activity.code)}</td><td>${data.escapeHTML(activity.address)}</td><td>${data.escapeHTML(activity.hours)}</td>
@@ -54,6 +56,57 @@
     const toggleButton = document.getElementById('toggleBusinessStatus');
     toggleButton.textContent = business.status === 'locked' ? '🔓 Mở khóa Doanh nghiệp' : '🔒 Khóa Doanh nghiệp';
   }
+
+  // Minh chứng (ảnh) lấy từ đơn đăng ký doanh nghiệp, hiển thị riêng, không lẫn với ảnh hoạt động.
+  let proofsFor = null;
+  async function renderProofs() {
+    if (proofsFor === business.id) return;
+    proofsFor = business.id;
+    const box = document.getElementById('businessProofs');
+    try {
+      const requests = business.requestId
+        ? [await window.AdminAuth.authFetch(`/operator/business-requests/${encodeURIComponent(business.requestId)}`)]
+        : await window.AdminAuth.authFetch(`/operator/business-requests?user_id=${encodeURIComponent(business.id)}&status=approved`);
+      const proofs = requests.find(item => item.proofs?.length)?.proofs || [];
+      box.innerHTML = proofs.length
+        ? `<div class="f2d-thumbs" data-zoom-group>${proofs.map((proof, index) => `<button type="button" class="f2d-thumb" data-zoom="${data.escapeHTML(proof.media_url)}" aria-label="Phóng to minh chứng ${index + 1}"><img src="${data.escapeHTML(proof.media_url)}" alt="Minh chứng ${index + 1}" loading="lazy"></button>`).join('')}</div>`
+        : '<p class="f2d-empty">Doanh nghiệp chưa gửi ảnh minh chứng.</p>';
+    } catch (error) {
+      box.innerHTML = `<p class="f2d-empty">${data.escapeHTML(error.message)}</p>`;
+    }
+  }
+
+  const editDialog = document.getElementById('editBusinessDialog');
+  document.getElementById('editBusiness').addEventListener('click', () => {
+    if (!business || business.requestId) return F2D.toast('Chỉ sửa được hồ sơ của doanh nghiệp đã được duyệt.', 'error');
+    document.getElementById('ebName').value = business.name || '';
+    document.getElementById('ebPhone').value = business.phone || '';
+    document.getElementById('ebAddress').value = business.address === 'Chưa có dữ liệu' ? '' : (business.address || '');
+    document.getElementById('ebDescription').value = business.description === 'Chưa có mô tả.' ? '' : (business.description || '');
+    editDialog.showModal();
+  });
+  document.getElementById('ebCancel').addEventListener('click', () => editDialog.close());
+  document.getElementById('editBusinessForm').addEventListener('submit', event => {
+    event.preventDefault();
+    const name = document.getElementById('ebName').value.trim();
+    if (!name) return F2D.toast('Tên doanh nghiệp không được để trống.', 'error');
+    F2D.busy(document.getElementById('ebSave'), async () => {
+      try {
+        await window.AdminAuth.authFetch(`/operator/business-profiles/${encodeURIComponent(business.id)}`, {
+          method: 'PATCH', toast: 'Đã chỉnh sửa thành công',
+          body: JSON.stringify({
+            business_name: name,
+            phone: document.getElementById('ebPhone').value.trim() || null,
+            business_address: document.getElementById('ebAddress').value.trim() || null,
+            description: document.getElementById('ebDescription').value.trim() || null,
+          }),
+        });
+        editDialog.close();
+        await data.refresh();
+        render();
+      } catch (error) { /* toast lỗi đã hiện ở F2D.mutate */ }
+    });
+  });
 
   document.getElementById('toggleBusinessStatus').addEventListener('click', async () => {
     try {

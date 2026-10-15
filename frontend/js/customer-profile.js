@@ -26,14 +26,14 @@
   }
 
   function ratingStars(rating) {
-    return rating ? '★'.repeat(rating) + '☆'.repeat(5 - rating) : '—';
+    return rating ? '★'.repeat(rating) + '☆'.repeat(5 - rating) : 'Chưa có';
   }
 
   function render() {
     customer = data.customers.find(item => item.id === id);
     if (!customer) { showNotFound(); return; }
 
-    document.title = `FREE2DO Admin — ${customer.name}`;
+    document.title = `FREE2DO Admin | ${customer.name}`;
     document.querySelector('.profile-logo').textContent = customer.name.trim().charAt(0).toUpperCase();
     document.querySelector('.profile-name').textContent = customer.name;
     document.querySelector('.profile-meta').textContent = `${customer.id} · ${customer.email} · Đăng ký ngày ${customer.registeredAt}`;

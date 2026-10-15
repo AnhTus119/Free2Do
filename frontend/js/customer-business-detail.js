@@ -8,7 +8,7 @@
       api.request(`/businesses/${encodeURIComponent(id)}`),
       api.request('/activities'),
     ]);
-    document.title = `FREE2DO — ${business.business_name}`;
+    document.title = `FREE2DO | ${business.business_name}`;
     document.getElementById('businessName').textContent = business.business_name;
     document.getElementById('businessAddress').textContent = business.business_address;
     document.getElementById('businessDescription').textContent = business.description || 'Chưa có mô tả.';

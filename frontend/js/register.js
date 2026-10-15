@@ -85,9 +85,15 @@ if (registerForm) {
       const me = await meResponse.json();
       if (!meResponse.ok) throw new Error(me.detail || "Không lấy được thông tin tài khoản.");
 
-      const pendingGroupInvite = sessionStorage.getItem("pending_group_invite") || new URLSearchParams(location.search).get("groupInvite");
+      const pendingGroupInvite = new URLSearchParams(location.search).get("groupInvite");
+
+      // Lời mời chỉ đến từ URL; tài khoản cần email khôi phục sẽ đọc lại khóa này ở recovery-email.js.
+
+      if (pendingGroupInvite) sessionStorage.setItem("pending_group_invite", pendingGroupInvite); else sessionStorage.removeItem("pending_group_invite");
+
+      sessionStorage.removeItem("f2d:viewing-group");
       if (!me.requires_recovery_email && pendingGroupInvite && me.account_type === "user" && me.role !== "business") {
-        sessionStorage.removeItem("pending_group_invite");
+        sessionStorage.setItem("pending_group_invite", pendingGroupInvite); // đã đồng ý trước khi đăng ký: vào thẳng nhóm
         window.location.href = `Demo Trang Customer/group.html?groupInvite=${encodeURIComponent(pendingGroupInvite)}`;
         return;
       }

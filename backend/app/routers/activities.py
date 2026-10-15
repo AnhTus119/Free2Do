@@ -126,16 +126,12 @@ def list_public_activities(
     status_filter: Literal["active", "pending", "all"] = Query("active", alias="status"),
     db: Session = Depends(get_db),
 ):
-    """Danh sách hoạt động lấy từ DB cho trang chủ/tìm kiếm của frontend.
+    """Danh sách hoạt động công khai cho customer: chỉ hoạt động đã duyệt và đang hiển thị.
 
-    Mặc định chỉ trả hoạt động đang hoạt động. ``status=all`` cho phép frontend
-    nghiệp vụ xem cả pending mà không làm lộ hidden/cancelled.
+    ``status`` được giữ để không vỡ link cũ nhưng mọi giá trị đều trả về ``active``;
+    hoạt động chờ duyệt/bị ẩn/đã hủy chỉ xem qua API của business và operator.
     """
-    query = db.query(models.Activity)
-    if status_filter == "all":
-        query = query.filter(models.Activity.status.in_(("active", "pending")))
-    else:
-        query = query.filter(models.Activity.status == status_filter)
+    query = db.query(models.Activity).filter(models.Activity.status == "active")
     activities = query.options(*DETAIL_LOAD_OPTIONS).order_by(models.Activity.created_at.desc()).all()
     return _to_details(db, activities)
 
@@ -153,7 +149,7 @@ def get_activity(
         .filter(models.Activity.activity_id == activity_id)
         .first()
     )
-    if not activity or activity.status not in ("active", "pending"):
+    if not activity or activity.status != "active":  # customer không thấy hoạt động chưa duyệt/bị ẩn
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Không tìm thấy hoạt động")
     return _to_detail(db, activity, latitude, longitude, include_business_media=True)
 

@@ -51,7 +51,7 @@ def create_review(
     user: models.User = Depends(get_current_user),
 ):
     activity = db.query(models.Activity).filter(models.Activity.activity_id == payload.activity_id).first()
-    if not activity:
+    if not activity or activity.status != "active":
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Không tìm thấy hoạt động")
 
     existing = (

@@ -151,7 +151,7 @@ html,body,input,button,select,textarea{font-family:'Inter',system-ui,-apple-syst
       <div class="nav-icon"><svg class="icon">
           <use href="#icon-bell"></use>
         </svg><span class="dot-badge"></span></div>
-      <div class="nav-who" onclick="toggleUserMenu(event)">
+      <div class="nav-who" role="button" tabindex="0" aria-haspopup="menu" aria-label="Menu tài khoản" onclick="toggleUserMenu(event)">
         <div class="nav-avatar">M</div>
         <div class="nav-name">Đang tải</div>
         <svg class="icon icon-sm">
@@ -161,7 +161,7 @@ html,body,input,button,select,textarea{font-family:'Inter',system-ui,-apple-syst
           <a href="account.html#hoso"><svg class="icon">
               <use href="#icon-user"></use>
             </svg>Hồ sơ cá nhân</a>
-          <a href="#" class="logout"><svg class="icon">
+          <a href="../log-in.html" class="logout"><svg class="icon">
               <use href="#icon-log-out"></use>
             </svg>Đăng xuất</a>
         </div>

@@ -124,6 +124,12 @@
     event?.stopPropagation();
     document.getElementById('nav-user-menu')?.classList.toggle('show');
   };
+  // ESC đóng panel trượt (tạo/xem hoạt động) cho người dùng bàn phím.
+  document.addEventListener('keydown', event => {
+    if (event.key !== 'Escape') return;
+    if (document.getElementById('detail-panel')?.classList.contains('show')) window.closeDetail?.();
+    else if (document.getElementById('form-panel')?.classList.contains('show')) window.closeForm?.();
+  });
   window.toggleMobileMenu = () => document.getElementById('mobile-nav')?.classList.toggle('show');
   window.addEventListener('click', event => {
     if (!event.target.closest('.nav-who')) document.getElementById('nav-user-menu')?.classList.remove('show');

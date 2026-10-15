@@ -28,7 +28,7 @@
     return getCustomers()
       .filter(customer => {
         const matchesStatus = statusFilter.value === 'all' || customer.status === statusFilter.value;
-        const matchesSearch = !query || normalize(`${customer.id} ${customer.name} ${customer.email}`).includes(query);
+        const matchesSearch = !query || normalize(`${customer.name} ${customer.email}`).includes(query);
         return matchesStatus && matchesSearch;
       })
       .sort((first, second) => {
@@ -47,7 +47,7 @@
       const isLocked = customer.status === 'locked';
       return `
         <tr data-id="${escapeHTML(customer.id)}">
-          <td><div class="cell-title">${escapeHTML(customer.name)}</div><div class="cell-sub">${escapeHTML(customer.id)}</div></td>
+          <td><div class="cell-title">${escapeHTML(customer.name)}</div></td>
           <td>${escapeHTML(customer.email)}</td>
           <td>${escapeHTML(customer.registeredAt)}</td>
           <td><span class="badge ${escapeHTML(customer.status)}">${statusLabels[customer.status]}</span></td>

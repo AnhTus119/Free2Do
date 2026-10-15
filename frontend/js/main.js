@@ -426,16 +426,45 @@
     Promise.allSettled(animations).then(() => layer.remove());
   }
 
+  // Số liệu thống kê đếm lên từ 0 khi vừa được điền (chỉ số nguyên, giữ nguyên định dạng 1.234).
+  const COUNTERS = '.stat-num,.biz-stat-num,.ad-stat-num';
+  function countUp() {
+    if (reduceMotion) return;
+    document.querySelectorAll(COUNTERS).forEach(el => {
+      const text = el.textContent.trim();
+      if (!/^\d{1,3}(\.\d{3})*$|^\d+$/.test(text) || el.dataset.counted === text) return;
+      const target = Number(text.replace(/\./g, ''));
+      el.dataset.counted = text;
+      if (target < 2) return;
+      const start = performance.now();
+      const step = now => {
+        const progress = Math.min(1, (now - start) / 700);
+        const value = Math.round(target * (1 - Math.pow(1 - progress, 3)));
+        const shown = value.toLocaleString('vi-VN');
+        el.dataset.counted = progress < 1 ? shown : text;
+        el.textContent = progress < 1 ? shown : text;
+        if (progress < 1) requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    });
+  }
+
   function initMotion() {
     ambient();
     scanReveal();
+    countUp();
     document.addEventListener('pointerdown', ripple);
+    // Phần tử không phải <button> nhưng đóng vai nút (menu tài khoản...) bấm được bằng Enter/Space.
+    document.addEventListener('keydown', event => {
+      const target = event.target.closest?.('[role="button"]:not(button)');
+      if (target && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); target.click(); }
+    });
     // Phần lớn nội dung được render sau khi gọi API: quét lại khi DOM đổi.
     let pending = false;
     new MutationObserver(() => {
       if (pending) return;
       pending = true;
-      requestAnimationFrame(() => { pending = false; scanReveal(); });
+      requestAnimationFrame(() => { pending = false; scanReveal(); countUp(); });
     }).observe(document.body, { childList: true, subtree: true });
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initMotion); else initMotion();

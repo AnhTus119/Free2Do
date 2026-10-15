@@ -1,13 +1,10 @@
 (function () {
   'use strict';
   const api = window.CustomerAPI;
-  const CUSTOM_INTERESTS_KEY = 'free2do_custom_interests';
   const title = document.querySelector('#pane-hoso [style*="font-size:19px"]');
   const subtitle = title?.nextElementSibling;
-  let available = [];
-  let selected = new Set();
-  let customInterests = []; // sở thích cá nhân: lưu trên server (/users/me/interests), AI dùng để hiểu ngữ cảnh
-  let interestSaving = Promise.resolve();
+  // Editor sở thích dùng chung (js/main.js), cũng là editor của popup chọn sở thích sau đăng ký.
+  const interests = F2D.interestsEditor(document.querySelector('#edit-mode .chip-row'), api);
   let currentUser = null;
   function selectTab(tab) {
     document.querySelectorAll('.tab-pane').forEach(p => p.classList.toggle('active', p.id === `pane-${tab}`));
@@ -16,15 +13,14 @@
   }
   window.selectTab = selectTab;
   window.toggleEdit = () => { document.getElementById('edit-mode').style.display = document.getElementById('edit-mode').style.display === 'none' ? 'block' : 'none'; };
-  window.saveProfile = async () => {
-    const button = document.getElementById('profileSaveButton'); button.disabled = true;
+  window.saveProfile = () => F2D.busy(document.getElementById('profileSaveButton'), async () => {
     try {
       const name = document.getElementById('profileName').value.trim();
       const phone = document.getElementById('profilePhone').value.trim();
       if (!name) throw new Error('Họ và tên không được để trống.');
       const [profile] = await Promise.all([
-        api.request('/users/me', { method: 'PATCH', body: { name, phone: phone || null } }),
-        api.request('/users/me/categories', { method: 'PUT', body: { category_ids: [...selected] } }),
+        api.request('/users/me', { method: 'PATCH', body: { name, phone: phone || null }, toast: false }),
+        interests.save(),
       ]);
       currentUser = profile;
       if (title) title.textContent = profile.name;
@@ -34,101 +30,12 @@
       F2D.toast('Đã cập nhật hồ sơ và sở thích.');
       document.getElementById('edit-mode').style.display = 'none';
       renderCategories();
-    } catch (error) { F2D.toast(error.message, 'error'); } finally { button.disabled = false; }
-  };
+    } catch (error) { F2D.toast(error.message, 'error'); }
+  });
   function renderCategories() {
-    const chosenCategories = available.filter(category => selected.has(category.category_id));
-    const viewChips = [
-      ...chosenCategories.map(category => `<span class="chip active">${api.escapeHTML(category.name)}</span>`),
-      ...customInterests.map(interest => `<span class="chip active personal">${api.escapeHTML(interest)}</span>`),
-    ];
-    document.querySelector('#view-mode .chip-row').innerHTML = viewChips.join('') || '<span>Chưa chọn sở thích.</span>';
-    const categoryChips = available.map(category => `<button type="button" class="chip ${selected.has(category.category_id) ? 'active' : ''}" data-category-id="${api.escapeHTML(category.category_id)}">${api.escapeHTML(category.name)}</button>`).join('');
-    const editor = document.querySelector('#edit-mode .chip-row');
-    const pending = editor.querySelector('.custom-interest-input')?.value || '';
-    const hadFocus = document.activeElement?.matches?.('.custom-interest-input');
-    editor.innerHTML = `${categoryChips}
-      <div class="personal-interests">
-        <div class="personal-interests-label">Sở thích cá nhân <span>(nhập rồi nhấn Enter, tối đa ${MAX_INTERESTS})</span></div>
-        <div class="personal-interests-row">
-          ${customInterests.map((interest, index) => `<span class="chip active personal">${api.escapeHTML(interest)}<button type="button" class="chip-x" data-remove-custom-interest="${index}" aria-label="Xóa ${api.escapeHTML(interest)}">×</button></span>`).join('')}
-          <input class="custom-interest-input" type="text" maxlength="60" placeholder="VD: leo núi, nhạc acoustic..." aria-label="Thêm sở thích cá nhân" value="${api.escapeHTML(pending)}">
-          <button type="button" class="chip add-chip" data-add-custom-interest>＋ Thêm sở thích</button>
-        </div>
-        <div class="personal-interests-msg" role="status"></div>
-      </div>`;
-    if (hadFocus) editor.querySelector('.custom-interest-input').focus();
+    const chips = interests.chosenLabels().map(label => `<span class="chip active">${api.escapeHTML(label)}</span>`);
+    document.querySelector('#view-mode .chip-row').innerHTML = chips.join('') || '<span>Chưa chọn sở thích.</span>';
   }
-  const MAX_INTERESTS = 20;
-  function interestMessage(text, isError = false) {
-    const box = document.querySelector('.personal-interests-msg');
-    if (!box) return;
-    box.textContent = text || '';
-    box.classList.toggle('error', isError);
-  }
-  // Mỗi thay đổi (thêm/xóa) lưu ngay lên server; các lần lưu xếp hàng để không ghi đè lẫn nhau.
-  function saveInterests(next, successText) {
-    const previous = customInterests;
-    customInterests = next;
-    renderCategories();
-    interestSaving = interestSaving.then(async () => {
-      try {
-        const result = await api.request('/users/me/interests', { method: 'PUT', body: { interests: customInterests } });
-        customInterests = result.interests;
-        renderCategories();
-        interestMessage(successText);
-      } catch (error) {
-        customInterests = previous;
-        renderCategories();
-        interestMessage(error.message, true);
-      }
-    });
-    return interestSaving;
-  }
-  function addInterestFromInput() {
-    const input = document.querySelector('.custom-interest-input');
-    const value = (input?.value || '').replace(/\s+/g, ' ').trim();
-    if (!value) return input?.focus();
-    if (customInterests.some(item => item.toLocaleLowerCase('vi') === value.toLocaleLowerCase('vi'))) {
-      interestMessage(`"${value}" đã có trong danh sách.`, true);
-      return;
-    }
-    if (customInterests.length >= MAX_INTERESTS) {
-      interestMessage(`Bạn chỉ có thể lưu tối đa ${MAX_INTERESTS} sở thích cá nhân.`, true);
-      return;
-    }
-    input.value = '';
-    saveInterests([...customInterests, value], `✓ Đã thêm "${value}".`);
-  }
-  async function loadCustomInterests() {
-    try {
-      customInterests = (await api.request('/users/me/interests')).interests;
-      // Chuyển sở thích cũ từng lưu trong trình duyệt lên server (chỉ một lần).
-      const legacy = JSON.parse(localStorage.getItem(CUSTOM_INTERESTS_KEY) || '[]');
-      localStorage.removeItem(CUSTOM_INTERESTS_KEY);
-      const extra = Array.isArray(legacy) ? legacy.filter(item => typeof item === 'string' && item.trim()) : [];
-      if (extra.length) await saveInterests([...customInterests, ...extra].slice(0, MAX_INTERESTS));
-    } catch (error) { console.warn('Không tải được sở thích cá nhân:', error); }
-    renderCategories();
-  }
-  document.querySelector('#edit-mode .chip-row').onclick = e => {
-    const button = e.target.closest('button');
-    if (!button) return;
-    if (button.hasAttribute('data-add-custom-interest')) return addInterestFromInput();
-    if (button.hasAttribute('data-remove-custom-interest')) {
-      const removed = customInterests[Number(button.dataset.removeCustomInterest)];
-      saveInterests(customInterests.filter((_, index) => index !== Number(button.dataset.removeCustomInterest)), `Đã xóa "${removed}".`);
-      return;
-    }
-    if (!button.dataset.categoryId) return;
-    if (selected.has(button.dataset.categoryId)) selected.delete(button.dataset.categoryId); else selected.add(button.dataset.categoryId);
-    renderCategories();
-  };
-  document.querySelector('#edit-mode .chip-row').onkeydown = e => {
-    if (!e.target.matches('.custom-interest-input')) return;
-    if (e.key === 'Enter') { e.preventDefault(); addInterestFromInput(); }
-    else if (e.key === 'Escape') { e.target.value = ''; interestMessage(''); }
-  };
   document.getElementById('favoriteActivities').onclick = async e => {
     const button = e.target.closest('[data-remove-id]'); if (!button) return;
     button.disabled = true;
@@ -170,16 +77,33 @@
     document.getElementById('profileName').value = me.name;
     document.getElementById('profileEmail').value = me.email || '';
     document.getElementById('profilePhone').value = me.phone || '';
-    const [categoryRows, presets] = await Promise.all([api.request('/categories'), api.request('/media/avatar-presets')]);
-    available = categoryRows;
+    const [, presets] = await Promise.all([interests.load(), api.request('/media/avatar-presets')]);
     document.getElementById('avatarPresets').innerHTML = presets.map(item => `<button type="button" class="chip" data-preset-id="${api.escapeHTML(item.preset_id)}"><img src="${api.escapeHTML(item.media_url)}" alt="${api.escapeHTML(item.name)}" style="width:36px;height:36px;border-radius:50%;object-fit:cover"> ${api.escapeHTML(item.name)}</button>`).join('') || '<span>Chưa có ảnh mẫu.</span>';
-    const userCategories = await api.request('/users/me/categories');
-    selected = new Set(userCategories.map(category => category.category_id));
-    renderCategories(); await loadCustomInterests(); await renderBookmarks();
+    renderCategories(); await renderBookmarks();
     const historyItems = await api.request('/users/me/search-history');
     const history = document.querySelector('#pane-lichsu');
-    history.innerHTML = historyItems.length ? historyItems.map(item => `<div class="history-card"><b>${api.escapeHTML(item.keyword || 'Tìm quanh vị trí đã chọn')}</b><div class="activity-meta">${api.escapeHTML(F2D.dateTime(item.created_at))} · Bán kính ${api.escapeHTML(item.radius)} km${item.budget == null ? '' : ` · ≤ ${api.escapeHTML(api.price(item.budget))}`}${item.free_time == null ? '' : ` · ${api.escapeHTML(item.free_time)} phút`}</div><a class="btn btn-secondary" href="search.html${item.keyword ? `?q=${encodeURIComponent(item.keyword)}` : ''}">Tìm lại</a></div>`).join('') : '<p>Chưa có lịch sử tìm kiếm.</p>';
+    history.innerHTML = historyItems.length
+      ? `<div class="search-history-list">${historyItems.map(renderHistoryItem).join('')}</div>`
+      : '<div class="search-history-empty">Chưa có lịch sử tìm kiếm.</div>';
   }).catch(error => { document.getElementById('favoriteActivities').textContent = error.message; });
+  // Mỗi lần tìm là 1 box: tên vị trí (đậm), ngày tìm, bán kính; "Tìm lại" chạy lại đúng vị trí + bán kính.
+  function renderHistoryItem(item) {
+    const label = item.location_label || 'Vị trí đã chọn';
+    const radius = Number(item.radius);
+    const query = new URLSearchParams({ latitude: item.latitude, longitude: item.longitude, location_label: label, radius: String(radius) });
+    if (item.keyword) query.set('q', item.keyword);
+    if (item.budget != null) query.set('budget', String(item.budget));
+    if (item.free_time != null) { query.set('hours', String(Math.floor(item.free_time / 60))); query.set('minutes', String(item.free_time % 60)); }
+    return `<article class="search-history-card">
+      <div class="search-history-info">
+        <h3 class="search-history-place">${api.escapeHTML(label)}</h3>
+        <p>Ngày tìm kiếm: ${api.escapeHTML(F2D.dateTime(item.created_at))}</p>
+        <p>Bán kính: ${api.escapeHTML(Number.isInteger(radius) ? radius : radius.toFixed(1))}km</p>
+        ${item.keyword ? `<p>Từ khóa: ${api.escapeHTML(item.keyword)}</p>` : ''}
+      </div>
+      <a class="search-history-again" href="search.html?${query}">Tìm lại</a>
+    </article>`;
+  }
   function updateTab() { selectTab(['hoso', 'lichsu'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'yeuthich'); }
   window.addEventListener('hashchange', updateTab); updateTab();
 })();

@@ -44,7 +44,27 @@ html,body,input,button,select,textarea{font-family:'Inter',system-ui,-apple-syst
   .map-side-list{max-height:360px;overflow-y:auto}
 }
 
+/* ===== Lịch sử yêu cầu ===== */
+.field-hint{margin:-2px 0 10px;color:var(--muted);font-size:12.5px;line-height:1.5}
+.request-history-title{font-size:18px;font-weight:800;margin:36px 0 14px}
+.request-list{display:grid;gap:16px}
+.request-card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:22px 24px}
+.request-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--line)}
+.request-card-head h3{margin:0;font-size:17px;font-weight:800;line-height:1.35;overflow-wrap:anywhere}
+.request-pill{flex:0 0 auto;padding:5px 12px;border-radius:999px;font-size:12.5px;font-weight:700;white-space:nowrap}
+.request-pill.pending{background:var(--warn-bg);color:var(--warn)}
+.request-pill.approved{background:var(--success-bg);color:var(--success)}
+.request-pill.rejected{background:var(--danger-bg);color:var(--danger)}
+.request-fields{display:grid;grid-template-columns:130px minmax(0,1fr);gap:12px 18px;margin:0}
+.request-fields dt{font-size:13px;font-weight:700;color:var(--muted)}
+.request-fields dd{margin:0;font-size:14.5px;line-height:1.55;color:var(--ink);overflow-wrap:anywhere;white-space:pre-line}
+.request-fields dd.reject{color:var(--danger)}
+.request-fields .f2d-thumb{width:84px;height:84px}
+
 @media(max-width:600px){
+  .request-card{padding:18px}
+  .request-fields{grid-template-columns:1fr;gap:4px}
+  .request-fields dd{margin-bottom:10px}
   #businessRequestForm{padding:18px !important}
   h1{font-size:21px !important}
 }
@@ -113,12 +133,12 @@ html,body,input,button,select,textarea{font-family:'Inter',system-ui,-apple-syst
   <div class="navbar">
     <div class="nav-left"><button class="mobile-menu-btn" type="button" aria-label="Mở menu" onclick="toggleMobileMenu()"><svg class="icon icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
       <a href="home.html" class="nav-logo" style="text-decoration:none; color:inherit;"><img src="Logo.svg" alt="logo" style="width:38px;height:auto;">FREE2DO</a>
-      <div class="nav-search">
+      <form class="nav-search" role="search" action="search.html">
         <svg class="icon">
           <use href="#icon-search"></use>
         </svg>
-        <input type="text" placeholder="Tìm hoạt động, địa điểm...">
-      </div>
+        <input type="search" name="q" placeholder="Tìm hoạt động, địa điểm..." aria-label="Tìm hoạt động, địa điểm">
+      </form>
     </div>
     <div class="nav-center">
         <a href="home.html" class="nav-link">Trang chủ</a>
@@ -166,6 +186,7 @@ html,body,input,button,select,textarea{font-family:'Inter',system-ui,-apple-syst
         <div class="field"><label for="businessPhone">Số điện thoại</label><input id="businessPhone" type="tel" maxlength="30" placeholder="VD: 0934 802 345"></div>
         <div class="field"><label for="businessAddress">Địa chỉ trụ sở chính (không bắt buộc)</label><input id="businessAddress" type="text" maxlength="500" placeholder="Số nhà, đường, quận, thành phố"></div>
         <div class="field"><label for="businessDescription">Mô tả doanh nghiệp</label><textarea id="businessDescription" maxlength="5000" placeholder="Giới thiệu ngắn về doanh nghiệp và hoạt động bạn muốn đăng..."></textarea></div>
+        <div class="field"><label id="proofLabel">File minh chứng hoạt động</label><p class="field-hint">Ảnh giấy phép kinh doanh, mặt tiền cửa hàng hoặc hình ảnh hoạt động thực tế để đội ngũ FREE2DO xác minh nhanh hơn.</p><div id="proofPicker" role="group" aria-labelledby="proofLabel"></div></div>
         <p style="color:var(--muted);font-size:13px;line-height:1.6;">Sau khi yêu cầu được duyệt, bạn có thể tải logo, menu và thư viện ảnh trong trang quản lý Business.</p>
         <button class="btn btn-primary btn-block" type="submit">Gửi yêu cầu</button>
         <p id="businessRequestStatus" role="status" style="font-size:13px;margin-bottom:0;"></p>

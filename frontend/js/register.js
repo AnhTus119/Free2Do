@@ -77,6 +77,8 @@ if (registerForm) {
       }
 
       localStorage.setItem("token", data.access_token);
+      // Tài khoản mới: lần đầu vào home sẽ hiện popup chọn sở thích (customer-home.js).
+      localStorage.setItem("f2d:onboard-interests", window.F2D.accountId() || "");
       const meResponse = await fetch(`${API_BASE_URL}/auth/me`, {
         headers: { Authorization: `Bearer ${data.access_token}` },
       });

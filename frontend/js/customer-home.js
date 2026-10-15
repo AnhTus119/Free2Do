@@ -91,6 +91,7 @@
       latitude: position.latitude, longitude: position.longitude, radius: Number(radiusSlider.value),
       budget: parseMoney(document.getElementById('budgetInput').value), free_time: freeMinutes(),
       category_ids: selectedCategoryIds(), sort_by: 'match', record_history: recordHistory,
+      location_label: String(locationLabel || '').slice(0, 120) || null,
     } });
     renderMapResults(items);
   }
@@ -204,6 +205,43 @@
       categories: selectedCategoryIds().join('|') });
     location.href = `search.html?${params}`;
   });
+  // Popup chọn sở thích: chỉ hiện 1 lần, ngay lần đầu vào home sau khi đăng ký (cờ đặt ở register.js,
+  // gắn với đúng tài khoản vừa tạo). Dùng chung editor với mục chỉnh sửa sở thích trong hồ sơ.
+  const ONBOARD_KEY = 'f2d:onboard-interests';
+  async function maybeAskInterests() {
+    let flagged = null;
+    try { flagged = localStorage.getItem(ONBOARD_KEY); } catch (error) { return; }
+    if (!flagged || flagged !== F2D.accountId()) return;
+    localStorage.removeItem(ONBOARD_KEY);
+    const dialog = document.createElement('dialog');
+    dialog.className = 'f2d-modal';
+    dialog.setAttribute('aria-labelledby', 'onboardTitle');
+    dialog.innerHTML = `<div class="f2d-modal-card">
+        <h2 id="onboardTitle" class="f2d-modal-title">Bạn thích làm gì khi rảnh?</h2>
+        <p class="f2d-modal-sub">Chọn vài sở thích để FREE2DO gợi ý hoạt động hợp với bạn. Bạn có thể đổi lại bất cứ lúc nào trong Hồ sơ cá nhân.</p>
+        <div class="f2d-modal-body" data-editor><p class="f2d-empty">Đang tải danh sách sở thích...</p></div>
+        <div class="f2d-modal-actions">
+          <button type="button" class="btn btn-secondary" data-cancel>Hủy</button>
+          <button type="button" class="btn btn-primary" data-save>Lưu</button>
+        </div>
+      </div>`;
+    document.body.append(dialog);
+    const editor = F2D.interestsEditor(dialog.querySelector('[data-editor]'), api);
+    const close = () => { dialog.close(); dialog.remove(); };
+    dialog.querySelector('[data-cancel]').addEventListener('click', close);
+    dialog.addEventListener('cancel', event => { event.preventDefault(); close(); }); // ESC = Hủy
+    dialog.querySelector('[data-save]').addEventListener('click', event => F2D.busy(event.currentTarget, async () => {
+      try {
+        await editor.save();
+        F2D.toast('Đã lưu sở thích của bạn.');
+        close();
+      } catch (error) { F2D.toast(error.message, 'error'); }
+    }));
+    dialog.showModal();
+    try { await editor.load(); } catch (error) { F2D.toast(error.message, 'error'); }
+  }
+  maybeAskInterests();
+
   const perPage = () => window.innerWidth <= 600 ? 3 : window.innerWidth <= 900 ? 4 : 6;
   paginate(activitiesBox, document.getElementById('activitiesPager'), perPage);
   paginate(businessesBox, document.getElementById('businessesPager'), perPage);

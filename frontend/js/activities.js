@@ -104,4 +104,5 @@
   });
 
   data.ready.then(render).catch(error => { tableBody.innerHTML = `<tr><td colspan="7">${data.escapeHTML(error.message)}</td></tr>`; });
+  window.addEventListener('free2do:admin-data-updated', render);
 })();

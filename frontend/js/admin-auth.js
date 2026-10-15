@@ -1,5 +1,5 @@
 /*
- * Helper dùng chung cho các trang quản trị (admin-login.html, dashboard.html,
+ * Helper dùng chung cho các trang quản trị (dashboard.html,
  * customers.html, businesses.html, activities.html...).
  * Xử lý: lưu/đọc JWT, gọi API có kèm Authorization header, bảo vệ trang admin,
  * và vài hàm format dùng chung (giá, ngày giờ, escape HTML).
@@ -27,7 +27,7 @@
   function goToLogin() {
     clearToken();
     window.FREE2DO_CACHE.clear();
-    window.location.href = 'admin-login.html';
+    window.location.href = 'log-in.html';
   }
 
   /**
@@ -77,7 +77,7 @@
   }
 
   /**
-   * Gọi ở đầu mỗi trang admin (trừ admin-login.html) để chặn truy cập khi
+   * Gọi ở đầu mỗi trang admin để chặn truy cập khi
    * chưa đăng nhập. Không xác minh role='operator' ở đây (việc đó đã làm
    * lúc đăng nhập) — chỉ cần có token là coi như đã qua bước đăng nhập.
    */
@@ -108,8 +108,8 @@
   }
 
   function bindLogoutLinks() {
-    document.querySelectorAll('a[href="admin-login.html"]').forEach((link) => {
-      link.addEventListener('click', () => clearToken());
+    document.querySelectorAll('a[data-logout]').forEach((link) => {
+      link.addEventListener('click', () => { clearToken(); window.FREE2DO_CACHE.clear(); });
     });
   }
 

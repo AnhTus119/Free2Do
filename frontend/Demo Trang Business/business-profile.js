@@ -85,3 +85,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     } catch (error) { BusinessAPI.notify(error.message, 'error'); }
   });
 });
+window.addEventListener('free2do:business-data-refresh', async () => {
+  if (document.getElementById('edit-mode').style.display === 'block') return;
+  try {
+    const context = await BusinessAPI.requireBusiness();
+    accountState = context.me;
+    profileState = context.profile;
+    mediaState = await BusinessAPI.request('/business/media');
+    renderProfile();
+    renderMedia();
+  } catch (error) {
+    BusinessAPI.notify(error.message, 'error');
+  }
+});

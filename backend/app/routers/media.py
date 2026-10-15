@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, 
 from sqlalchemy.orm import Session
 
 from app import models, schemas
-from app.auth import get_current_business_user, get_current_user
+from app.auth import get_current_business_user, get_current_operator, get_current_user
 from app.database import get_db
 from app.services.supabase_storage import (
     StorageNotConfigured,
@@ -223,36 +223,22 @@ def remove_business_media(
     return {"message": "Đã xóa media doanh nghiệp"}
 
 
-@router.post(
-    "/activities/{activity_id}/media/upload",
-    response_model=schemas.ActivityMedia,
-    status_code=status.HTTP_201_CREATED,
-)
-async def upload_activity_media(
-    activity_id: str,
-    file: UploadFile = File(...),
-    media_kind: Literal["cover", "gallery"] = Query("gallery"),
-    db: Session = Depends(get_db),
-    business: models.BusinessProfile = Depends(get_current_business_user),
-):
-    activity = db.query(models.Activity).filter(models.Activity.activity_id == activity_id).first()
-    if not activity or activity.business_id != business.user_id:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Không tìm thấy hoạt động")
+async def _save_activity_media(db: Session, activity: models.Activity, file: UploadFile, media_kind: str):
     asset = await _upload(
         file,
-        folder=f"businesses/{business.user_id}/activities/{activity_id}",
-        owner_id=business.user_id,
+        folder=f"businesses/{activity.business_id}/activities/{activity.activity_id}",
+        owner_id=activity.business_id,
         kind="activity",
         allow_video=media_kind == "gallery",
     )
     old_covers = []
     if media_kind == "cover":
         old_covers = db.query(models.ActivityMedia).filter(
-            models.ActivityMedia.activity_id == activity_id,
+            models.ActivityMedia.activity_id == activity.activity_id,
             models.ActivityMedia.media_kind == "cover",
         ).all()
     media = models.ActivityMedia(
-        activity_id=activity_id,
+        activity_id=activity.activity_id,
         media_url=asset.media_url,
         media_type=asset.media_type,
         public_id=asset.public_id,
@@ -268,6 +254,42 @@ async def upload_activity_media(
     db.commit()
     db.refresh(media)
     return media
+
+
+@router.post(
+    "/activities/{activity_id}/media/upload",
+    response_model=schemas.ActivityMedia,
+    status_code=status.HTTP_201_CREATED,
+)
+async def upload_activity_media(
+    activity_id: str,
+    file: UploadFile = File(...),
+    media_kind: Literal["cover", "gallery"] = Query("gallery"),
+    db: Session = Depends(get_db),
+    business: models.BusinessProfile = Depends(get_current_business_user),
+):
+    activity = db.query(models.Activity).filter(models.Activity.activity_id == activity_id).first()
+    if not activity or activity.business_id != business.user_id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Không tìm thấy hoạt động")
+    return await _save_activity_media(db, activity, file, media_kind)
+
+
+@router.post(
+    "/operator/activities/{activity_id}/media/upload",
+    response_model=schemas.ActivityMedia,
+    status_code=status.HTTP_201_CREATED,
+)
+async def operator_upload_activity_media(
+    activity_id: str,
+    file: UploadFile = File(...),
+    media_kind: Literal["cover", "gallery"] = Query("gallery"),
+    db: Session = Depends(get_db),
+    operator: models.Operator = Depends(get_current_operator),
+):
+    activity = db.query(models.Activity).filter(models.Activity.activity_id == activity_id).first()
+    if not activity:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Không tìm thấy hoạt động")
+    return await _save_activity_media(db, activity, file, media_kind)
 
 
 @router.delete("/activities/media/{media_id}", response_model=schemas.MessageResponse)

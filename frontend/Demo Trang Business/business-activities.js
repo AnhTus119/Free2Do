@@ -33,12 +33,23 @@ function renderCategories(selected = []) {
     </label>`).join('');
 }
 
-function toLocalInput(value) {
-  if (!value) return '';
-  const date = new Date(value);
-  date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
-  return date.toISOString().slice(0, 16);
+// Giờ mở/đóng chỉ lưu giờ-phút: máy chủ giữ dạng datetime không múi giờ với ngày cố định.
+const TIME_DATE = '2000-01-01';
+function toTimeInput(value) {
+  const match = String(value || '').match(/T(\d{2}):(\d{2})/);
+  return match ? `${match[1]}:${match[2]}` : '';
 }
+function timeOrNull(id) {
+  const value = document.getElementById(id).value;
+  return value ? `${TIME_DATE}T${value}:00` : null;
+}
+function setAddressError(message) {
+  const box = document.getElementById('f-address-error');
+  box.textContent = message || '';
+  box.hidden = !message;
+  document.getElementById('f-address').classList.toggle('invalid', Boolean(message));
+}
+const ADDRESS_ERROR_PATTERN = /địa chỉ|google maps|vị trí/i;
 
 window.openForm = (mode, id = null) => {
   editingId = mode === 'edit' ? id : null;
@@ -48,13 +59,14 @@ window.openForm = (mode, id = null) => {
   document.getElementById('f-description').value = item?.description || '';
   document.getElementById('f-price').value = item?.price ?? '';
   document.getElementById('f-address').value = item?.address || '';
-  document.getElementById('f-open').value = toLocalInput(item?.time_open);
-  document.getElementById('f-close').value = toLocalInput(item?.time_close);
+  document.getElementById('f-open').value = toTimeInput(item?.time_open);
+  document.getElementById('f-close').value = toTimeInput(item?.time_close);
+  setAddressError('');
   document.getElementById('f-source').value = item?.google_maps_url || item?.source_url || '';
   document.getElementById('f-always').checked = item?.always_available !== false;
   document.getElementById('f-available-from').value = item?.available_from?.slice(0, 10) || '';
   document.getElementById('f-available-until').value = item?.available_until?.slice(0, 10) || '';
-  document.getElementById('availability-end-wrap').hidden = document.getElementById('f-always').checked;
+  document.getElementById('availability-end-wrap').classList.toggle('is-disabled', document.getElementById('f-always').checked);
   document.getElementById('f-available-until').disabled = document.getElementById('f-always').checked;
   document.getElementById('f-cover').value = '';
   document.getElementById('f-media').value = '';
@@ -78,7 +90,9 @@ function selectedCategoryIds() {
 async function submitActivity() {
   const name = document.getElementById('f-name').value.trim();
   const address = document.getElementById('f-address').value.trim();
-  if (!name || !address) return BusinessAPI.notify('Tên và địa chỉ là bắt buộc.', 'error');
+  setAddressError('');
+  if (!name) return BusinessAPI.notify('Tên hoạt động là bắt buộc.', 'error');
+  if (!address) { setAddressError('Hãy nhập địa chỉ hoạt động.'); return document.getElementById('f-address').focus(); }
   const submittedLink = document.getElementById('f-source').value.trim();
   let mapUrl;
   try {
@@ -93,7 +107,6 @@ async function submitActivity() {
     const value = document.getElementById(id).value.trim();
     return value === '' ? null : Number(value);
   };
-  const dateOrNull = id => document.getElementById(id).value ? new Date(document.getElementById(id).value).toISOString() : null;
   const currentActivity = activities.find(activity => activity.activity_id === editingId);
   const alwaysAvailable = document.getElementById('f-always').checked;
   const availableFrom = document.getElementById('f-available-from').value;
@@ -109,8 +122,8 @@ async function submitActivity() {
     description: document.getElementById('f-description').value.trim() || null,
     price,
     address,
-    time_open: dateOrNull('f-open'),
-    time_close: dateOrNull('f-close'),
+    time_open: timeOrNull('f-open'),
+    time_close: timeOrNull('f-close'),
     available_from: availableFrom ? `${availableFrom}T00:00:00` : null,
     available_until: availableUntil ? `${availableUntil}T23:59:59` : null,
     always_available: alwaysAvailable,
@@ -135,7 +148,12 @@ async function submitActivity() {
     await reloadActivities();
     closeForm();
     BusinessAPI.notify(editingId ? 'Đã cập nhật và gửi duyệt lại.' : 'Đã tạo hoạt động và gửi chờ duyệt.');
-  } catch (error) { BusinessAPI.notify(error.message, 'error'); }
+  } catch (error) {
+    if (ADDRESS_ERROR_PATTERN.test(error.message)) {
+      setAddressError(error.message);
+      document.getElementById('f-address').focus();
+    } else BusinessAPI.notify(error.message, 'error');
+  }
 }
 window.submitActivity = submitActivity;
 
@@ -175,10 +193,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     categories = await BusinessAPI.request('/categories', { auth: false });
     await reloadActivities();
   } catch (error) { BusinessAPI.notify(error.message, 'error'); }
+  document.getElementById('f-address').addEventListener('input', () => setAddressError(''));
+  document.getElementById('f-source').addEventListener('input', () => setAddressError(''));
   document.getElementById('f-categories').addEventListener('change', event => event.target.closest('.chip')?.classList.toggle('active', event.target.checked));
   document.getElementById('f-always').addEventListener('change', event => {
-    document.getElementById('availability-end-wrap').hidden = event.target.checked;
+    document.getElementById('availability-end-wrap').classList.toggle('is-disabled', event.target.checked);
     document.getElementById('f-available-until').disabled = event.target.checked;
+    if (event.target.checked) document.getElementById('f-available-until').value = '';
   });
   document.getElementById('activity-rows').addEventListener('click', async event => {
     const button = event.target.closest('[data-action]');
@@ -198,4 +219,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     try { await BusinessAPI.request(`/activities/media/${button.dataset.deleteActivityMedia}`, { method: 'DELETE' }); await reloadActivities(); closeDetail(); BusinessAPI.notify('Đã xóa media.'); }
     catch (error) { BusinessAPI.notify(error.message, 'error'); }
   });
+});
+window.addEventListener('free2do:business-data-refresh', () => {
+  reloadActivities().catch(error => BusinessAPI.notify(error.message, 'error'));
 });

@@ -240,7 +240,7 @@ img,svg{max-width:100%;}
 .panel-overlay{display:none;position:fixed;inset:0;background:rgba(43,36,32,0.35);z-index:90;}
 .panel-overlay.show{display:block;}
 .slide-panel{
-  position:fixed;top:0;right:0;height:100vh;width:460px;max-width:92vw;background:#fff;z-index:91;
+  position:fixed;top:0;right:0;height:100vh;width:600px;max-width:94vw;background:#fff;z-index:91;
   transform:translateX(100%);transition:transform .25s ease;overflow-y:auto;padding:28px;box-shadow:-20px 0 50px rgba(0,0,0,0.15);
 }
 .slide-panel.show{transform:translateX(0);}
@@ -293,3 +293,29 @@ img,svg{max-width:100%;}
   .navbar { padding: 14px 20px; }
   .nav-logo { font-size: 16px; width: auto; }
 }
+
+/* Form hoạt động: lỗi địa chỉ, gợi ý, ô tick, trường bị khoá */
+.slide-panel .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.field input.invalid{border-color:#c0392b;background:#fff7f6;}
+.field-error{color:#c0392b;font-size:12.5px;font-weight:600;margin-top:6px;line-height:1.4;animation:fieldErrorIn .18s ease-out;}
+.field-error[hidden]{display:none;}
+.field-hint{color:var(--muted);font-size:12px;margin-top:6px;line-height:1.4;}
+.check-line{display:flex;align-items:center;gap:10px;font-size:14px;font-weight:600;margin:-4px 0 18px;cursor:pointer;}
+.check-line input{width:17px;height:17px;accent-color:var(--rose);}
+.form-grid .field input[type=time],.form-grid .field input[type=date]{min-width:0;width:100%;}
+.field.is-disabled{opacity:.5;}
+.field.is-disabled input{cursor:not-allowed;}
+@keyframes fieldErrorIn{from{opacity:0;transform:translateY(-3px);}to{opacity:1;transform:none;}}
+
+/* ===== Hoạt ảnh tối giản dùng chung (CSS thuần, nhẹ) ===== */
+main{animation:f2dPageIn .28s ease-out both;}
+.btn,.chip,.nav-link,.row-btn,.tab-btn{transition:background-color .18s ease,color .18s ease,border-color .18s ease,box-shadow .18s ease,transform .12s ease;}
+.btn:active:not(:disabled),.chip:active,.row-btn:active{transform:scale(.97);}
+.activity-card{transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease;}
+.activity-card:hover{transform:translateY(-3px);box-shadow:0 14px 30px -18px rgba(43,36,32,.35);}
+.nav-dropdown.show,.dropdown-menu.show,.nav-dropdown.open,.dropdown-menu.open{animation:f2dDrop .16s ease-out;}
+.panel-overlay.show{animation:f2dFade .2s ease-out;}
+@keyframes f2dPageIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+@keyframes f2dDrop{from{opacity:0;transform:translateY(-6px);}to{opacity:1;transform:none;}}
+@keyframes f2dFade{from{opacity:0;}to{opacity:1;}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important;}}

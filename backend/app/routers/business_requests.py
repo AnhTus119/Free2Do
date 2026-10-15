@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from app.utils.operator_alerts import notify_operators_by_email
 from app.database import get_db
 from app import models, schemas
 from app.auth import get_current_user, get_current_operator
@@ -43,6 +44,11 @@ def create_business_request(
     db.add(request)
     db.commit()
     db.refresh(request)
+    notify_operators_by_email(
+        db,
+        "Free2Do: yêu cầu doanh nghiệp mới",
+        f"Có yêu cầu nâng cấp doanh nghiệp mới chờ duyệt: {request.business_name}.",
+    )
     return request
 
 

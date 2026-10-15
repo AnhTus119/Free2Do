@@ -28,6 +28,7 @@ from app.routers import (
     public_businesses,
     groups,
     ai,
+    notifications,
 )
 
 logger = logging.getLogger("free2do.api")
@@ -83,6 +84,7 @@ app.include_router(media.router)
 app.include_router(public_businesses.router)
 app.include_router(groups.router)
 app.include_router(ai.router)
+app.include_router(notifications.router)
 
 # Operator
 app.include_router(categories.operator_router)

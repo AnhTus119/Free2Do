@@ -277,3 +277,11 @@ tbody tr:hover{background:#FCFAF6;}
   .two-col{grid-template-columns:1fr;}
   .profile-grid{grid-template-columns:1fr;}
 }
+
+/* ===== Hoạt ảnh tối giản dùng chung (CSS thuần, nhẹ) ===== */
+.content{animation:f2dPageIn .28s ease-out both;}
+.nav-item,.qa-btn,.row-btn,.page-btn,.status-tab,.stat-card{transition:background-color .18s ease,color .18s ease,border-color .18s ease,box-shadow .18s ease,transform .12s ease;}
+.qa-btn:active,.row-btn:active,.page-btn:active{transform:scale(.97);}
+.stat-card:hover{transform:translateY(-2px);box-shadow:0 12px 26px -16px rgba(43,36,32,.3);}
+@keyframes f2dPageIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important;}}

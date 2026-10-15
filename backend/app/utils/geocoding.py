@@ -8,7 +8,9 @@ serialized to stay below the public service's one-request-per-second limit.
 from __future__ import annotations
 
 from functools import lru_cache
+import re
 import threading
+import unicodedata
 import time
 from urllib.parse import parse_qs, unquote, urlparse
 
@@ -126,3 +128,66 @@ def resolve_location(value: str, fallback_address: str | None = None) -> tuple[f
         return None
     resolved = geocode_address(value)
     return (*resolved, "nominatim") if resolved else None
+
+
+# ---------------------------------------------------------------------------
+# Kiểm tra địa chỉ do doanh nghiệp nhập có thật sự tồn tại / khớp vị trí Google Maps
+# ---------------------------------------------------------------------------
+NOMINATIM_REVERSE_URL = "https://nominatim.openstreetmap.org/reverse"
+_GENERIC_TOKENS = {
+    "viet", "nam", "ha", "noi", "hanoi", "pho", "duong", "phuong", "quan", "ngo", "ngach", "hem",
+    "so", "p", "d", "ng", "q", "tp", "thanh", "xa", "huyen", "to", "khu", "toa", "nha", "tang",
+}
+
+
+def _fold(value: str) -> str:
+    value = (value or "").replace("đ", "d").replace("Đ", "D")
+    value = unicodedata.normalize("NFD", value)
+    return "".join(ch for ch in value if unicodedata.category(ch) != "Mn").lower()
+
+
+def _tokens(value: str) -> list[str]:
+    return re.findall(r"[a-z0-9]+", _fold(value))
+
+
+def address_shape_ok(address: str) -> bool:
+    """Chặn địa chỉ vô nghĩa kiểu "dfb": cần ít nhất 3 từ và đủ ký tự chữ."""
+    words = _tokens(address)
+    letters = sum(len(word) for word in words if not word.isdigit())
+    return len(words) >= 3 and letters >= 8
+
+
+@lru_cache(maxsize=512)
+def reverse_geocode_name(latitude: float, longitude: float) -> str | None:
+    """Tên địa điểm (tiếng Việt) tại một toạ độ, đã làm tròn để tận dụng cache."""
+    global _last_request_at
+    with _request_lock:
+        wait_seconds = 1.05 - (time.monotonic() - _last_request_at)
+        if wait_seconds > 0:
+            time.sleep(wait_seconds)
+        response = requests.get(
+            NOMINATIM_REVERSE_URL,
+            params={"lat": latitude, "lon": longitude, "format": "jsonv2", "zoom": 18, "addressdetails": 0},
+            headers={"User-Agent": USER_AGENT, "Accept-Language": "vi"},
+            timeout=12,
+        )
+        _last_request_at = time.monotonic()
+    response.raise_for_status()
+    return response.json().get("display_name")
+
+
+def address_matches_place(address: str, latitude: float, longitude: float, max_km: float = 2.0) -> bool | None:
+    """True = khớp, False = vô lý/không khớp, None = không kiểm tra được (mạng lỗi)."""
+    from app.utils.distance import haversine_km
+
+    try:
+        found = geocode_address(address)
+        if found:
+            return haversine_km(latitude, longitude, found[0], found[1]) <= max_km
+        place = reverse_geocode_name(round(latitude, 4), round(longitude, 4))
+    except requests.RequestException:
+        return None
+    if not place:
+        return None
+    wanted = {token for token in _tokens(address) if token not in _GENERIC_TOKENS and not token.isdigit() and len(token) >= 3}
+    return bool(wanted & set(_tokens(place)))

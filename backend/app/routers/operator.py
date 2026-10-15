@@ -18,12 +18,32 @@ def _to_operator_out(operator: models.Operator) -> schemas.OperatorOut:
         level=operator.level,
         status=operator.status,
         created_at=operator.created_at,
+        email_notifications=bool(operator.email_notifications),
     )
 
 
 @router.get("/me", response_model=schemas.OperatorOut)
 def read_my_operator_profile(operator: models.Operator = Depends(get_current_operator)):
     """Operator (admin hoặc staff) xem hồ sơ của chính mình."""
+    return _to_operator_out(operator)
+
+
+@router.patch("/me", response_model=schemas.OperatorOut)
+def update_my_operator_profile(
+    payload: schemas.OperatorProfileUpdate,
+    db: Session = Depends(get_db),
+    operator: models.Operator = Depends(get_current_operator),
+):
+    """Operator tự sửa tên hiển thị và tuỳ chọn nhận email thông báo."""
+    if payload.name is not None:
+        name = payload.name.strip()
+        if not name:
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Tên không được để trống")
+        operator.name = name
+    if payload.email_notifications is not None:
+        operator.email_notifications = payload.email_notifications
+    db.commit()
+    db.refresh(operator)
     return _to_operator_out(operator)
 
 

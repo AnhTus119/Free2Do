@@ -1,9 +1,9 @@
 """Đồng bộ nhẹ giữa models và database khi khởi động.
 
-Lỗi hay gặp: code mới thêm bảng/cột (ví dụ groups.slug) nhưng database production
-chưa được migrate -> truy vấn lỗi 500 -> trình duyệt báo "CORS / không kết nối được
-máy chủ". Module này tự tạo bảng thiếu, tự thêm cột thiếu (nullable) và cho
-/health/ready biết còn thiếu gì (danh sách rỗng = schema đầy đủ).
+Lỗi hay gặp: code mới thêm bảng/cột nhưng database production chưa được migrate ->
+truy vấn lỗi 500 -> trình duyệt báo "CORS / không kết nối được máy chủ". Module này tự
+tạo bảng thiếu, tự thêm cột thiếu (nullable) và cho /health/ready biết còn thiếu gì
+(danh sách rỗng = schema đầy đủ).
 """
 import logging
 
@@ -16,7 +16,7 @@ logger = logging.getLogger("free2do.schema")
 
 
 def find_schema_gaps(engine: Engine) -> list[str]:
-    """Trả về các mục còn thiếu, ví dụ ["table:groups", "groups.slug"]. Rỗng = đầy đủ."""
+    """Trả về các mục còn thiếu, ví dụ ["table:groups", "groups.group_name"]. Rỗng = đầy đủ."""
     inspector = inspect(engine)
     existing = set(inspector.get_table_names())
     gaps: list[str] = []
@@ -54,13 +54,6 @@ def sync_schema(engine: Engine) -> list[str]:
             with engine.begin() as connection:
                 connection.execute(text(ddl))
             fixed.append(f"{table.name}.{column.name}")
-    # Index duy nhất của slug nhóm (giữ đúng hành vi của migrate_groups.py).
-    if "groups" in inspect(engine).get_table_names():
-        indexes = {index["name"] for index in inspect(engine).get_indexes("groups")}
-        if "ix_groups_slug" not in indexes:
-            with engine.begin() as connection:
-                connection.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS ix_groups_slug ON groups (slug)"))
-            fixed.append("index:ix_groups_slug")
     return fixed
 
 

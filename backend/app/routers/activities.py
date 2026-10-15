@@ -8,8 +8,11 @@ from app.database import get_db
 from app import models, schemas
 from app.auth import get_current_business_user, get_current_operator
 from app.utils.email import send_activity_approved_email, send_activity_hidden_email
-from app.utils.geocoding import geocode_address, resolve_location
+import requests
+
+from app.utils.geocoding import address_matches_place, address_shape_ok, geocode_address, resolve_location
 from app.utils.google_maps import is_google_maps_url
+from app.utils.operator_alerts import notify_operators_by_email
 from app.utils.distance import haversine_km
 from app.services.supabase_storage import delete_asset
 
@@ -17,25 +20,29 @@ router = APIRouter(prefix="/activities", tags=["activities"])
 
 
 def _coordinates(latitude, longitude, google_maps_url, address=None):
-    # A Google Maps link is the authoritative source even when stale manual
-    # coordinates were also submitted.
+    """Xác định toạ độ và xác minh địa chỉ. Lỗi trả về ValueError với thông báo hiển thị cho người dùng."""
+    if address is not None and not address_shape_ok(address):
+        raise ValueError("Địa chỉ không hợp lệ. Hãy nhập địa chỉ cụ thể (số nhà, đường, phường...) để tìm được trên bản đồ.")
+    # Link Google Maps là nguồn toạ độ chính, kể cả khi client gửi kèm toạ độ cũ.
     if google_maps_url:
         if not is_google_maps_url(google_maps_url):
             raise ValueError("Hãy nhập link Google Maps hợp lệ.")
         resolved = resolve_location(google_maps_url, address)
-        if resolved:
-            if address:
-                address_point = geocode_address(address)
-                if address_point and haversine_km(resolved[0], resolved[1], address_point[0], address_point[1]) > 2:
-                    raise ValueError("Địa chỉ và link Google Maps không khớp; hãy kiểm tra lại vị trí.")
-            return resolved[0], resolved[1]
-        raise ValueError("Không xác minh được link Google Maps; hãy kiểm tra link hoặc chọn lại vị trí.")
+        if not resolved:
+            raise ValueError("Không xác minh được link Google Maps; hãy kiểm tra link hoặc chọn lại vị trí.")
+        if address and address_matches_place(address, resolved[0], resolved[1]) is False:
+            raise ValueError("Địa chỉ không khớp với vị trí trên Google Maps; hãy kiểm tra và nhập lại địa chỉ.")
+        return resolved[0], resolved[1]
     if latitude is not None and longitude is not None:
         return latitude, longitude
     if address:
-        resolved = geocode_address(address)
-        if resolved:
-            return resolved[0], resolved[1]
+        try:
+            resolved = geocode_address(address)
+        except requests.RequestException:
+            raise ValueError("Chưa xác minh được địa chỉ lúc này. Hãy dán link Google Maps của địa điểm rồi thử lại.")
+        if not resolved:
+            raise ValueError("Không tìm thấy địa chỉ này trên bản đồ. Hãy nhập lại địa chỉ hoặc dán link Google Maps.")
+        return resolved[0], resolved[1]
     return latitude, longitude
 
 
@@ -154,15 +161,21 @@ def get_activity(
 # ---------------------------------------------------------------------------
 # Business -- quản lý hoạt động của chính mình
 # ---------------------------------------------------------------------------
-@router.post("", response_model=schemas.ActivityDetail, status_code=status.HTTP_201_CREATED)
-def create_activity(
+def _create_activity_record(
+    db: Session,
+    business: models.BusinessProfile,
     payload: schemas.ActivityCreate,
-    db: Session = Depends(get_db),
-    business: models.BusinessProfile = Depends(get_current_business_user),
-):
+    *,
+    operator: models.Operator | None = None,
+) -> models.Activity:
+    """Tạo hoạt động. Business tự tạo -> chờ duyệt; Operator tạo -> duyệt và hiển thị ngay."""
     now = datetime.utcnow()
     if not payload.google_maps_url:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Link Google Maps là bắt buộc để xác minh vị trí")
+    if not payload.always_available and (not payload.available_from or not payload.available_until):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Hãy nhập ngày bắt đầu và ngày kết thúc hoặc chọn mở vĩnh viễn")
+    if payload.available_from and payload.available_until and payload.available_until < payload.available_from:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Ngày kết thúc phải sau ngày bắt đầu")
     try:
         latitude, longitude = _coordinates(
             payload.latitude, payload.longitude, payload.google_maps_url, payload.address
@@ -185,20 +198,33 @@ def create_activity(
         available_from=payload.available_from,
         available_until=payload.available_until,
         always_available=payload.always_available,
-        status="pending",
+        status="active" if operator else "pending",
+        verified_by=operator.operator_id if operator else None,
+        verified_at=now if operator else None,
         created_at=now,
         source_url=payload.source_url,
         google_maps_url=payload.google_maps_url,
     )
-    if not payload.always_available and (not payload.available_from or not payload.available_until):
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Hãy nhập ngày bắt đầu và ngày kết thúc hoặc chọn mở vĩnh viễn")
-    if payload.available_from and payload.available_until and payload.available_until < payload.available_from:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Ngày kết thúc phải sau ngày bắt đầu")
     db.add(activity)
     db.flush()
     _set_categories(db, activity.activity_id, payload.category_ids)
     db.commit()
     db.refresh(activity)
+    return activity
+
+
+@router.post("", response_model=schemas.ActivityDetail, status_code=status.HTTP_201_CREATED)
+def create_activity(
+    payload: schemas.ActivityCreate,
+    db: Session = Depends(get_db),
+    business: models.BusinessProfile = Depends(get_current_business_user),
+):
+    activity = _create_activity_record(db, business, payload)
+    notify_operators_by_email(
+        db,
+        "Free2Do: hoạt động mới chờ duyệt",
+        f"Doanh nghiệp {business.business_name} vừa gửi hoạt động '{activity.name}' chờ duyệt.",
+    )
     return _to_detail(db, activity)
 
 
@@ -296,6 +322,23 @@ def delete_activity_media(
 # Operator -- duyệt / ẩn hoạt động
 # ---------------------------------------------------------------------------
 operator_router = APIRouter(prefix="/operator/activities", tags=["operator-activities"])
+
+
+@operator_router.post("", response_model=schemas.ActivityDetail, status_code=status.HTTP_201_CREATED)
+def operator_create_activity(
+    payload: schemas.OperatorActivityCreate,
+    db: Session = Depends(get_db),
+    operator: models.Operator = Depends(get_current_operator),
+):
+    """Operator tạo hoạt động thay doanh nghiệp. Doanh nghiệp phải đã có tài khoản trong hệ thống."""
+    business = db.query(models.BusinessProfile).filter(models.BusinessProfile.user_id == payload.business_id).first()
+    if not business:
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND,
+            "Không tìm thấy doanh nghiệp. Operator chỉ tạo hoạt động cho doanh nghiệp đã có tài khoản.",
+        )
+    activity = _create_activity_record(db, business, payload, operator=operator)
+    return _to_detail(db, activity)
 
 
 @operator_router.get("", response_model=list[schemas.ActivityAdminOut])

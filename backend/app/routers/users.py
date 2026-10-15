@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -47,6 +49,66 @@ def update_my_profile(
             else "Demo Trang Customer/home.html"
         ),
     )
+
+
+MAX_INTERESTS = 20
+MAX_INTEREST_LENGTH = 60
+
+
+def _clean_interests(values: list[str]) -> list[str]:
+    cleaned: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        label = " ".join(str(value).split())[:MAX_INTEREST_LENGTH]
+        key = label.casefold()
+        if label and key not in seen:
+            cleaned.append(label)
+            seen.add(key)
+    return cleaned
+
+
+def _interest_labels(db: Session, user_id: str) -> list[str]:
+    rows = (
+        db.query(models.UserInterest.label)
+        .filter(models.UserInterest.user_id == user_id)
+        .order_by(models.UserInterest.created_at, models.UserInterest.interest_id)
+        .all()
+    )
+    return [row[0] for row in rows]
+
+
+@router.get("/interests", response_model=schemas.UserInterestsOut)
+def get_my_interests(db: Session = Depends(get_db), user: models.User = Depends(get_current_user)):
+    return {"interests": _interest_labels(db, user.user_id)}
+
+
+@router.put("/interests", response_model=schemas.UserInterestsOut)
+def replace_my_interests(
+    payload: schemas.UserInterestsUpdate,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    """Ghi đè danh sách sở thích cá nhân (tối đa 20, mỗi sở thích tối đa 60 ký tự)."""
+    labels = _clean_interests(payload.interests)
+    if len(labels) > MAX_INTERESTS:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, f"Bạn chỉ có thể lưu tối đa {MAX_INTERESTS} sở thích cá nhân")
+    existing = {
+        row.label_key: row
+        for row in db.query(models.UserInterest).filter(models.UserInterest.user_id == user.user_id)
+    }
+    wanted = {label.casefold() for label in labels}
+    for key, row in existing.items():
+        if key not in wanted:
+            db.delete(row)
+    now = datetime.utcnow()
+    for offset, label in enumerate(labels):
+        key = label.casefold()
+        if key in existing:
+            existing[key].label = label
+        else:
+            db.add(models.UserInterest(user_id=user.user_id, label=label, label_key=key, created_at=now + timedelta(microseconds=offset)))
+    db.commit()
+    return {"interests": _interest_labels(db, user.user_id)}
 
 
 @router.get("/search-history", response_model=list[schemas.SearchHistory])

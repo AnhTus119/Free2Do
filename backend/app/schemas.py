@@ -80,6 +80,29 @@ class OperatorOut(BaseModel):
     level: str
     status: str
     created_at: datetime
+    email_notifications: bool = True
+
+class OperatorProfileUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=1, max_length=80)
+    email_notifications: Optional[bool] = None
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str = Field(..., min_length=8, max_length=128)
+
+class UserInterestsUpdate(BaseModel):
+    interests: list[str] = Field(default_factory=list, max_length=20)
+
+class UserInterestsOut(BaseModel):
+    interests: list[str]
+
+class NotificationOut(BaseModel):
+    id: str                      # ổn định theo đối tượng, frontend dùng để nhớ trạng thái đã đọc
+    kind: str                    # new_activity | closing_soon | review | approved | hidden | pending_request | pending_activity | report | complaint
+    title: str
+    body: str = ""
+    href: Optional[str] = None
+    created_at: Optional[datetime] = None
 
 # Category 
 class CategoryCreate(BaseModel):
@@ -153,6 +176,19 @@ class ActivityCreate(BaseModel):
     category_ids: list[str] = Field(default_factory=list)
     source_url: Optional[str] = None
     google_maps_url: Optional[str] = None
+
+class OperatorActivityCreate(ActivityCreate):
+    """Operator tạo hoạt động cho một doanh nghiệp đã có tài khoản (business_id = mã doanh nghiệp)."""
+    business_id: str
+
+class BusinessLookupOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    user_id: str
+    business_name: str
+    phone: Optional[str] = None
+    business_address: Optional[str] = None
+    description: Optional[str] = None
+    avatar_url: Optional[str] = None
 
 class Activity(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -404,7 +440,7 @@ class GroupMemberInput(BaseModel):
 
 class GroupCreateRequest(BaseModel):
     host: GroupMemberInput
-    group_name: Optional[str] = Field(None, min_length=1, max_length=200)
+    group_name: Optional[str] = Field(None, min_length=1, max_length=60)
 
     @model_validator(mode="before")
     @classmethod
@@ -443,6 +479,10 @@ class GroupPaymentAction(BaseModel):
     action: Literal["paid", "unpaid", "remind"]
 
 
+class GroupExpenseUpdate(BaseModel):
+    total_amount: int = Field(ge=0)
+
+
 class GroupActivitySelect(BaseModel):
     activity_id: str
 
@@ -468,6 +508,7 @@ class GroupMemberOut(BaseModel):
     is_host: bool
     is_ready: bool = False
     activity_vote_id: Optional[str] = None
+    vote_activity_ids: list[str] = Field(default_factory=list)
     confirmation_status: Optional[str] = None
     leave_requested_at: Optional[datetime] = None
     leave_status: str = "none"
@@ -487,13 +528,23 @@ class GroupSelectedActivityOut(BaseModel):
     avg_rating: Optional[float] = None
     category_ids: list[str] = Field(default_factory=list)
     media_url: Optional[str] = None
+    business_logo_url: Optional[str] = None
+
+
+class GroupVoteTallyOut(BaseModel):
+    activity_id: str
+    name: str
+    votes: int
+    voter_member_ids: list[str]
+    business_logo_url: Optional[str] = None
+    media_url: Optional[str] = None
 
 
 class GroupOut(BaseModel):
     group_id: str
     invite_code: str
-    slug: Optional[str] = None
     invite_url: str
+    group_name: Optional[str] = None
     host_user_id: str
     is_host: bool
     status: str
@@ -501,6 +552,12 @@ class GroupOut(BaseModel):
     all_ready: bool = False
     confirmation_complete: bool = False
     selected_activity: Optional[GroupSelectedActivityOut] = None
+    voting_closed: bool = False
+    vote_tally: list[GroupVoteTallyOut] = Field(default_factory=list)
+    tied_activity_ids: list[str] = Field(default_factory=list)
+    random_pick: Optional[GroupSelectedActivityOut] = None
+    random_seq: int = 0
+    final_method: Optional[str] = None
     members: list[GroupMemberOut]
     total_amount: float
     paid_amount: float

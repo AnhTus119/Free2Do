@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import Column, String, Float, Integer, Text, DateTime, Boolean, ForeignKey, UniqueConstraint
+from sqlalchemy import Column, String, Float, Integer, Text, DateTime, Boolean, ForeignKey, UniqueConstraint, text
 from sqlalchemy.orm import relationship
 from app.database import Base
 
@@ -60,6 +60,7 @@ class Operator(Base):
     level = Column(String, nullable=False, default="staff")     # "admin" (cấp cao) | "staff" (nhân viên)
     status = Column(String, nullable=False, default="active")   # "active" | "disabled"
     created_at = Column(DateTime, nullable=False)
+    email_notifications = Column(Boolean, nullable=False, default=True, server_default=text("true"))
     account = relationship("Account", back_populates="operator")
 
 class Category(Base):
@@ -310,12 +311,15 @@ class Group(Base):
     __tablename__ = "groups"
     group_id = Column(String, primary_key=True, default=gen_id)
     invite_code = Column(String, nullable=False, unique=True, index=True)
-    # Human-readable URL slug. Unique so a name-only URL always identifies one group.
-    slug = Column(String, nullable=True, unique=True, index=True)
+    group_name = Column(String(60))
     host_user_id = Column(String, ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False, index=True)
     selected_activity_id = Column(String, ForeignKey("activities.activity_id", ondelete="SET NULL"))
     status = Column(String, nullable=False, default="active")
     search_started = Column(Boolean, nullable=False, default=False)
+    voting_closed_at = Column(DateTime)            # host đóng bình chọn
+    random_pick_activity_id = Column(String)       # kết quả random đang chờ host chốt (khi hòa phiếu)
+    random_seq = Column(Integer, nullable=False, default=0, server_default=text("0"))  # tăng mỗi lần random để client chạy animation
+    final_method = Column(String)                  # "top_vote" | "random"
     created_at = Column(DateTime, nullable=False)
     updated_at = Column(DateTime, nullable=False)
     host = relationship("User", foreign_keys=[host_user_id])
@@ -381,4 +385,30 @@ class OtpCode(Base):
     purpose = Column(String, nullable=False)  # hiện chỉ dùng "reset_password"
     expires_at = Column(DateTime, nullable=False)
     is_used = Column(Boolean, nullable=False, default=False)
+    created_at = Column(DateTime, nullable=False)
+
+
+class UserInterest(Base):
+    """Sở thích tự do của người dùng (hiện trong trang cá nhân và được AI dùng để hiểu ngữ cảnh).
+
+    Khác với ``categories`` (tag của hoạt động do operator quản lý)."""
+    __tablename__ = "user_interests"
+    __table_args__ = (UniqueConstraint("user_id", "label_key", name="uq_user_interests_user_label"),)
+
+    interest_id = Column(String, primary_key=True, default=gen_id)
+    user_id = Column(String, ForeignKey("users.user_id"), nullable=False, index=True)
+    label = Column(String, nullable=False)
+    label_key = Column(String, nullable=False)  # chữ thường để chống trùng
+    created_at = Column(DateTime, nullable=False)
+
+
+class GroupActivityBallot(Base):
+    """Phiếu bình chọn: mỗi thành viên chọn được nhiều hoạt động (một dòng cho mỗi hoạt động)."""
+    __tablename__ = "group_activity_ballots"
+    __table_args__ = (UniqueConstraint("member_id", "activity_id", name="uq_group_ballot_member_activity"),)
+
+    ballot_id = Column(String, primary_key=True, default=gen_id)
+    group_id = Column(String, ForeignKey("groups.group_id", ondelete="CASCADE"), nullable=False, index=True)
+    member_id = Column(String, ForeignKey("group_members.member_id", ondelete="CASCADE"), nullable=False, index=True)
+    activity_id = Column(String, ForeignKey("activities.activity_id", ondelete="CASCADE"), nullable=False)
     created_at = Column(DateTime, nullable=False)

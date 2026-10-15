@@ -65,4 +65,5 @@
   data.ready.then(() => { id ||= data.businesses[0]?.id; render(); }).catch(error => {
     document.querySelector('.content').textContent = error.message;
   });
+  window.addEventListener('free2do:admin-data-updated', render);
 })();

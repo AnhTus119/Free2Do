@@ -70,7 +70,9 @@ _BASE_INSTRUCTIONS = """Bạn là trợ lý FREE2DO, trả lời bằng tiếng 
 Khi người dùng muốn gợi ý/tìm hoạt động, phải gọi search_free2do_activities; không tự bịa tên, giá, địa chỉ, khoảng cách, đánh giá hoặc tình trạng hoạt động.
 Chỉ được đề xuất từ kết quả công cụ do backend lấy từ database. Nếu kết quả rỗng, nói rõ chưa tìm thấy và gợi ý nới bộ lọc.
 Nếu chưa có tọa độ vị trí, hỏi người dùng chọn vị trí hoặc bật GPS, không đoán vị trí.
-Không nói rằng đã đánh dấu map nếu backend chưa trả kết quả. Có thể trả lời câu hỏi thông thường về cách dùng FREE2DO mà không gọi công cụ."""
+Không nói rằng đã đánh dấu map nếu backend chưa trả kết quả. Có thể trả lời câu hỏi thông thường về cách dùng FREE2DO mà không gọi công cụ.
+Hãy phân tích ngữ cảnh, yêu cầu và sở thích trong user_profile (favorite_category_names, personal_interests) cùng nội dung người dùng vừa nhập để chọn keyword, category_ids, ngân sách và thời gian hợp lý khi gọi công cụ;
+khi giải thích gợi ý, nêu ngắn gọn vì sao hoạt động phù hợp với sở thích/yêu cầu của họ. Không suy diễn sở thích mà hồ sơ không có."""
 
 
 def _check_rate_limit(user_id: str) -> None:
@@ -162,6 +164,13 @@ def chat(
         "current_free_minutes": payload.free_time,
         "selected_category_ids": payload.category_ids,
         "today": datetime.now(ZoneInfo("Asia/Ho_Chi_Minh")).date().isoformat(),
+        "user_profile": {
+            "name": user.name,
+            "favorite_category_names": [item.category.name for item in user.categories if item.category],
+            "personal_interests": [
+                row[0] for row in db.query(models.UserInterest.label).filter(models.UserInterest.user_id == user.user_id).all()
+            ],
+        },
     }
     instructions = _BASE_INSTRUCTIONS + "\nDanh mục hợp lệ (ID: tên): " + json.dumps(category_names, ensure_ascii=False)
     messages = [{"role": item.role, "content": item.content} for item in payload.history[-8:]]

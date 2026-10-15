@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FREE2DO Admin — Cài đặt</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style1.css">
+  <link rel="stylesheet" href="admin-responsive.css">
+  <style>
+    .settings-wrap{display:grid;grid-template-columns:230px 1fr;gap:22px;align-items:start;}
+    .settings-tabs{display:flex;flex-direction:column;gap:6px;background:#fff;border:1px solid var(--line,#EDE3D2);border-radius:16px;padding:10px;position:sticky;top:12px;}
+    .settings-tab{display:block;text-align:left;border:0;background:none;padding:11px 14px;border-radius:11px;font:600 14px Inter,sans-serif;color:#5A4A3A;cursor:pointer;transition:background .15s ease,color .15s ease;}
+    .settings-tab:hover{background:#FBF5EA;}
+    .settings-tab.active{background:#FDEDEF;color:#C4506A;}
+    .settings-tab[hidden]{display:none;}
+    .settings-card{background:#fff;border:1px solid var(--line,#EDE3D2);border-radius:18px;padding:26px;display:none;animation:settingsIn .2s ease-out;}
+    .settings-card.active{display:block;}
+    .settings-card h3{margin:0 0 6px;font-size:18px;}
+    .settings-card > p{margin:0 0 20px;color:#7A6B5A;font-size:14px;}
+    .s-field{margin-bottom:16px;max-width:440px;}
+    .s-field label{display:block;font:700 13px Inter,sans-serif;margin-bottom:7px;}
+    .s-field input{width:100%;box-sizing:border-box;border:1.5px solid #EDE3D2;border-radius:12px;padding:11px 14px;font:500 14px Inter,sans-serif;background:#fff;}
+    .s-field input:focus{outline:none;border-color:#DB6680;}
+    .s-field input[readonly]{background:#FAF6EE;color:#7A6B5A;}
+    .s-btn{border:0;border-radius:999px;padding:11px 24px;background:#DB6680;color:#fff;font:700 14px Inter,sans-serif;cursor:pointer;transition:filter .15s ease,transform .1s ease;}
+    .s-btn:hover{filter:brightness(.95);} .s-btn:active{transform:scale(.98);} .s-btn:disabled{opacity:.6;cursor:wait;}
+    .s-btn.secondary{background:#fff;color:#C4506A;border:1.5px solid #DB6680;text-decoration:none;display:inline-block;}
+    .s-msg{margin-top:14px;font-size:13.5px;font-weight:600;}
+    .s-msg.ok{color:#2E7D4F;} .s-msg.err{color:#C0392B;}
+    .s-toggle{display:flex;align-items:center;gap:12px;font-weight:600;font-size:14px;cursor:pointer;}
+    .s-toggle input{width:20px;height:20px;accent-color:#DB6680;}
+    @keyframes settingsIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+    @media (max-width:860px){.settings-wrap{grid-template-columns:1fr;}.settings-tabs{flex-direction:row;overflow-x:auto;position:static;}}
+    @media (prefers-reduced-motion:reduce){.settings-card{animation:none;}}
+  </style>
+</head>
+<body class="settings-page">
+<div class="app">
+  <input class="nav-toggle" type="checkbox" id="nav-toggle" aria-label="Mở hoặc đóng menu điều hướng">
+  <aside class="sidebar">
+    <div class="side-logo"><img src="Vecto/Group.svg" alt=""><span>FREE2DO</span></div>
+    <nav class="nav-group" aria-label="Điều hướng quản trị">
+      <a href="dashboard.html" class="nav-item"><span class="ic"></span>Tổng quan</a>
+      <a href="customers.html" class="nav-item"><span class="ic"></span>Khách hàng</a>
+      <a href="businesses.html" class="nav-item"><span class="ic"></span>Doanh nghiệp</a>
+      <a href="activities.html" class="nav-item"><span class="ic"></span>Hoạt động</a>
+      <a href="management.html" class="nav-item"><span class="ic">⚙</span>Hệ thống</a>
+    </nav>
+    <div class="side-bottom">
+      <div class="side-admin">
+        <div class="side-avatar">A</div>
+        <div><div class="side-admin-name">Đang tải</div><div class="side-admin-role">Quản trị viên</div></div>
+      </div>
+      <a href="operator-settings.html" class="nav-item active" aria-current="page"><span class="ic">⚙️</span>Cài đặt</a>
+      <a href="log-in.html" class="nav-item" data-logout><span class="ic">↩</span>Đăng xuất</a>
+    </div>
+  </aside>
+  <label class="nav-scrim" for="nav-toggle" aria-label="Đóng menu"></label>
+
+  <main class="main">
+    <header class="header">
+      <label class="menu-button" for="nav-toggle" aria-hidden="true">☰</label>
+      <div class="header-title"><div class="breadcrumb">Quản trị / Cài đặt</div><h1>Cài đặt</h1></div>
+      <div class="header-right"><div class="bell">🔔</div><div class="who"><div class="avatar">A</div><div class="name">Admin</div><div class="chev">▾</div></div></div>
+    </header>
+
+    <div class="content">
+      <div class="welcome"><div><h2>Cài đặt tài khoản</h2><p>Quản lý hồ sơ, mật khẩu và thông báo của bạn.</p></div></div>
+      <div class="settings-wrap">
+        <nav class="settings-tabs" aria-label="Mục cài đặt">
+          <button class="settings-tab active" data-tab="profile" type="button">👤 Hồ sơ</button>
+          <button class="settings-tab" data-tab="password" type="button">🔑 Đổi mật khẩu</button>
+          <button class="settings-tab" data-tab="notifications" type="button">🔔 Thông báo</button>
+          <button class="settings-tab" data-tab="operators" type="button" id="operatorsTab" hidden>🛡️ Quản lý operator</button>
+        </nav>
+        <div>
+          <section class="settings-card active" id="tab-profile">
+            <h3>Hồ sơ cá nhân</h3><p>Thông tin hiển thị trong hệ thống quản trị.</p>
+            <form id="profileForm">
+              <div class="s-field"><label for="pName">Tên hiển thị</label><input id="pName" maxlength="80" required></div>
+              <div class="s-field"><label for="pEmail">Email đăng nhập</label><input id="pEmail" readonly></div>
+              <div class="s-field"><label for="pLevel">Quyền</label><input id="pLevel" readonly></div>
+              <button class="s-btn" type="submit">Lưu thay đổi</button>
+              <div class="s-msg" id="profileMsg" role="status"></div>
+            </form>
+          </section>
+          <section class="settings-card" id="tab-password">
+            <h3>Đổi mật khẩu</h3><p>Dùng mật khẩu mạnh, ít nhất 8 ký tự.</p>
+            <form id="passwordForm">
+              <div class="s-field"><label for="pwCurrent">Mật khẩu hiện tại</label><input id="pwCurrent" type="password" autocomplete="current-password" required></div>
+              <div class="s-field"><label for="pwNew">Mật khẩu mới</label><input id="pwNew" type="password" minlength="8" autocomplete="new-password" required></div>
+              <div class="s-field"><label for="pwConfirm">Nhập lại mật khẩu mới</label><input id="pwConfirm" type="password" minlength="8" autocomplete="new-password" required></div>
+              <button class="s-btn" type="submit">Đổi mật khẩu</button>
+              <div class="s-msg" id="passwordMsg" role="status"></div>
+            </form>
+          </section>
+          <section class="settings-card" id="tab-notifications">
+            <h3>Thông báo</h3><p>Chuông ở góc phải luôn hiện việc cần xử lý. Bạn có thể chọn nhận thêm email.</p>
+            <label class="s-toggle"><input type="checkbox" id="emailToggle"> Gửi email khi có doanh nghiệp hoặc hoạt động mới chờ duyệt</label>
+            <div class="s-msg" id="notifyMsg" role="status"></div>
+          </section>
+          <section class="settings-card" id="tab-operators">
+            <h3>Quản lý operator</h3><p>Tạo tài khoản, phân quyền và khóa operator ở trang Hệ thống (chỉ quản trị viên cấp cao).</p>
+            <a class="s-btn secondary" href="management.html">Mở trang Hệ thống →</a>
+          </section>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/admin-auth.js"></script>
+<script src="js/admin-shell.js"></script>
+<script src="js/notifications.js"></script>
+<script src="js/operator-settings.js"></script>
+</body>
+</html>

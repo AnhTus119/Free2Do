@@ -85,3 +85,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     } catch (error) { BusinessAPI.notify(error.message, 'error'); }
   });
 });
+window.addEventListener('free2do:business-data-refresh', () => {
+  if (document.querySelector('.reply-box.show, .complaint-box.show')) return;
+  reload().catch(error => BusinessAPI.notify(error.message, 'error'));
+});

@@ -53,3 +53,4 @@ async function loadDashboard() {
 
 window.updateChartData = loadDashboard;
 document.addEventListener('DOMContentLoaded', loadDashboard);
+window.addEventListener('free2do:business-data-refresh', loadDashboard);

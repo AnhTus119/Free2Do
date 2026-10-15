@@ -115,6 +115,20 @@
     notify.timer = setTimeout(() => { toast.hidden = true; }, 3200);
   };
 
+  let lastRefreshAt = Date.now();
+  window.setInterval(() => {
+    if (document.visibilityState === 'hidden') return;
+    window.FREE2DO_CACHE?.clear();
+    window.dispatchEvent(new Event('free2do:business-data-refresh'));
+    lastRefreshAt = Date.now();
+  }, 5 * 60 * 1000);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible' || Date.now() - lastRefreshAt < 5 * 60 * 1000) return;
+    window.FREE2DO_CACHE?.clear();
+    window.dispatchEvent(new Event('free2do:business-data-refresh'));
+    lastRefreshAt = Date.now();
+  });
+
   window.toggleMenu = event => {
     event?.stopPropagation();
     document.getElementById('nav-user-menu')?.classList.toggle('show');

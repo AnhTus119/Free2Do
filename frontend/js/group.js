@@ -2,33 +2,16 @@
   'use strict';
 
   const api = window.CustomerAPI;
-  const GROUP_NAMES_KEY = 'free2do_group_names';
   const params = new URLSearchParams(location.search);
-
-  // Hỗ trợ link cũ /g/<slug>--<code>, query ?groupInvite=<code>,
-  // và link mới chỉ có slug ở root: /ten-nhom.
-  // Link ngắn: /g/<mã>. Mã mời chỉ gồm chữ + số; slug cũ luôn có dấu "-".
-  function groupSegmentFromPath() {
-    const match = decodeURIComponent(location.pathname).match(/\/g\/([^/]+)\/?$/);
-    return match ? match[1] : null;
-  }
+  // Link mời: /g/<mã mời> (link ngắn), /g/<tên>--<mã> (link cũ) hoặc ?groupInvite=<mã>.
   function inviteCodeFromPath() {
-    const segment = groupSegmentFromPath();
+    const segment = decodeURIComponent(location.pathname).match(/\/g\/([^/]+)\/?$/)?.[1];
     if (!segment) return null;
     const legacy = segment.match(/--([A-Za-z0-9]+)$/);
     if (legacy) return legacy[1];
     return /^[A-Za-z0-9]+$/.test(segment) ? segment : null;
   }
-  function groupSlugFromPath() {
-    const path = decodeURIComponent(location.pathname);
-    const segment = groupSegmentFromPath();
-    if (segment) return /^[A-Za-z0-9]+$/.test(segment) || /--[A-Za-z0-9]+$/.test(segment) ? null : segment;
-    if (/\.html?$/i.test(path) || path === '/') return null;
-    const match = path.match(/^\/([^/]+)\/?$/);
-    return match ? match[1] : null;
-  }
-  let inviteCode = params.get('groupInvite') || inviteCodeFromPath();
-  const incomingGroupSlug = inviteCode ? null : groupSlugFromPath();
+  const inviteCode = params.get('groupInvite') || inviteCodeFromPath();
   let currentUser = null;
   let categories = [];
   let currentGroup = null;
@@ -41,6 +24,7 @@
   let socket = null;
   let reconnectTimer = null;
   let refreshInFlight = false;
+  let refreshPending = false;
   let pendingGroupAction = null;
   let userSessionStarted = false;
   let recommendationsLoadedForGroup = null;
@@ -52,25 +36,8 @@
   const money = value => `${Number(value || 0).toLocaleString('vi-VN')} ₫`;
   const categoryName = id => categories.find(item => item.category_id === id)?.name || id;
 
-  function getGroupNames() {
-    try {
-      const value = JSON.parse(localStorage.getItem(GROUP_NAMES_KEY) || '{}');
-      return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
-    } catch (error) {
-      console.warn('Không thể đọc tên nhóm đã lưu trên trình duyệt:', error);
-      return {};
-    }
-  }
-
-  function saveGroupName(inviteCodeValue, name) {
-    const names = getGroupNames();
-    names[inviteCodeValue] = name;
-    localStorage.setItem(GROUP_NAMES_KEY, JSON.stringify(names));
-  }
-
-  function displayGroupName(group, names) {
-    const savedName = names[group.invite_code];
-    if (typeof savedName === 'string' && savedName.trim()) return savedName.trim();
+  function displayGroupName(group) {
+    if (typeof group.group_name === 'string' && group.group_name.trim()) return group.group_name.trim();
     const host = group.members.find(member => member.is_host);
     return host ? `Nhóm của ${host.name}` : 'Nhóm chưa đặt tên';
   }
@@ -155,23 +122,8 @@
     form.remove();
   };
 
-  function slugifyGroupName(name) {
-    const slug = String(name || 'nhom-free2do')
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/đ/g, 'd')
-      .replace(/Đ/g, 'D')
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '')
-      .slice(0, 48)
-      .replace(/-+$/g, '');
-    return slug || 'nhom-free2do';
-  }
-
+  // Link rút gọn cùng domain với web: https://<domain>/g/<mã mời>.
   function inviteUrl(group) {
-    // Link rút gọn cùng domain với web: https://<domain>/g/<mã mời>.
-    // Các link cũ (/g/ten--ma và /ten-nhom) vẫn mở được.
     return `${location.origin}/g/${encodeURIComponent(group.invite_code)}`;
   }
 
@@ -244,13 +196,6 @@
       currentGroup = joining
         ? await api.request(`/groups/invite/${encodeURIComponent(inviteCode)}/join`, { method: 'POST', body: members[0] })
         : await api.request('/groups', { method: 'POST', body: { host: members[0], group_name: groupName } });
-      if (!joining) {
-        try {
-          saveGroupName(currentGroup.invite_code, groupName);
-        } catch (error) {
-          alert(`Nhóm đã được tạo nhưng không lưu được tên nhóm trên trình duyệt: ${error.message}`);
-        }
-      }
       if (!joining) sessionStorage.setItem('pending_group_invite', currentGroup.invite_code);
       joinMode = false;
       applyGroup(currentGroup);
@@ -273,41 +218,53 @@
 
   function applyGroup(group) {
     const groupChanged = activeGroupId !== group.group_id;
+    if (groupChanged) {
+      recommendations = [];
+      recommendationsLoadedForGroup = null;
+      recommendationsLoadGroupId = null;
+      recommendationsLoadPromise = null;
+      document.getElementById('group-result').style.display = 'none';
+      document.getElementById('groupVoteSummary').innerHTML = '';
+      document.getElementById('bestMatch').innerHTML = '';
+      document.getElementById('suggestionCards').innerHTML = '';
+      document.getElementById('suggestions').style.display = 'none';
+      document.getElementById('suggestionsToggle').style.display = 'none';
+      document.getElementById('suggestionsToggle').textContent = 'Xem gợi ý khác';
+    }
     activeGroupId = group.group_id;
     currentGroup = group;
     groupMembers = group.members;
     selectedActivity = group.selected_activity;
-    const names = getGroupNames();
     document.getElementById('groupHome').style.display = 'none';
     document.getElementById('groupWorkspace').classList.remove('group-home-mode');
-    document.getElementById('currentGroupTitle').textContent = displayGroupName(group, names);
+    document.getElementById('currentGroupTitle').textContent = displayGroupName(group);
     document.getElementById('createdMembers').style.display = 'block';
+    document.getElementById('deleteGroupSection').hidden = !group.is_host;
     if (groupChanged) selectTab('matching');
-    if (group.confirmation_complete) selectTab('expense');
-    else selectTab('matching');
     document.getElementById('inviteLink').value = inviteUrl(group);
     document.getElementById('groupInviteToolbar').style.display = 'flex';
     document.getElementById('groupLinkStatus').textContent = '';
-    history.replaceState(null, '', inviteUrl(group));
+    // Giữ đúng thư mục trang (link tương đối như home.html vẫn chạy); link rút gọn chỉ dùng khi sao chép.
+    if (!/\/g\//.test(location.pathname)) history.replaceState(null, '', `${location.pathname}?groupInvite=${encodeURIComponent(group.invite_code)}`);
     renderCreatedMembers();
     renderExpense();
     updateExpenseButton();
     if (!group.search_started) {
-      if (recommendationsLoadedForGroup === group.group_id) {
-        recommendationsLoadedForGroup = null;
-        recommendations = [];
-        document.getElementById('group-result').style.display = 'none';
-      }
+      recommendationsLoadedForGroup = null;
+      recommendations = [];
+      document.getElementById('group-result').style.display = 'none';
     } else if (group.selected_activity) {
       renderSelectedActivity(group.selected_activity);
       document.getElementById('group-result').style.display = 'block';
     } else if (recommendationsLoadedForGroup === group.group_id) {
       document.getElementById('group-result').style.display = 'block';
+      renderRecommendations();
       renderVoteSummary();
     } else if (recommendationsLoadedForGroup !== group.group_id) {
       document.getElementById('group-result').style.display = 'block';
       loadGroupRecommendations().catch(error => console.warn('Không thể tải gợi ý hoạt động:', error.message));
     }
+    if (group.search_started) syncDecisionWidget();
   }
 
   window.renderCreatedMembers = function () {
@@ -356,12 +313,15 @@
     if (action === 'rejectActivity' && (!currentGroup?.selected_activity || currentGroup.is_host || ownMember()?.confirmation_status !== 'pending')) return;
     if (action === 'leave' && (!currentGroup || currentGroup.is_host)) return;
     if (action === 'deleteActivity' && (!currentGroup?.is_host || !currentGroup.selected_activity)) return;
+    if (action === 'deleteGroup' && (!currentGroup?.is_host || currentGroup.status !== 'active')) return;
     pendingGroupAction = action;
-    document.getElementById('groupActionConfirmTitle').textContent = 'Xác nhận';
+    document.getElementById('groupActionConfirmTitle').textContent = action === 'rejectActivity' ? 'Bạn chắc chắn KHÔNG tham gia hoạt động?' : action === 'deleteGroup' ? 'Xác nhận xóa nhóm' : 'Xác nhận';
     document.getElementById('groupActionConfirmText').textContent = action === 'rejectActivity'
-      ? 'Bạn có chắc chắn muốn từ chối hoạt động? Nếu từ chối, bạn sẽ bị thoát khỏi nhóm.'
+      ? 'Nếu không tham gia, bạn sẽ tự động bị thoát khỏi nhóm.'
+      : action === 'deleteGroup'
+        ? 'Bạn có chắc chắn muốn xóa nhóm này?'
       : `Bạn có chắc chắn muốn "${action === 'leave' ? 'Từ chối tham gia' : 'Xóa hoạt động'}"?`;
-    document.getElementById('confirmGroupActionButton').textContent = action === 'rejectActivity' ? 'Từ chối và rời nhóm' : 'Chắc chắn';
+    document.getElementById('confirmGroupActionButton').textContent = action === 'rejectActivity' ? 'Xác nhận' : 'Chắc chắn';
     document.getElementById('groupActionConfirm').classList.add('open');
     document.body.style.overflow = 'hidden';
   };
@@ -386,6 +346,22 @@
     }
     if (action === 'deleteActivity') {
       alert('Chưa thể xóa hoạt động đã chọn vì API hiện tại chưa hỗ trợ thao tác này. Chưa có thay đổi nào được lưu.');
+      return;
+    }
+    if (action === 'deleteGroup') {
+      try {
+        await api.request(`/groups/${currentGroup.group_id}`, { method: 'DELETE' });
+        if (socket) {
+          socket.onclose = null;
+          socket.close();
+          socket = null;
+        }
+        clearTimeout(reconnectTimer);
+        currentGroup = null;
+        returnToGroupList();
+      } catch (error) {
+        alert(error.message);
+      }
     }
   };
 
@@ -412,7 +388,6 @@
     if (!list) return;
     try {
       const rows = await api.request('/groups/me?limit=500');
-      const names = getGroupNames();
       if (!rows.length) {
         list.innerHTML = '<p class="your-groups-empty">Bạn chưa tạo hoặc tham gia nhóm nào.</p>';
         return;
@@ -420,7 +395,7 @@
       list.innerHTML = rows.map(group => {
         const createdAt = group.created_at ? new Date(group.created_at).toLocaleDateString('vi-VN') : 'Không rõ';
         const role = group.is_host ? 'Host' : 'Thành viên';
-        return `<button type="button" class="your-group-card" onclick="openPastGroup('${escapeValue(group.invite_code)}')"><span><span class="your-group-name">${escapeValue(displayGroupName(group, names))}</span><span class="your-group-meta"><span>Ngày lập: ${escapeValue(createdAt)}</span><span>${Number(group.members.length)} thành viên</span></span></span><span class="your-group-role">${role}</span></button>`;
+        return `<button type="button" class="your-group-card" onclick="openPastGroup('${escapeValue(group.invite_code)}')"><span><span class="your-group-name">${escapeValue(displayGroupName(group))}</span><span class="your-group-meta"><span>Ngày lập: ${escapeValue(createdAt)}</span><span>${Number(group.members.length)} thành viên</span></span></span><span class="your-group-role">${role}</span></button>`;
       }).join('');
     } catch (error) {
       list.innerHTML = `<p class="your-groups-empty">Không tải được danh sách nhóm: ${escapeValue(error.message)}</p>`;
@@ -506,14 +481,7 @@
     if (name === 'expense' && !currentGroup?.confirmation_complete) return;
     document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.toggle('active', pane.id === `pane-${name}`));
     document.querySelectorAll('.tab-btn').forEach(button => button.classList.toggle('active', button.dataset.tab === name));
-    if (name === 'expense') {
-      const savedActivityId = currentGroup?.selected_activity?.activity_id;
-      if (currentGroup?.is_host && selectedActivity?.activity_id && selectedActivity.activity_id !== savedActivityId) {
-        selectActivity(selectedActivity.activity_id);
-      } else {
-        renderExpense();
-      }
-    }
+    if (name === 'expense') renderExpense();
   };
 
   function activityView(activity) {
@@ -528,8 +496,26 @@
       rating: activity.avg_rating,
       categories: (activity.category_ids || []).map(categoryName).join(', '),
       media_url: activity.media_url,
+      logo_url: activity.business_logo_url,
       score: activity.match_score,
     };
+  }
+
+  // Ảnh vuông bo góc: logo doanh nghiệp -> ảnh bìa -> biểu tượng.
+  function thumbHTML(view, size = 48) {
+    const url = view.logo_url || view.media_url;
+    const box = `width:${size}px;height:${size}px;border-radius:${Math.round(size / 4)}px;flex:0 0 auto;`;
+    return url
+      ? `<img class="g-thumb" src="${escapeValue(url)}" alt="" style="${box}object-fit:cover;" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'g-thumb g-thumb-empty',textContent:'✨',style:'${box}'}))">`
+      : `<div class="g-thumb g-thumb-empty" style="${box}">✨</div>`;
+  }
+
+  function myVotes() {
+    return new Set(ownMember()?.vote_activity_ids || []);
+  }
+
+  function tallyFor(activityId) {
+    return (currentGroup?.vote_tally || []).find(row => sameActivityId(row.activity_id, activityId));
   }
 
   function sameActivityId(left, right) {
@@ -543,7 +529,7 @@
     button.disabled = !canViewExpenses;
     document.querySelector('.tab-btn[data-tab="expense"]').disabled = !canViewExpenses;
     button.textContent = canViewExpenses
-      ? 'Xem chia chi phí'
+      ? 'Tất cả các thành viên đã xác nhận tham gia. Chia chi phí'
       : currentGroup?.selected_activity
         ? 'Chờ tất cả thành viên đồng ý'
         : 'Chia chi phí sau khi chốt hoạt động';
@@ -553,13 +539,15 @@
     selectedActivity = activity;
     const view = activityView(activity);
     const self = ownMember();
-    const waiting = groupMembers.filter(member => member.confirmation_status !== 'accepted').length;
     const ownDecision = !currentGroup.is_host && self?.confirmation_status === 'pending'
-      ? `<div class="group-actions"><button class="btn btn-primary" type="button" onclick="respondToActivity('accept')">Đồng ý</button><button class="btn btn-secondary" type="button" onclick="openGroupActionConfirm('rejectActivity')">Từ chối</button></div>`
+      ? `<p class="section-sub" style="margin:12px 0 0">Bạn có xác nhận tham gia hoạt động này không?</p><div class="group-actions"><button class="btn btn-primary" type="button" onclick="respondToActivity('accept')">Xác nhận tham gia</button><button class="btn btn-secondary" type="button" onclick="openGroupActionConfirm('rejectActivity')">Không tham gia</button></div>`
       : '';
     const confirmations = groupMembers.map(member => `<div class="group-vote-row"><span>${escapeValue(member.name)}${member.is_host ? ' · Host' : ''}</span><span class="group-vote-choice">${member.confirmation_status === 'accepted' ? 'Đã đồng ý' : 'Đang chờ xác nhận'}</span></div>`).join('');
-    document.getElementById('groupVoteSummary').innerHTML = `<div class="group-vote-summary"><h3>Xác nhận hoạt động</h3>${confirmations}<p class="section-sub" style="margin:10px 0 0">${waiting ? `Còn ${waiting} thành viên chưa xác nhận.` : 'Mọi người đã đồng ý. Đang mở bước chia chi phí.'}</p>${ownDecision}</div>`;
-    document.getElementById('bestMatch').innerHTML = `<div class="group-avg"><div class="lbl">Hoạt động được chọn</div></div><button class="suggestion-card" type="button" onclick="openActivityPopup('${escapeValue(view.id)}')" style="width:100%;text-align:left;"><div class="activity-title">✓ ${escapeValue(view.name)}</div><div class="activity-biz">${escapeValue(view.address)} · ${escapeValue(view.price)}</div><div class="member-crit">★ ${view.rating ?? '—'} · ${escapeValue(view.hours)} · ${escapeValue(view.categories)}</div></button>`;
+    document.getElementById('groupVoteSummary').innerHTML = `<div class="group-vote-summary"><h3>Xác nhận hoạt động</h3>${confirmations}${ownDecision}</div>`;
+    document.getElementById('bestMatch').innerHTML = `<button class="suggestion-card g-row-card" type="button" onclick="openActivityPopup('${escapeValue(view.id)}')" style="width:100%;text-align:left;">${thumbHTML(view, 56)}<div style="min-width:0"><div class="g-chosen-label">Hoạt động nhóm đã chốt</div><div class="activity-title">${escapeValue(view.name)}</div><div class="activity-biz">${escapeValue(view.address)} · ${escapeValue(view.price)}</div><div class="member-crit">★ ${view.rating ?? '—'} · ${escapeValue(view.hours)} · ${escapeValue(view.categories)}</div></div></button>`;
+    document.getElementById('suggestionCards').innerHTML = '';
+    document.getElementById('suggestions').style.display = 'none';
+    document.getElementById('suggestionsToggle').style.display = 'none';
     updateExpenseButton();
     renderExpense();
   }
@@ -574,24 +562,47 @@
       container.innerHTML = '';
       return;
     }
-    const allVoted = groupMembers.every(member => member.activity_vote_id);
-    const choices = new Set(groupMembers.map(member => member.activity_vote_id).filter(Boolean));
-    const choiceRows = groupMembers.map(member => {
-      const choice = recommendations.find(activity => sameActivityId(activity.activity_id, member.activity_vote_id));
-      return `<div class="group-vote-row"><span>${escapeValue(member.name)}${member.is_host ? ' · Host' : ''}</span><span class="group-vote-choice">${choice ? escapeValue(choice.name) : 'Chưa chọn'}</span></div>`;
-    }).join('');
-    let hostAction = '';
-    if (currentGroup.is_host && allVoted && choices.size === 1) {
-      hostAction = `<button class="btn btn-primary" type="button" onclick="selectActivity('${escapeValue([...choices][0])}')">Chốt lựa chọn chung</button>`;
-    } else if (currentGroup.is_host && allVoted && choices.size > 1) {
-      hostAction = '<button class="btn btn-primary" type="button" onclick="randomizeGroupActivity()">Random trong các hoạt động thành viên đã chọn</button>';
+    const tally = currentGroup.vote_tally || [];
+    const voters = new Set(tally.flatMap(row => row.voter_member_ids));
+    const maxVotes = Math.max(1, ...tally.map(row => row.votes));
+    const tied = new Set(currentGroup.tied_activity_ids || []);
+    const rows = tally.length ? tally.map(row => {
+      const names = groupMembers.filter(member => row.voter_member_ids.includes(member.member_id)).map(member => member.name).join(', ');
+      return `<div class="g-tally-row ${tied.has(row.activity_id) ? 'tied' : ''}">
+        ${thumbHTML({ logo_url: row.business_logo_url, media_url: row.media_url }, 38)}
+        <div class="g-tally-main"><div class="g-tally-name">${escapeValue(row.name)}</div>
+          <div class="g-tally-bar"><span style="width:${Math.round(row.votes / maxVotes * 100)}%"></span></div>
+          <div class="g-tally-voters">${escapeValue(names)}</div></div>
+        <div class="g-tally-count">${row.votes}<small>phiếu</small></div></div>`;
+    }).join('') : '<p class="section-sub" style="margin:0">Chưa có phiếu nào. Hãy bấm "Bình chọn" trên các hoạt động bạn thích, chọn bao nhiêu cũng được.</p>';
+    let status;
+    let action = '';
+    if (!currentGroup.voting_closed) {
+      status = `${voters.size}/${groupMembers.length} thành viên đã bình chọn. Mỗi người chọn được nhiều hoạt động.`;
+      if (currentGroup.is_host) action = `<button class="btn btn-primary g-pulse" type="button" onclick="closeGroupVoting()" ${tally.length ? '' : 'disabled'}>Đóng bình chọn & chốt kết quả</button>`;
+      else status += ' Host sẽ đóng bình chọn khi mọi người sẵn sàng.';
+    } else if (tied.size > 1) {
+      status = `Có ${tied.size} hoạt động cùng ${maxVotes} phiếu cao nhất.`;
+      action = currentGroup.is_host
+        ? (currentGroup.random_pick
+          ? '<button class="btn btn-secondary" type="button" onclick="openDecisionWidget()">Xem kết quả random</button>'
+          : '<button class="btn btn-primary g-pulse" type="button" onclick="randomizeGroupActivity()">🎲 Random hoạt động nhiều vote nhất</button>')
+        : '<span class="g-wait">Đang chờ host random hoạt động…</span>';
+    } else {
+      status = 'Đã đóng bình chọn.';
     }
-    const progress = groupMembers.filter(member => member.activity_vote_id).length;
-    const status = allVoted
-      ? choices.size === 1 ? 'Tất cả thành viên đã chọn cùng một hoạt động.' : 'Các lựa chọn khác nhau. Host có thể random trong những hoạt động đã được chọn.'
-      : `Đã có ${progress}/${groupMembers.length} thành viên chọn hoạt động.`;
-    container.innerHTML = `<div class="group-vote-summary"><h3>Tổng hợp lựa chọn của thành viên</h3>${choiceRows}<p class="section-sub" style="margin:10px 0 0">${status}</p>${hostAction ? `<div class="group-actions">${hostAction}</div>` : ''}</div>`;
+    container.innerHTML = `<div class="group-vote-summary g-fade"><h3>${currentGroup.voting_closed ? 'Kết quả bình chọn' : 'Bình chọn hoạt động'}</h3>${rows}<p class="section-sub" style="margin:10px 0 0">${status}</p>${action ? `<div class="group-actions">${action}</div>` : ''}</div>`;
   }
+
+  window.closeGroupVoting = async function () {
+    if (!currentGroup?.is_host) return;
+    if (!confirm('Đóng bình chọn? Sau khi đóng, thành viên không thể đổi phiếu nữa.')) return;
+    try {
+      applyGroup(await api.request(`/groups/${currentGroup.group_id}/voting/close`, { method: 'POST' }));
+    } catch (error) {
+      alert(error.message);
+    }
+  };
 
   async function loadGroupRecommendations() {
     const group = currentGroup;
@@ -607,27 +618,14 @@
       if (currentGroup?.group_id !== group.group_id || !currentGroup.search_started) return false;
       recommendations = results;
       recommendationsLoadedForGroup = group.group_id;
-      const best = recommendations[0];
       if (currentGroup.selected_activity) {
         renderSelectedActivity(currentGroup.selected_activity);
-      } else if (best) {
-        renderBestMatch(best, false);
-        document.getElementById('suggestionCards').innerHTML = recommendations.slice(1).map(suggestionCard).join('');
-        document.getElementById('suggestions').style.display = recommendations.length > 1 ? 'block' : 'none';
-        document.getElementById('suggestionsToggle').textContent = 'Ẩn gợi ý';
-        renderVoteSummary();
       } else {
-        document.getElementById('bestMatch').innerHTML = '<p class="section-sub" style="margin:0">Chưa tìm thấy hoạt động phù hợp cho cả nhóm.</p>';
-        document.getElementById('suggestionCards').innerHTML = '';
-        document.getElementById('groupVoteSummary').innerHTML = '';
-      }
-      if (currentGroup.selected_activity) {
-        document.getElementById('suggestionCards').innerHTML = recommendations
-          .filter(activity => !sameActivityId(activity.activity_id, currentGroup.selected_activity.activity_id))
-          .map(suggestionCard).join('');
+        renderRecommendations();
+        renderVoteSummary();
       }
       document.getElementById('group-result').style.display = 'block';
-      return Boolean(best);
+      return recommendations.length > 0;
     })();
     recommendationsLoadPromise = loadPromise;
     try {
@@ -657,19 +655,39 @@
 
   function renderBestMatch(activity, persist) {
     selectedActivity = activity;
-    const view = activityView(activity);
-    document.getElementById('bestMatch').innerHTML = `<div class="group-avg"><div class="pct">${Number(view.score ?? 0)}%</div><div class="lbl">Hoạt động phù hợp nhất cho cả nhóm</div></div>${recommendationCard(activity, true)}`;
+    document.getElementById('bestMatch').innerHTML = recommendationCard(activity, true);
     updateExpenseButton();
     if (!persist) renderExpense();
   }
 
+  function renderRecommendations() {
+    const orderedRecommendations = getOrderedRecommendations();
+    const best = orderedRecommendations[0];
+    if (!best) {
+      document.getElementById('bestMatch').innerHTML = '<p class="section-sub" style="margin:0">Chưa tìm thấy hoạt động phù hợp cho cả nhóm.</p>';
+      document.getElementById('suggestionCards').innerHTML = '';
+      document.getElementById('groupVoteSummary').innerHTML = '';
+      document.getElementById('suggestions').style.display = 'none';
+      document.getElementById('suggestionsToggle').style.display = 'none';
+      return;
+    }
+    renderBestMatch(best, false);
+    document.getElementById('suggestionCards').innerHTML = orderedRecommendations.slice(1).map(suggestionCard).join('');
+    document.getElementById('suggestions').style.display = 'none';
+    document.getElementById('suggestionsToggle').style.display = orderedRecommendations.length > 1 ? 'block' : 'none';
+    document.getElementById('suggestionsToggle').textContent = 'Xem gợi ý khác';
+  }
+
   function recommendationCard(activity, best = false) {
     const view = activityView(activity);
-    const vote = sameActivityId(ownMember()?.activity_vote_id, view.id);
-    const action = ownMember()
-      ? `<button class="btn ${vote ? 'btn-secondary' : 'btn-primary'}" type="button" onclick="voteActivity('${escapeValue(view.id)}')">${vote ? 'Đã chọn · Đổi lựa chọn' : 'Tôi thích hoạt động này'}</button>`
+    const voted = myVotes().has(view.id);
+    const votes = tallyFor(view.id)?.votes || 0;
+    const closed = Boolean(currentGroup?.voting_closed);
+    const action = ownMember() && !closed
+      ? `<button class="btn ${voted ? 'btn-secondary g-voted' : 'btn-primary'} suggestion-card-action" type="button" onclick="voteActivity('${escapeValue(view.id)}')">${voted ? '✓ Đã bình chọn · Bỏ chọn' : 'Bình chọn'}</button>`
       : '';
-    return `<div class="suggestion-card" style="display:flex;flex-direction:column;gap:12px;"><button type="button" onclick="openActivityPopup('${escapeValue(view.id)}')" style="width:100%;text-align:left;border:0;background:transparent;padding:0;color:inherit;cursor:pointer;"><div class="activity-title">${best ? '✨ ' : ''}${escapeValue(view.name)}</div><div class="activity-biz">${escapeValue(view.address)} · ${escapeValue(view.price)}</div><div class="member-crit">★ ${view.rating ?? '—'} · ${escapeValue(view.hours)} · ${escapeValue(view.categories)} · ${view.score}% phù hợp</div></button>${action}</div>`;
+    const badge = votes ? `<span class="g-vote-badge">${votes} phiếu</span>` : '';
+    return `<div class="suggestion-card ${voted ? 'is-voted' : ''}"><button class="suggestion-details g-row-card" type="button" onclick="openActivityPopup('${escapeValue(view.id)}')">${thumbHTML(view, 52)}<div style="min-width:0"><div class="activity-title">${best ? '✨ ' : ''}${escapeValue(view.name)} ${badge}</div><div class="activity-biz">${escapeValue(view.address)} · ${escapeValue(view.price)}</div><div class="member-crit">★ ${view.rating ?? '—'} · ${escapeValue(view.hours)} · ${escapeValue(view.categories)} · ${view.score}% phù hợp</div></div></button>${action}</div>`;
   }
 
   function suggestionCard(activity) {
@@ -678,22 +696,17 @@
 
   window.voteActivity = async function (activityId) {
     const member = ownMember();
-    if (!member || currentGroup.selected_activity) return;
+    if (!member || currentGroup.selected_activity || currentGroup.voting_closed) return;
     const activity = findActivity(activityId);
     if (!activity) {
-      alert('Không tìm thấy hoạt động để ghi nhận lựa chọn. Hãy tải lại gợi ý và thử lại.');
+      alert('Không tìm thấy hoạt động. Hãy tải lại gợi ý và thử lại.');
       return;
     }
     try {
       applyGroup(await api.request(`/groups/${currentGroup.group_id}/members/${member.member_id}/vote`, {
         method: 'POST', body: { activity_id: activity.activity_id },
       }));
-      renderVoteSummary();
-      document.getElementById('bestMatch').innerHTML = recommendations[0]
-        ? `<div class="group-avg"><div class="pct">${Number(recommendations[0].match_score ?? 0)}%</div><div class="lbl">Hoạt động phù hợp nhất cho cả nhóm</div></div>${recommendationCard(recommendations[0], true)}`
-        : '';
-      document.getElementById('suggestionCards').innerHTML = recommendations.slice(1).map(suggestionCard).join('');
-      closeActivityPopup();
+      if (document.getElementById('activityOverlay').classList.contains('open')) openActivityPopup(activityId);
     } catch (error) {
       alert(error.message);
     }
@@ -716,17 +729,16 @@
     button.textContent = isHidden ? 'Ẩn gợi ý' : 'Xem gợi ý khác';
   };
 
-  window.selectActivity = async function (id) {
-    if (!currentGroup.is_host) {
-      alert('Chỉ host được chốt hoạt động.');
-      return;
-    }
+  function getOrderedRecommendations() {
+    const votes = myVotes();
+    return [...recommendations.filter(item => votes.has(item.activity_id)), ...recommendations.filter(item => !votes.has(item.activity_id))];
+  }
+
+  window.confirmRandomPick = async function () {
+    const pick = currentGroup?.random_pick;
+    if (!currentGroup?.is_host || !pick) return;
     try {
-      applyGroup(await api.request(`/groups/${currentGroup.group_id}/activity`, { method: 'PUT', body: { activity_id: id } }));
-      renderSelectedActivity(currentGroup.selected_activity);
-      document.getElementById('suggestions').style.display = 'none';
-      document.getElementById('suggestionsToggle').textContent = 'Xem gợi ý khác';
-      closeActivityPopup();
+      applyGroup(await api.request(`/groups/${currentGroup.group_id}/activity`, { method: 'PUT', body: { activity_id: pick.activity_id } }));
     } catch (error) {
       alert(error.message);
     }
@@ -741,13 +753,13 @@
     const activity = findActivity(id);
     if (!activity) return;
     const view = activityView(activity);
-    const image = view.media_url
-      ? `<img src="${escapeValue(view.media_url)}" alt="${escapeValue(view.name)}" style="width:100%;height:180px;object-fit:cover;border-radius:12px;">`
+    const image = (view.logo_url || view.media_url)
+      ? `<img src="${escapeValue(view.logo_url || view.media_url)}" alt="${escapeValue(view.name)}" style="display:block;width:180px;height:180px;margin:0 auto;object-fit:cover;border-radius:18px;">`
       : '<div style="font-size:42px;text-align:center;background:#F3D9A6;border-radius:12px;padding:20px;">✨</div>';
     const member = ownMember();
-    const selectedVote = sameActivityId(member?.activity_vote_id, id);
-    const selectButton = member && !currentGroup.selected_activity
-      ? `<button type="button" class="btn ${selectedVote ? 'btn-secondary' : 'btn-primary'}" onclick="voteActivity('${escapeValue(id)}')">${selectedVote ? 'Đã chọn · Đổi lựa chọn' : 'Tôi thích hoạt động này'}</button>`
+    const selectedVote = myVotes().has(id);
+    const selectButton = member && !currentGroup.selected_activity && !currentGroup.voting_closed
+      ? `<button type="button" class="btn ${selectedVote ? 'btn-secondary' : 'btn-primary'}" onclick="voteActivity('${escapeValue(id)}')">${selectedVote ? '✓ Đã bình chọn · Bỏ chọn' : 'Bình chọn'}</button>`
       : '';
     document.getElementById('activityPopupTitle').textContent = view.name;
     document.getElementById('activityPopupBody').innerHTML = `${image}<div class="activity-popup-meta"><div><b>Địa chỉ</b><br>${escapeValue(view.address)}</div><div><b>Giá</b><br>${escapeValue(view.price)}</div><div><b>Thời gian</b><br>${escapeValue(view.hours)}</div><div><b>Đánh giá</b><br>★ ${view.rating ?? '—'}</div></div><p style="line-height:1.6;color:var(--muted);">${escapeValue(view.description)}</p><div class="group-actions"><a href="activity-detail.html?id=${encodeURIComponent(id)}" class="btn btn-secondary">Chi tiết</a>${selectButton}</div>`;
@@ -763,27 +775,66 @@
   window.renderExpense = function () {
     if (!currentGroup || !selectedActivity || !groupMembers.length) return;
     const view = activityView(selectedActivity);
-    document.getElementById('expenseActivity').innerHTML = `<div style="background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:20px;display:flex;align-items:center;gap:12px;"><div class="result-thumb" style="background:#DDE3CB;">✨</div><div><div class="member-name">${escapeValue(view.name)}</div><div class="member-crit">${escapeValue(view.hours)} · ${groupMembers.length} người tham gia</div></div></div>`;
+    document.getElementById('expenseActivity').innerHTML = `<div style="background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:20px;display:flex;align-items:center;gap:12px;">${thumbHTML(view, 52)}<div style="min-width:0"><div class="g-chosen-label">${escapeValue(displayGroupName(currentGroup))}</div><div class="member-name">${escapeValue(view.name)}</div><div class="member-crit">${escapeValue(view.hours)} · ${groupMembers.length} người tham gia</div></div></div>`;
     document.getElementById('expenseTotal').textContent = money(currentGroup.total_amount);
-    document.getElementById('expensePerPerson').textContent = money(groupMembers[0]?.payment.amount || 0);
+    const expenseEntry = document.getElementById('expenseTotalEntry');
+    expenseEntry.hidden = !currentGroup.is_host;
+    const expenseTotalInput = document.getElementById('expenseTotalInput');
+    expenseTotalInput.value = String(Math.round(currentGroup.total_amount || 0));
+    document.getElementById('expensePerPerson').textContent = money(currentGroup.total_amount / groupMembers.length);
     document.getElementById('expensePaid').textContent = money(currentGroup.paid_amount);
     document.getElementById('expenseMissing').textContent = money(currentGroup.missing_amount);
     document.getElementById('paymentRows').innerHTML = groupMembers.map((member, index) => {
       const payment = member.payment;
-      const reminded = Boolean(payment.reminded_at);
+      const remindLabel = remindButtonLabel(member);
       const status = payment.status === 'paid' ? '<span class="pay-badge paid">Đã trả</span>' : '<span class="pay-badge unpaid">Chưa trả</span>';
       const actions = currentGroup.is_host && payment.status !== 'paid'
-        ? `<div class="payment-actions"><button class="btn btn-secondary" type="button" onclick="markMemberPaid(${index})">Đã trả</button><button class="btn btn-secondary" type="button" onclick="remindMember(${index})">${reminded ? 'Đã nhắc' : 'Nhắc thanh toán'}</button></div>`
+        ? `<div class="payment-actions"><button class="btn btn-secondary" type="button" onclick="markMemberPaid(${index})">Đã trả</button><button class="btn btn-secondary ${remindLabel === 'Đã nhắc' ? 'g-reminded' : ''}" type="button" onclick="remindMember(${index})" ${remindLabel === 'Đã nhắc' ? 'disabled' : ''}>${remindLabel}</button></div>`
         : '';
       return `<div class="split-row"><div class="member-avatar">${escapeValue(member.name.charAt(0).toUpperCase())}</div><div><div class="member-name">${escapeValue(member.name)} ${status}</div><div class="member-crit">${money(payment.amount)}</div></div><div class="split-amount">${money(payment.amount)}</div>${actions}</div>`;
     }).join('');
+    if (currentGroup.is_host) {
+      document.getElementById('saveExpenseTotal').onclick = updateGroupExpense;
+    }
   };
+
+  async function updateGroupExpense() {
+    const input = document.getElementById('expenseTotalInput');
+    const total = Number(input?.value);
+    if (!Number.isSafeInteger(total) || total < 0) {
+      alert('Vui lòng nhập tổng chi phí là số nguyên không âm.');
+      return;
+    }
+    try {
+      applyGroup(await api.request(`/groups/${currentGroup.group_id}/expense`, {
+        method: 'PUT',
+        body: { total_amount: total },
+      }));
+    } catch (error) {
+      alert(error.message);
+    }
+  }
+
+  // "Đã nhắc" chỉ giữ trong trang hiện tại 30 phút; reload hoặc hết 30 phút thì thành "Nhắc lại".
+  // Máy chủ vẫn chặn gửi email nhắc lần 2 trong 30 phút.
+  const REMIND_COOLDOWN_MS = 30 * 60 * 1000;
+  const remindedHere = new Map();
+  function remindButtonLabel(member) {
+    const at = remindedHere.get(member.member_id);
+    if (at && Date.now() - at < REMIND_COOLDOWN_MS) return 'Đã nhắc';
+    return member.payment.reminded_at ? 'Nhắc lại' : 'Nhắc thanh toán';
+  }
 
   async function paymentAction(index, action) {
     if (!currentGroup.is_host) return alert('Chỉ host được cập nhật thanh toán.');
     try {
       const member = groupMembers[index];
-      applyGroup(await api.request(`/groups/${currentGroup.group_id}/payments/${member.member_id}`, { method: 'PATCH', body: { action } }));
+      const group = await api.request(`/groups/${currentGroup.group_id}/payments/${member.member_id}`, { method: 'PATCH', body: { action } });
+      if (action === 'remind') {
+        remindedHere.set(member.member_id, Date.now());
+        setTimeout(() => { remindedHere.delete(member.member_id); renderExpense(); }, REMIND_COOLDOWN_MS);
+      }
+      applyGroup(group);
     } catch (error) {
       alert(error.message);
     }
@@ -793,33 +844,56 @@
   window.remindMember = index => paymentAction(index, 'remind');
 
   async function refreshGroup() {
-    if (!currentGroup || refreshInFlight) return;
+    if (!currentGroup) return;
+    if (refreshInFlight) {
+      refreshPending = true;
+      return;
+    }
     refreshInFlight = true;
+    const groupId = currentGroup.group_id;
     try {
-      applyGroup(await api.request(`/groups/${currentGroup.group_id}`));
+      window.FREE2DO_CACHE?.clear();
+      const group = await api.request(`/groups/${groupId}`);
+      if (currentGroup?.group_id === groupId) applyGroup(group);
     } catch (error) {
+      if (error.status === 404) {
+        returnToGroupList();
+        return;
+      }
       console.warn('Không thể đồng bộ nhóm:', error.message);
     } finally {
       refreshInFlight = false;
+      if (refreshPending) {
+        refreshPending = false;
+        refreshGroup();
+      }
     }
   }
 
   function connectRealtime() {
     if (!currentGroup || !localStorage.getItem('token')) return;
-    if (socket) socket.close();
+    if (socket) {
+      socket.onclose = null;
+      socket.close();
+    }
     clearTimeout(reconnectTimer);
     const base = window.FREE2DO_CONFIG.API_BASE_URL.replace(/^http/, 'ws');
-    socket = new WebSocket(`${base}/groups/${encodeURIComponent(currentGroup.group_id)}/ws?token=${encodeURIComponent(localStorage.getItem('token'))}`);
-    socket.onmessage = event => {
+    const connectedSocket = new WebSocket(`${base}/groups/${encodeURIComponent(currentGroup.group_id)}/ws?token=${encodeURIComponent(localStorage.getItem('token'))}`);
+    socket = connectedSocket;
+    connectedSocket.onopen = refreshGroup;
+    connectedSocket.onmessage = event => {
       let message;
       try { message = JSON.parse(event.data); } catch (_) { return; }
       if (message.type === 'group_updated' || message.type === 'presence') refreshGroup();
     };
-    socket.onclose = () => {
+    connectedSocket.onclose = () => {
+      if (socket !== connectedSocket) return;
       socket = null;
       reconnectTimer = setTimeout(connectRealtime, 3000);
     };
-    socket.onerror = () => socket?.close();
+    connectedSocket.onerror = () => {
+      if (socket === connectedSocket) connectedSocket.close();
+    };
   }
 
   async function initializeGroupPage() {
@@ -876,21 +950,12 @@
     initializeGroupPage();
   };
 
-  async function initialize() {
-    try {
-      if (!inviteCode && incomingGroupSlug) {
-        const resolved = await api.request(`/groups/slug/${encodeURIComponent(incomingGroupSlug)}`);
-        inviteCode = resolved.invite_code;
-      }
-      if (inviteCode && sessionStorage.getItem('pending_group_invite') !== inviteCode) {
-        document.getElementById('groupInviteConsent').classList.add('open');
-        return;
-      }
-      initializeGroupPage();
-    } catch (error) {
-      console.error('Không thể mở link nhóm:', error);
-      alert(error.message || 'Không tìm thấy nhóm hoặc link mời không còn hợp lệ.');
+  function initialize() {
+    if (inviteCode && sessionStorage.getItem('pending_group_invite') !== inviteCode) {
+      document.getElementById('groupInviteConsent').classList.add('open');
+      return;
     }
+    initializeGroupPage();
   }
 
   document.getElementById('groupOverlay').addEventListener('click', function (event) {
@@ -918,6 +983,158 @@
   setInterval(() => {
     if (socket?.readyState === WebSocket.OPEN) socket.send('ping');
   }, 25000);
+
+
+  // ---------------------------------------------------------------------------
+  // Widget kết quả bình chọn: random (có hoạt ảnh + Skip) -> chốt -> chúc mừng.
+  // Hiện cho cả host và thành viên; chỉ host bấm được nút. Đồng bộ realtime qua applyGroup.
+  // ---------------------------------------------------------------------------
+  const CHEERS = [
+    '🎉 Chốt kèo thành công! Cả nhóm sẽ cùng đi <b>{name}</b>. Chúc mọi người một buổi thật vui, nhớ chụp thật nhiều ảnh nha!',
+    '🥳 Quyết định đã có! <b>{name}</b> đang chờ cả nhóm. Ai đến muộn thì bao trà sữa cả hội nhé 😄',
+    '✨ Tuyệt vời! Nhóm mình đã chọn <b>{name}</b>. Chúc cả nhóm có một khoảng thời gian rảnh thật đáng nhớ!',
+    '🎊 Xong! <b>{name}</b> chính thức lên lịch. Sạc đầy pin điện thoại, mang theo năng lượng tích cực và quẩy thôi!',
+  ];
+  let widgetSeq = null;      // random_seq đã thấy trên trang này
+  let widgetState = null;    // 'rolling' | 'pick' | 'celebrate' | null
+  let rollTimer = null;
+
+  function widgetEl() {
+    let overlay = document.getElementById('decisionWidget');
+    if (overlay) return overlay;
+    overlay = document.createElement('div');
+    overlay.id = 'decisionWidget';
+    overlay.className = 'g-decision-overlay';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.innerHTML = '<div class="g-decision-card"><button type="button" class="g-decision-close" aria-label="Đóng" onclick="closeDecisionWidget()">×</button><div class="g-decision-body"></div></div>';
+    document.body.appendChild(overlay);
+    return overlay;
+  }
+
+  function showWidget(html, state) {
+    const overlay = widgetEl();
+    widgetState = state;
+    const body = overlay.querySelector('.g-decision-body');
+    body.innerHTML = html;
+    body.classList.remove('g-swap');
+    void body.offsetWidth; // chạy lại hoạt ảnh chuyển nội dung
+    body.classList.add('g-swap');
+    if (!overlay.classList.contains('open')) {
+      overlay.classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+  }
+
+  window.closeDecisionWidget = function () {
+    clearTimeout(rollTimer);
+    widgetState = null;
+    const overlay = document.getElementById('decisionWidget');
+    if (!overlay) return;
+    overlay.classList.remove('open');
+    document.body.style.overflow = '';
+  };
+
+  function tiedCandidates() {
+    const tied = new Set(currentGroup?.tied_activity_ids || []);
+    return (currentGroup?.vote_tally || []).filter(row => tied.has(row.activity_id));
+  }
+
+  function slotHTML(row, extraClass = '') {
+    return `<div class="g-slot ${extraClass}">${thumbHTML({ logo_url: row.business_logo_url, media_url: row.media_url }, 64)}<div class="g-slot-name">${escapeValue(row.name)}</div></div>`;
+  }
+
+  function pickHTML() {
+    const pick = currentGroup.random_pick;
+    const row = { business_logo_url: pick.business_logo_url, media_url: pick.media_url, name: pick.name };
+    const view = activityView(pick);
+    const actions = currentGroup.is_host
+      ? `<div class="g-decision-actions"><button class="btn btn-secondary" type="button" onclick="randomizeGroupActivity()">🎲 Random Again</button><button class="btn btn-primary" type="button" onclick="confirmRandomPick()">Chốt hoạt động</button></div>`
+      : '<p class="g-wait" style="text-align:center;margin-top:16px">Host đang cân nhắc: chốt luôn hay random lại…</p>';
+    return `<div class="g-decision-kicker">Kết quả random · lần ${currentGroup.random_seq}</div>
+      <h2 class="g-decision-title">Hoạt động được chọn</h2>
+      ${slotHTML(row, 'g-slot-win')}
+      <div class="g-decision-meta">${escapeValue(view.address)} · ${escapeValue(view.price)} · ${escapeValue(view.hours)}</div>
+      ${actions}`;
+  }
+
+  function playRoll() {
+    clearTimeout(rollTimer);
+    const candidates = tiedCandidates();
+    const pickId = currentGroup.random_pick.activity_id;
+    if (candidates.length < 2 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      showWidget(pickHTML(), 'pick');
+      return;
+    }
+    showWidget(`<div class="g-decision-kicker">Đang random trong ${candidates.length} hoạt động hòa phiếu</div>
+      <h2 class="g-decision-title">Hồi hộp quá… 🥁</h2>
+      <div class="g-slot-window" id="gSlotWindow"></div>
+      <div class="g-decision-actions"><button class="btn btn-secondary" type="button" id="gSkipRoll">Bỏ qua hoạt ảnh ⏭</button></div>`, 'rolling');
+    const windowBox = document.getElementById('gSlotWindow');
+    // Dừng đúng ở hoạt động máy chủ đã random: lùi vị trí bắt đầu để bước cuối rơi vào pick.
+    const steps = 18; // kết quả do máy chủ random; client chỉ diễn hoạt ảnh
+    const pickIndex = Math.max(0, candidates.findIndex(row => row.activity_id === pickId));
+    let index = ((pickIndex - steps) % candidates.length + candidates.length) % candidates.length;
+    let step = 0;
+    const finish = () => {
+      clearTimeout(rollTimer);
+      if (widgetState === 'rolling') showWidget(pickHTML(), 'pick');
+    };
+    document.getElementById('gSkipRoll').onclick = finish;
+    const tick = () => {
+      if (widgetState !== 'rolling') return;
+      step += 1;
+      index = (index + 1) % candidates.length;
+      windowBox.innerHTML = slotHTML(candidates[index], 'g-slot-tick');
+      if (step >= steps) { rollTimer = setTimeout(finish, 650); return; }
+      rollTimer = setTimeout(tick, 55 + Math.pow(step / steps, 3) * 380); // chậm dần
+    };
+    tick();
+  }
+
+  function celebrate(activity) {
+    const view = activityView(activity);
+    let hash = 0;
+    for (const char of String(activity.activity_id)) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
+    const text = CHEERS[hash % CHEERS.length].replace('{name}', escapeValue(view.name));
+    const confetti = Array.from({ length: 18 }, (_, i) => `<i style="left:${(i * 37) % 100}%;animation-delay:${(i % 6) * 0.12}s;background:${['#DB6680', '#F3D9A6', '#9CC5A1', '#8FB8DE'][i % 4]}"></i>`).join('');
+    showWidget(`<div class="g-confetti" aria-hidden="true">${confetti}</div>
+      <div class="g-decision-kicker">${currentGroup.final_method === 'random' ? 'Đã chốt từ kết quả random' : 'Hoạt động nhiều phiếu nhất'}</div>
+      <h2 class="g-decision-title">Chúc mừng cả nhóm! 🎉</h2>
+      ${slotHTML({ business_logo_url: activity.business_logo_url, media_url: activity.media_url, name: activity.name }, 'g-slot-win')}
+      <p class="g-cheer">${text}</p>
+      <p class="g-decision-meta">Bước tiếp theo: các thành viên xác nhận tham gia, sau đó mở phần chia chi phí.</p>
+      <div class="g-decision-actions"><button class="btn btn-primary" type="button" onclick="closeDecisionWidget()">Tiếp tục</button></div>`, 'celebrate');
+  }
+
+  function syncDecisionWidget() {
+    const group = currentGroup;
+    if (!group) return;
+    const firstSync = widgetSeq === null;
+    const selected = group.selected_activity;
+    if (selected && group.final_method) {
+      const key = `f2d:celebrated:${group.group_id}`;
+      let seen = null;
+      try { seen = localStorage.getItem(key); } catch (e) { /* bỏ qua */ }
+      if (seen !== selected.activity_id || widgetState === 'pick' || widgetState === 'rolling') {
+        try { localStorage.setItem(key, selected.activity_id); } catch (e) { /* bỏ qua */ }
+        clearTimeout(rollTimer);
+        celebrate(selected);
+      }
+    } else if (group.random_pick) {
+      // Chỉ mở lại khi có lần random mới; người dùng đã đóng widget thì không tự bật lại.
+      if (group.random_seq !== widgetSeq) {
+        if (firstSync) showWidget(pickHTML(), 'pick'); else playRoll();
+      }
+    } else if (widgetState === 'pick' || widgetState === 'rolling') {
+      closeDecisionWidget();
+    }
+    widgetSeq = group.random_seq || 0;
+  }
+
+  window.openDecisionWidget = function () {
+    if (currentGroup?.random_pick) showWidget(pickHTML(), 'pick');
+  };
 
   selectTab('matching');
   initialize();

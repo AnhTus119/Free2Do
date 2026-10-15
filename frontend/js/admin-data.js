@@ -128,6 +128,18 @@
     state.activitySummary = activitySummary;
   }
 
+  let refreshInProgress = false;
+  async function refresh() {
+    if (refreshInProgress) return;
+    refreshInProgress = true;
+    try {
+      await load();
+      window.dispatchEvent(new Event('free2do:admin-data-updated'));
+    } finally {
+      refreshInProgress = false;
+    }
+  }
+
   async function setStatus(kind, id, status) {
     if (kind === 'activity') {
       const next = status === 'rejected' ? 'hidden' : status;
@@ -167,7 +179,7 @@
     get customerSummary() { return state.customerSummary; },
     get businessSummary() { return state.businessSummary; },
     get activitySummary() { return state.activitySummary; },
-    statusLabels, setStatus, parseViDate, normalize, escapeHTML: auth.escapeHTML,
+    statusLabels, setStatus, parseViDate, normalize, escapeHTML: auth.escapeHTML, refresh,
     businessName(activity) {
       return state.businesses.find(item => item.id === activity.businessId)?.name
         || activity.businessName || 'Chưa xác định';
@@ -175,4 +187,18 @@
   };
   data.ready = load();
   window.AdminData = data;
+  let lastRefreshAt = Date.now();
+  const refreshAdminData = async () => {
+    if (document.visibilityState === 'hidden') return;
+    await refresh();
+    lastRefreshAt = Date.now();
+  };
+  window.setInterval(() => {
+    refreshAdminData().catch(error => console.error('Không thể làm mới dữ liệu quản trị:', error));
+  }, 5 * 60 * 1000);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && Date.now() - lastRefreshAt >= 5 * 60 * 1000) {
+      refreshAdminData().catch(error => console.error('Không thể làm mới dữ liệu quản trị:', error));
+    }
+  });
 })();

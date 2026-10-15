@@ -2,8 +2,6 @@ import asyncio
 import json
 import random
 import secrets
-import re
-import unicodedata
 from collections import defaultdict
 from datetime import UTC, datetime
 from typing import Optional
@@ -18,6 +16,8 @@ from app.auth import decode_token, get_current_user
 from app.database import SessionLocal, get_db
 from app.utils.email import send_notification_email
 
+
+REMIND_COOLDOWN_SECONDS = 30 * 60
 
 router = APIRouter(prefix="/groups", tags=["groups"])
 
@@ -158,17 +158,28 @@ def _activity_out(db: Session, activity: Optional[models.Activity]) -> Optional[
         avg_rating=round(float(avg_rating), 1) if avg_rating is not None else None,
         category_ids=[item.category_id for item in activity.categories],
         media_url=next((item.media_url for item in sorted(activity.media, key=lambda media: (media.media_kind != "cover", media.media_id))), None),
+        business_logo_url=activity.business.avatar_url if activity.business else None,
     )
 
 
-def _slugify_group_name(name: str) -> str:
-    value = name.replace("đ", "d").replace("Đ", "D")
-    value = unicodedata.normalize("NFD", value).encode("ascii", "ignore").decode("ascii")
-    value = value.lower()
-    value = re.sub(r"[^a-z0-9]+", "-", value).strip("-")[:80].rstrip("-")
-    if not value:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Tên nhóm không tạo được đường dẫn hợp lệ")
-    return value
+def _ballots_by_activity(db: Session, group_id: str) -> dict[str, list[str]]:
+    """{activity_id: [member_id, ...]} theo thứ tự bỏ phiếu."""
+    tally: dict[str, list[str]] = defaultdict(list)
+    for ballot in (
+        db.query(models.GroupActivityBallot)
+        .filter(models.GroupActivityBallot.group_id == group_id)
+        .order_by(models.GroupActivityBallot.created_at, models.GroupActivityBallot.ballot_id)
+    ):
+        tally[ballot.activity_id].append(ballot.member_id)
+    return dict(tally)
+
+
+def _top_activity_ids(tally: dict[str, list[str]]) -> list[str]:
+    """Các hoạt động có nhiều phiếu nhất (nhiều hơn 1 phần tử nghĩa là đang hòa)."""
+    if not tally:
+        return []
+    best = max(len(voters) for voters in tally.values())
+    return [activity_id for activity_id, voters in tally.items() if len(voters) == best]
 
 
 def _group_out(
@@ -188,6 +199,11 @@ def _group_out(
         .filter(models.GroupActivityVote.group_id == group.group_id)
         .all()
     }
+    tally = _ballots_by_activity(db, group.group_id)
+    member_votes: dict[str, list[str]] = defaultdict(list)
+    for activity_id, voter_ids in tally.items():
+        for voter_id in voter_ids:
+            member_votes[voter_id].append(activity_id)
     members = []
     total = 0.0
     paid = 0.0
@@ -220,6 +236,7 @@ def _group_out(
                 is_host=member.is_host,
                 is_ready=member.is_ready,
                 activity_vote_id=votes[member.member_id].activity_id if member.member_id in votes else None,
+                vote_activity_ids=member_votes.get(member.member_id, []),
                 confirmation_status=votes[member.member_id].confirmation_status if member.member_id in votes else None,
                 leave_requested_at=member.leave_requested_at,
                 leave_status=member.leave_status,
@@ -237,8 +254,8 @@ def _group_out(
     return schemas.GroupOut(
         group_id=group.group_id,
         invite_code=group.invite_code,
-        slug=group.slug,
         invite_url=f"?groupInvite={group.invite_code}",
+        group_name=group.group_name,
         host_user_id=group.host_user_id,
         is_host=group.host_user_id == current_user_id,
         status=group.status,
@@ -249,6 +266,20 @@ def _group_out(
             for member in group.members
         ),
         selected_activity=_activity_out(db, group.selected_activity),
+        voting_closed=group.voting_closed_at is not None,
+        vote_tally=_tally_out(db, tally),
+        tied_activity_ids=(
+            _top_activity_ids(tally)
+            if group.voting_closed_at and not group.selected_activity_id and len(_top_activity_ids(tally)) > 1
+            else []
+        ),
+        random_pick=(
+            _activity_out(db, db.get(models.Activity, group.random_pick_activity_id))
+            if group.random_pick_activity_id and not group.selected_activity_id
+            else None
+        ),
+        random_seq=group.random_seq or 0,
+        final_method=group.final_method,
         members=members,
         total_amount=total,
         paid_amount=paid,
@@ -256,6 +287,29 @@ def _group_out(
         created_at=group.created_at,
         updated_at=group.updated_at,
     )
+
+
+def _tally_out(db: Session, tally: dict[str, list[str]]) -> list[schemas.GroupVoteTallyOut]:
+    if not tally:
+        return []
+    activities = {
+        item.activity_id: item
+        for item in db.query(models.Activity).filter(models.Activity.activity_id.in_(list(tally))).all()
+    }
+    rows = []
+    for activity_id, voter_ids in tally.items():
+        activity = activities.get(activity_id)
+        if not activity:
+            continue
+        rows.append(schemas.GroupVoteTallyOut(
+            activity_id=activity_id,
+            name=activity.name,
+            votes=len(voter_ids),
+            voter_member_ids=voter_ids,
+            business_logo_url=activity.business.avatar_url if activity.business else None,
+            media_url=next((m.media_url for m in sorted(activity.media, key=lambda m: (m.media_kind != "cover", m.media_id))), None),
+        ))
+    return sorted(rows, key=lambda row: -row.votes)
 
 
 async def _changed(group_id: str) -> None:
@@ -273,22 +327,9 @@ async def create_group(
 ):
     _validate_categories(db, payload.host.category_ids)
     now = _now()
-    group_slug = None
-    invite_code = secrets.token_urlsafe(9).replace("-", "").replace("_", "")[:12]
-    if payload.group_name:
-        # Keep the URL readable while allowing duplicate group names. The short
-        # suffix comes from the existing invite code, so no extra DB field is needed.
-        base_slug = _slugify_group_name(payload.group_name)[:64].rstrip("-")
-        while True:
-            group_slug = f"{base_slug}-{invite_code[-5:].lower()}"
-            slug_exists = db.query(models.Group.group_id).filter(models.Group.slug == group_slug).first()
-            code_exists = db.query(models.Group.group_id).filter(models.Group.invite_code == invite_code).first()
-            if not slug_exists and not code_exists:
-                break
-            invite_code = secrets.token_urlsafe(9).replace("-", "").replace("_", "")[:12]
     group = models.Group(
-        invite_code=invite_code,
-        slug=group_slug,
+        invite_code=secrets.token_urlsafe(9).replace("-", "").replace("_", "")[:12],
+        group_name=payload.group_name,
         host_user_id=user.user_id,
         status="active",
         created_at=now,
@@ -323,18 +364,9 @@ async def create_group(
         db.commit()
     except IntegrityError as exc:
         db.rollback()
-        raise HTTPException(status.HTTP_409_CONFLICT, "Không thể tạo mã link nhóm duy nhất. Vui lòng thử lại.") from exc
+        raise HTTPException(status.HTTP_409_CONFLICT, "Không thể tạo nhóm, vui lòng thử lại") from exc
     db.refresh(group)
     return _group_out(db, group, user.user_id)
-
-
-@router.get("/slug/{slug}")
-def resolve_group_slug(slug: str, db: Session = Depends(get_db)):
-    """Resolve a human-readable invitation URL to its existing invite code."""
-    group = db.query(models.Group).filter(models.Group.slug == slug, models.Group.status == "active").first()
-    if not group:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Không tìm thấy nhóm với đường dẫn này")
-    return {"invite_code": group.invite_code}
 
 
 @router.get("/invite/{invite_code}", response_model=schemas.GroupOut)
@@ -428,7 +460,7 @@ async def list_my_groups(
     groups = (
         db.query(models.Group)
         .join(models.GroupMember, models.GroupMember.group_id == models.Group.group_id)
-        .filter(models.GroupMember.user_id == user.user_id)
+        .filter(models.GroupMember.user_id == user.user_id, models.Group.status == "active")
         .order_by(models.Group.updated_at.desc())
         .limit(limit)
         .all()
@@ -445,6 +477,22 @@ async def get_group(
 ):
     group, _ = _require_group_member(db, group_id, user.user_id)
     return _group_out(db, group, user.user_id, await group_connections.online_users(group_id))
+
+
+@router.delete("/{group_id}", response_model=schemas.MessageResponse)
+async def delete_group(
+    group_id: str,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    group, _ = _require_group_member(db, group_id, user.user_id)
+    if group.host_user_id != user.user_id:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Chỉ host được xóa nhóm")
+    group.status = "deleted"
+    group.updated_at = _now()
+    db.commit()
+    await _changed(group_id)
+    return schemas.MessageResponse(message="Đã xóa nhóm")
 
 
 @router.patch("/{group_id}/members/{member_id}", response_model=schemas.GroupOut)
@@ -518,9 +566,11 @@ async def start_group_search(
         raise HTTPException(status.HTTP_409_CONFLICT, "Tất cả thành viên cần nhấn sẵn sàng trước")
     group.search_started = True
     group.selected_activity_id = None
-    db.query(models.GroupActivityVote).filter(
-        models.GroupActivityVote.group_id == group_id
-    ).delete(synchronize_session=False)
+    group.voting_closed_at = None
+    group.random_pick_activity_id = None
+    group.final_method = None
+    for table in (models.GroupActivityVote, models.GroupActivityBallot):
+        db.query(table).filter(table.group_id == group_id).delete(synchronize_session=False)
     group.updated_at = _now()
     db.commit()
     db.refresh(group)
@@ -652,29 +702,52 @@ async def vote_group_activity(
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_user),
 ):
+    """Bật/tắt phiếu cho một hoạt động. Mỗi thành viên được chọn không giới hạn số hoạt động."""
     group, _ = _require_group_member(db, group_id, user.user_id)
     member = next((item for item in group.members if item.member_id == member_id), None)
     if not member or member.user_id != user.user_id:
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "Mỗi thành viên chỉ được tự chọn hoạt động yêu thích")
-    if not group.search_started or group.selected_activity_id:
-        raise HTTPException(status.HTTP_409_CONFLICT, "Nhóm hiện không nhận lựa chọn hoạt động")
-    recommendations = await group_recommendations(group_id, db, user)
-    if payload.activity_id not in {item.activity_id for item in recommendations}:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Hoạt động không nằm trong danh sách gợi ý của nhóm")
-
-    vote = db.query(models.GroupActivityVote).filter(
-        models.GroupActivityVote.group_id == group_id,
-        models.GroupActivityVote.member_id == member_id,
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Mỗi thành viên chỉ được tự bình chọn")
+    if not group.search_started or group.selected_activity_id or group.voting_closed_at:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Bình chọn đã đóng")
+    ballot = db.query(models.GroupActivityBallot).filter(
+        models.GroupActivityBallot.member_id == member_id,
+        models.GroupActivityBallot.activity_id == payload.activity_id,
     ).first()
-    if vote:
-        vote.activity_id = payload.activity_id
+    if ballot:
+        db.delete(ballot)
     else:
-        db.add(models.GroupActivityVote(
-            group_id=group_id,
-            member_id=member_id,
-            activity_id=payload.activity_id,
-            confirmation_status="pending",
+        recommendations = await group_recommendations(group_id, db, user)
+        if payload.activity_id not in {item.activity_id for item in recommendations}:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "Hoạt động không nằm trong danh sách gợi ý của nhóm")
+        db.add(models.GroupActivityBallot(
+            group_id=group_id, member_id=member_id, activity_id=payload.activity_id, created_at=_now(),
         ))
+    group.updated_at = _now()
+    db.commit()
+    db.refresh(group)
+    await _changed(group_id)
+    return _group_out(db, group, user.user_id, await group_connections.online_users(group_id))
+
+
+@router.post("/{group_id}/voting/close", response_model=schemas.GroupOut)
+async def close_group_voting(
+    group_id: str,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    """Host đóng bình chọn. Một hoạt động nhiều phiếu nhất -> chốt luôn; hòa -> chờ host random."""
+    group, _ = _require_group_member(db, group_id, user.user_id)
+    if group.host_user_id != user.user_id:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Chỉ host được đóng bình chọn")
+    if not group.search_started or group.selected_activity_id or group.voting_closed_at:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Nhóm hiện không thể đóng bình chọn")
+    top = _top_activity_ids(_ballots_by_activity(db, group_id))
+    if not top:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Chưa có ai bình chọn hoạt động nào")
+    group.voting_closed_at = _now()
+    if len(top) == 1:
+        _set_final_activity(db, group, top[0])
+        group.final_method = "top_vote"
     group.updated_at = _now()
     db.commit()
     db.refresh(group)
@@ -690,16 +763,21 @@ def _set_final_activity(db: Session, group: models.Group, activity_id: str) -> N
     )
     if not activity:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Không tìm thấy hoạt động")
-    votes = db.query(models.GroupActivityVote).filter(
-        models.GroupActivityVote.group_id == group.group_id
-    ).all()
-    vote_by_member = {vote.member_id: vote for vote in votes}
-    if len(vote_by_member) != len(group.members) or any(
-        member.member_id not in vote_by_member for member in group.members
-    ):
-        raise HTTPException(status.HTTP_409_CONFLICT, "Tất cả thành viên cần chọn một hoạt động trước")
+    # GroupActivityVote giữ trạng thái xác nhận tham gia của từng thành viên với hoạt động đã chốt.
+    vote_by_member = {
+        vote.member_id: vote
+        for vote in db.query(models.GroupActivityVote).filter(models.GroupActivityVote.group_id == group.group_id)
+    }
+    for member in group.members:
+        if member.member_id not in vote_by_member:
+            vote_by_member[member.member_id] = models.GroupActivityVote(
+                group_id=group.group_id, member_id=member.member_id, activity_id=activity.activity_id,
+            )
+            db.add(vote_by_member[member.member_id])
+        vote_by_member[member.member_id].activity_id = activity.activity_id
 
     group.selected_activity_id = activity.activity_id
+    group.random_pick_activity_id = None
     group.updated_at = _now()
     amount = float(activity.price or 0)
     for member in group.members:
@@ -721,23 +799,18 @@ async def randomize_group_activity(
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_user),
 ):
+    """Host random một hoạt động trong nhóm hòa phiếu cao nhất (gọi lại = Random Again)."""
     group, _ = _require_group_member(db, group_id, user.user_id)
     if group.host_user_id != user.user_id:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Chỉ host được random hoạt động")
-    if not group.search_started or group.selected_activity_id:
-        raise HTTPException(status.HTTP_409_CONFLICT, "Nhóm hiện không thể random hoạt động")
-    votes = db.query(models.GroupActivityVote).filter(
-        models.GroupActivityVote.group_id == group_id
-    ).all()
-    vote_by_member = {vote.member_id: vote for vote in votes}
-    if len(vote_by_member) != len(group.members) or any(
-        member.member_id not in vote_by_member for member in group.members
-    ):
-        raise HTTPException(status.HTTP_409_CONFLICT, "Tất cả thành viên cần chọn hoạt động trước khi random")
-    choices = [vote.activity_id for vote in votes]
-    if len(set(choices)) < 2:
-        raise HTTPException(status.HTTP_409_CONFLICT, "Mọi người đã chọn cùng một hoạt động; hãy chốt lựa chọn chung")
-    _set_final_activity(db, group, random.choice(choices))
+    if not group.voting_closed_at or group.selected_activity_id:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Chỉ random được sau khi đóng bình chọn và chưa chốt hoạt động")
+    tied = _top_activity_ids(_ballots_by_activity(db, group_id))
+    if len(tied) < 2:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Không có hoạt động nào hòa phiếu để random")
+    group.random_pick_activity_id = random.choice(tied)
+    group.random_seq = (group.random_seq or 0) + 1
+    group.updated_at = _now()
     db.commit()
     db.refresh(group)
     await _changed(group_id)
@@ -751,22 +824,16 @@ async def select_group_activity(
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_user),
 ):
+    """Host chốt hoạt động vừa random."""
     group, _ = _require_group_member(db, group_id, user.user_id)
     if group.host_user_id != user.user_id:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Chỉ host được chốt hoạt động")
-    if not group.search_started or group.selected_activity_id:
+    if not group.voting_closed_at or group.selected_activity_id:
         raise HTTPException(status.HTTP_409_CONFLICT, "Nhóm hiện không thể chốt hoạt động")
-    votes = db.query(models.GroupActivityVote).filter(
-        models.GroupActivityVote.group_id == group_id
-    ).all()
-    vote_by_member = {vote.member_id: vote for vote in votes}
-    if len(vote_by_member) != len(group.members) or any(
-        member.member_id not in vote_by_member for member in group.members
-    ):
-        raise HTTPException(status.HTTP_409_CONFLICT, "Tất cả thành viên cần chọn hoạt động trước")
-    if {vote.activity_id for vote in votes} != {payload.activity_id}:
-        raise HTTPException(status.HTTP_409_CONFLICT, "Chỉ được chốt khi tất cả thành viên chọn cùng hoạt động")
+    if payload.activity_id != group.random_pick_activity_id:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Chỉ chốt được hoạt động vừa random")
     _set_final_activity(db, group, payload.activity_id)
+    group.final_method = "random"
     db.commit()
     db.refresh(group)
     await _changed(group_id)
@@ -849,6 +916,12 @@ async def update_payment(
         payment.paid_at = None
         payment.overdue_since = payment.overdue_since or now
     else:
+        if payment.reminded_at and (now - payment.reminded_at).total_seconds() < REMIND_COOLDOWN_SECONDS:
+            wait = int((REMIND_COOLDOWN_SECONDS - (now - payment.reminded_at).total_seconds()) // 60) + 1
+            raise HTTPException(
+                status.HTTP_429_TOO_MANY_REQUESTS,
+                f"Bạn vừa nhắc thành viên này rồi. Có thể nhắc lại sau khoảng {wait} phút.",
+            )
         target = payment.member.user if payment.member else None
         recipient = (target.account.email or target.account.recovery_email) if target and target.account else None
         if not recipient:
@@ -857,10 +930,9 @@ async def update_payment(
             send_notification_email(
                 recipient,
                 f"Nhắc thanh toán nhóm FREE2DO — {group.selected_activity.name if group.selected_activity else 'hoạt động nhóm'}",
-                f"Yo bro, trưởng nhóm nhờ tôi nhắc bạn thanh toán {payment.amount:,.0f} đ cho hoạt động "
-                f"\"{group.selected_activity.name if group.selected_activity else 'đã chọn'}\" hôm bữa đó nhớ không? "
-                "\nNếu đã thanh toán rồi thì liên hệ lại với trưởng nhóm giúp tôi để cập nhật trạng thái thanh toán nhé."
-                "\nCòn chưa chuyển thì tự giác đê, anh biết nhà em đấy.",
+                f"Trưởng nhóm nhắc bạn thanh toán {payment.amount:,.0f} đ cho hoạt động "
+                f"{group.selected_activity.name if group.selected_activity else 'đã chọn'}. "
+                "Nếu đã thanh toán, vui lòng liên hệ trưởng nhóm để cập nhật trạng thái.",
             )
         except Exception as exc:
             raise HTTPException(status.HTTP_502_BAD_GATEWAY, "Không gửi được email nhắc thanh toán") from exc
@@ -868,6 +940,65 @@ async def update_payment(
         payment.overdue_since = payment.overdue_since or now
     payment.updated_at = now
     group.updated_at = now
+    db.commit()
+    db.refresh(group)
+    await _changed(group_id)
+    return _group_out(db, group, user.user_id, await group_connections.online_users(group_id))
+
+
+@router.put("/{group_id}/expense", response_model=schemas.GroupOut)
+async def update_group_expense(
+    group_id: str,
+    payload: schemas.GroupExpenseUpdate,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    group, _ = _require_group_member(db, group_id, user.user_id)
+    if group.host_user_id != user.user_id:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Chỉ host được cập nhật tổng chi phí")
+    if not group.selected_activity_id:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Nhóm chưa chốt hoạt động")
+
+    votes = {
+        vote.member_id: vote
+        for vote in db.query(models.GroupActivityVote)
+        .filter(models.GroupActivityVote.group_id == group_id)
+        .all()
+    }
+    if not group.members or any(
+        votes.get(member.member_id) is None
+        or votes[member.member_id].confirmation_status != "accepted"
+        for member in group.members
+    ):
+        raise HTTPException(status.HTTP_409_CONFLICT, "Tất cả thành viên cần đồng ý trước khi chia chi phí")
+
+    payments = []
+    for member in group.members:
+        payment = member.payment
+        if not payment:
+            payment = models.GroupPayment(
+                group_id=group_id,
+                member_id=member.member_id,
+                amount=0,
+                status="unpaid",
+                updated_at=_now(),
+            )
+            db.add(payment)
+        payments.append(payment)
+
+    current_total = sum(int(round(payment.amount or 0)) for payment in payments)
+    if current_total != payload.total_amount:
+        now = _now()
+        base_amount, remainder = divmod(payload.total_amount, len(payments))
+        for index, payment in enumerate(payments):
+            payment.amount = base_amount + (1 if index < remainder else 0)
+            payment.status = "unpaid"
+            payment.paid_at = None
+            payment.reminded_at = None
+            payment.overdue_since = None
+            payment.updated_at = now
+        group.updated_at = now
+
     db.commit()
     db.refresh(group)
     await _changed(group_id)

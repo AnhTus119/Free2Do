@@ -15,6 +15,7 @@ from app.auth import (
     verify_google_token,
     get_authenticated_account,
     requires_recovery_email,
+    get_current_account,
 )
 from app.utils.otp import generate_and_save_otp, verify_otp
 from app.utils.email import EmailDeliveryError, send_otp_email
@@ -230,6 +231,25 @@ def read_me(account: models.Account = Depends(get_authenticated_account), db: Se
     )
 
 # Quên / đổi mật khẩu
+@router.post("/change-password", response_model=schemas.MessageResponse)
+def change_password(
+    payload: schemas.ChangePasswordRequest,
+    db: Session = Depends(get_db),
+    account: models.Account = Depends(get_current_account),
+):
+    """Đổi mật khẩu cho mọi loại tài khoản đang đăng nhập (customer, business, operator)."""
+    if not account.password_hash:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Tài khoản này đăng nhập bằng Google nên chưa có mật khẩu")
+    if not verify_password(payload.current_password, account.password_hash):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Mật khẩu hiện tại không đúng")
+    if payload.current_password == payload.new_password:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Mật khẩu mới phải khác mật khẩu hiện tại")
+    account.password_hash = hash_password(payload.new_password)
+    account.updated_at = datetime.utcnow()
+    db.commit()
+    return {"message": "Đã đổi mật khẩu"}
+
+
 @router.post("/forgot-password", response_model=schemas.MessageResponse)
 def forgot_password(payload: schemas.ForgotPasswordRequest, db: Session = Depends(get_db)):
     try:

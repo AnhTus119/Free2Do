@@ -1,6 +1,91 @@
 -- Chạy 1 lần trong Supabase SQL Editor (Database > SQL Editor) TRƯỚC khi deploy code mới.
 -- Bảng operators trên Supabase hiện chưa có level/status/created_at, cần bổ sung 3 cột này.
 
+-- ===== Các bảng của tính năng Nhóm (chạy lại nhiều lần vẫn an toàn) =====
+
+CREATE TABLE IF NOT EXISTS groups (
+  group_id VARCHAR NOT NULL, 
+  invite_code VARCHAR NOT NULL, 
+  group_name VARCHAR(60), 
+  host_user_id VARCHAR NOT NULL, 
+  selected_activity_id VARCHAR, 
+  status VARCHAR NOT NULL, 
+  search_started BOOLEAN NOT NULL, 
+  created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL, 
+  updated_at TIMESTAMP WITHOUT TIME ZONE NOT NULL, 
+  PRIMARY KEY (group_id), 
+  FOREIGN KEY(host_user_id) REFERENCES users (user_id) ON DELETE CASCADE, 
+  FOREIGN KEY(selected_activity_id) REFERENCES activities (activity_id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS ix_groups_host_user_id ON groups (host_user_id);
+
+CREATE UNIQUE INDEX IF NOT EXISTS ix_groups_invite_code ON groups (invite_code);
+
+CREATE TABLE IF NOT EXISTS group_members (
+  member_id VARCHAR NOT NULL, 
+  group_id VARCHAR NOT NULL, 
+  user_id VARCHAR, 
+  name VARCHAR NOT NULL, 
+  free_hours FLOAT NOT NULL, 
+  address VARCHAR NOT NULL, 
+  budget FLOAT NOT NULL, 
+  category_ids_json TEXT NOT NULL, 
+  is_host BOOLEAN NOT NULL, 
+  is_ready BOOLEAN NOT NULL, 
+  leave_requested_at TIMESTAMP WITHOUT TIME ZONE, 
+  leave_status VARCHAR NOT NULL, 
+  joined_at TIMESTAMP WITHOUT TIME ZONE NOT NULL, 
+  updated_at TIMESTAMP WITHOUT TIME ZONE NOT NULL, 
+  PRIMARY KEY (member_id), 
+  CONSTRAINT uq_group_member_user UNIQUE (group_id, user_id), 
+  FOREIGN KEY(group_id) REFERENCES groups (group_id) ON DELETE CASCADE, 
+  FOREIGN KEY(user_id) REFERENCES users (user_id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS ix_group_members_group_id ON group_members (group_id);
+
+CREATE INDEX IF NOT EXISTS ix_group_members_user_id ON group_members (user_id);
+
+CREATE TABLE IF NOT EXISTS group_activity_votes (
+  vote_id VARCHAR NOT NULL, 
+  group_id VARCHAR NOT NULL, 
+  member_id VARCHAR NOT NULL, 
+  activity_id VARCHAR NOT NULL, 
+  confirmation_status VARCHAR NOT NULL, 
+  PRIMARY KEY (vote_id), 
+  CONSTRAINT uq_group_activity_vote_member UNIQUE (group_id, member_id), 
+  FOREIGN KEY(group_id) REFERENCES groups (group_id) ON DELETE CASCADE, 
+  FOREIGN KEY(member_id) REFERENCES group_members (member_id) ON DELETE CASCADE, 
+  FOREIGN KEY(activity_id) REFERENCES activities (activity_id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS ix_group_activity_votes_group_id ON group_activity_votes (group_id);
+
+CREATE INDEX IF NOT EXISTS ix_group_activity_votes_member_id ON group_activity_votes (member_id);
+
+CREATE TABLE IF NOT EXISTS group_payments (
+  payment_id VARCHAR NOT NULL, 
+  group_id VARCHAR NOT NULL, 
+  member_id VARCHAR NOT NULL, 
+  amount FLOAT NOT NULL, 
+  status VARCHAR NOT NULL, 
+  reminded_at TIMESTAMP WITHOUT TIME ZONE, 
+  overdue_since TIMESTAMP WITHOUT TIME ZONE, 
+  paid_at TIMESTAMP WITHOUT TIME ZONE, 
+  updated_at TIMESTAMP WITHOUT TIME ZONE NOT NULL, 
+  PRIMARY KEY (payment_id), 
+  FOREIGN KEY(group_id) REFERENCES groups (group_id) ON DELETE CASCADE, 
+  UNIQUE (member_id), 
+  FOREIGN KEY(member_id) REFERENCES group_members (member_id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS ix_group_payments_group_id ON group_payments (group_id);
+
+-- Nếu bảng groups đã tồn tại từ trước (bản cũ) thì bổ sung cột tên nhóm:
+ALTER TABLE groups
+  ADD COLUMN IF NOT EXISTS group_name VARCHAR(60);
+
 -- Một tài khoản có thể đăng nhập bằng email, số điện thoại hoặc cả hai.
 ALTER TABLE accounts
   ADD COLUMN IF NOT EXISTS phone VARCHAR,
@@ -150,3 +235,45 @@ CREATE INDEX IF NOT EXISTS idx_review_replies_business_id
 -- chạy thêm (thay email cho đúng):
 -- UPDATE operators SET level = 'admin'
 -- WHERE account_id = (SELECT account_id FROM accounts WHERE email = 'email_operator_mau@...');
+
+-- ===== Cập nhật 2026-10-15 (backend cũng tự bổ sung khi khởi động; chạy lại nhiều lần vẫn an toàn) =====
+
+ALTER TABLE operators ADD COLUMN IF NOT EXISTS email_notifications BOOLEAN NOT NULL DEFAULT true;
+ALTER TABLE groups ADD COLUMN IF NOT EXISTS voting_closed_at TIMESTAMP;
+ALTER TABLE groups ADD COLUMN IF NOT EXISTS random_pick_activity_id VARCHAR;
+ALTER TABLE groups ADD COLUMN IF NOT EXISTS random_seq INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE groups ADD COLUMN IF NOT EXISTS final_method VARCHAR;
+
+CREATE TABLE IF NOT EXISTS user_interests (
+  interest_id VARCHAR NOT NULL, 
+  user_id VARCHAR NOT NULL, 
+  label VARCHAR NOT NULL, 
+  label_key VARCHAR NOT NULL, 
+  created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL, 
+  PRIMARY KEY (interest_id), 
+  CONSTRAINT uq_user_interests_user_label UNIQUE (user_id, label_key), 
+  FOREIGN KEY(user_id) REFERENCES users (user_id)
+);
+CREATE INDEX IF NOT EXISTS ix_user_interests_user_id ON user_interests (user_id);
+
+CREATE TABLE IF NOT EXISTS group_activity_ballots (
+  ballot_id VARCHAR NOT NULL, 
+  group_id VARCHAR NOT NULL, 
+  member_id VARCHAR NOT NULL, 
+  activity_id VARCHAR NOT NULL, 
+  created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL, 
+  PRIMARY KEY (ballot_id), 
+  CONSTRAINT uq_group_ballot_member_activity UNIQUE (member_id, activity_id), 
+  FOREIGN KEY(group_id) REFERENCES groups (group_id) ON DELETE CASCADE, 
+  FOREIGN KEY(member_id) REFERENCES group_members (member_id) ON DELETE CASCADE, 
+  FOREIGN KEY(activity_id) REFERENCES activities (activity_id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS ix_group_activity_ballots_group_id ON group_activity_ballots (group_id);
+CREATE INDEX IF NOT EXISTS ix_group_activity_ballots_member_id ON group_activity_ballots (member_id);
+
+-- Chuyển phiếu của các nhóm đang bình chọn dở (bản cũ: 1 phiếu/người) sang bảng phiếu mới.
+INSERT INTO group_activity_ballots (ballot_id, group_id, member_id, activity_id, created_at)
+SELECT gen_random_uuid()::text, v.group_id, v.member_id, v.activity_id, NOW()
+FROM group_activity_votes v JOIN groups g ON g.group_id = v.group_id
+WHERE g.selected_activity_id IS NULL
+ON CONFLICT DO NOTHING;

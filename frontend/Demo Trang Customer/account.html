@@ -54,7 +54,17 @@ html,body,input,button,select,textarea{font-family:'Inter',system-ui,-apple-syst
   #pane-hoso>div:first-child .btn{margin-left:0 !important;width:100%;justify-content:center}
 }
 .custom-interest-editor{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.custom-interest-input{height:36px;max-width:220px;border:1.5px solid var(--line);border-radius:100px;padding:0 12px;font-size:12.5px}
+.custom-interest-input{height:36px;min-width:200px;max-width:260px;border:1.5px solid var(--line);border-radius:100px;padding:0 14px;font-size:13px}
+.personal-interests{flex-basis:100%;width:100%;margin-top:14px;padding-top:14px;border-top:1px dashed var(--line)}
+.personal-interests-label{font-size:13px;font-weight:700;margin-bottom:10px}.personal-interests-label span{font-weight:500;color:var(--muted)}
+.personal-interests-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.chip.personal{display:inline-flex;align-items:center;gap:6px;animation:chipIn .18s ease-out}
+.chip-x{border:0;background:rgba(255,255,255,.25);color:inherit;width:18px;height:18px;border-radius:50%;line-height:16px;font-size:14px;cursor:pointer;padding:0}
+.chip-x:hover{background:rgba(255,255,255,.45)}
+.chip.add-chip{border-style:dashed}
+.personal-interests-msg{min-height:18px;margin-top:8px;font-size:12.5px;font-weight:600;color:#2E7D4F}.personal-interests-msg.error{color:#C0392B}
+@keyframes chipIn{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.chip.personal{animation:none}}
 .custom-interest-input:focus{outline:none;border-color:var(--rose)}
 </style>
 </head>
@@ -219,6 +229,7 @@ function toggleMobileMenu(){
 </script>
 <script src="../js/config.js"></script>
 <script src="../js/customer-api.js"></script>
-<script src="../js/customer-account.js"></script>
+<script src="../js/customer-account.js?v=20261015-interests"></script>
+<script src="../js/notifications.js?v=20261015"></script>
 </body>
 </html>

@@ -660,4 +660,5 @@
   data.ready.then(renderAll).catch(error => {
     document.querySelector('.content').innerHTML = `<div class="card" style="padding:24px;color:#b3293a">${data.escapeHTML(error.message)}</div>`;
   });
+  window.addEventListener('free2do:admin-data-updated', renderAll);
 })();

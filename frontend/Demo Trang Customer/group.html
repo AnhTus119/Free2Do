@@ -4,8 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>FREE2DO — Lên kế hoạch nhóm</title>
-<script>/* Link ngắn /g/<mã> được Vercel rewrite về trang này nên đường dẫn tương đối (CSS, trang khác) phải tính từ thư mục gốc của trang. */
-if (!/Demo(%20| )Trang(%20| )Customer/.test(location.pathname) && !/\.html?$/i.test(location.pathname)) document.write('<base href="/Demo%20Trang%20Customer/">');</script>
+<script>/* Link ngắn /g/<mã> được Vercel rewrite về trang này nên đường dẫn tương đối (CSS, trang khác) phải tính từ thư mục của trang. */
+if (!/Demo(%20| )Trang(%20| )Customer/.test(location.pathname) && !/\.html?$/i.test(location.pathname)) {
+  var pageBase = document.createElement('base');
+  pageBase.setAttribute('href', '/Demo%20Trang%20Customer/');
+  document.head.appendChild(pageBase);
+}</script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="app-style.css">
 <style>
@@ -20,7 +24,7 @@ if (!/Demo(%20| )Trang(%20| )Customer/.test(location.pathname) && !/\.html?$/i.t
   .add-member-btn:hover{border-color:var(--rose);color:var(--rose-dark);}
 
   .group-result{background:#fff;border:1px solid var(--line);border-radius:18px;padding:22px;margin-top:24px;}
-  .group-avg{text-align:center;padding:16px 0;border-bottom:1px solid var(--line);margin-bottom:16px;}
+  .group-avg{text-align:center;padding:0 0 16px 0;border-bottom:1px solid var(--line);margin-bottom:16px;}
   .group-avg .pct{font-size:30px;font-weight:800;color:var(--rose-dark);}
   .group-avg .lbl{font-size:13px;color:var(--muted);}
 
@@ -28,6 +32,19 @@ if (!/Demo(%20| )Trang(%20| )Customer/.test(location.pathname) && !/\.html?$/i.t
   .cost-stat{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px;text-align:center;}
   .cost-stat .num{font-size:20px;font-weight:800;}
   .cost-stat .lbl{font-size:12px;color:var(--muted);margin-top:4px;}
+  .expense-total-input{width:100%;min-width:0;height:40px;margin-top:8px;border:1.5px solid var(--line);border-radius:9px;padding:0 10px;text-align:center;font:700 16px 'Inter',sans-serif;color:var(--ink);}
+  .expense-total-input:focus{outline:none;border-color:var(--rose);}
+  .expense-total-hint{font-size:11px;color:var(--muted);margin-top:6px;}
+  .expense-entry-row{display:grid;grid-template-columns:auto minmax(120px,240px) auto;justify-content:center;align-items:center;gap:60px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:16px;}
+  .expense-entry-row[hidden],#deleteGroupSection[hidden]{display:none;}
+  .expense-entry-row label{font-size:18px;font-weight:700;color:var(--brown);}
+  .expense-entry-controls{display:contents;}
+  .expense-entry-controls .expense-total-input{margin-top:0;}
+  .expense-entry-controls .btn{white-space:nowrap;}
+  .delete-group-section{margin-top:28px;padding-top:18px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;}
+  .delete-group-button{color:var(--danger);}
+  @media(max-width:650px){.expense-entry-row{grid-template-columns:minmax(0,1fr) minmax(100px,180px) auto;gap:8px;padding:12px;}.expense-entry-row label{font-size:12px;}.expense-entry-controls .btn{padding:0 10px;font-size:12px;}}
+  @media(max-width:650px){.cost-stats{grid-template-columns:repeat(2,minmax(0,1fr));}}
 
   .split-row{display:flex;align-items:center;gap:14px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:10px;}
   .split-amount{font-size:13.5px;font-weight:700;margin-left:auto;}
@@ -62,6 +79,7 @@ if (!/Demo(%20| )Trang(%20| )Customer/.test(location.pathname) && !/\.html?$/i.t
   .your-groups-empty{margin:0;color:var(--muted);font-size:13px;}
   .group-back-button{margin-bottom:18px;}
   .group-vote-summary{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:18px;}
+  #groupVoteSummary{margin-top:24px;}
   .group-vote-summary h3{font-size:15px;margin:0 0 10px;}
   .group-vote-row{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-top:1px solid var(--line);font-size:13px;}
   .group-vote-row:first-of-type{border-top:0;}
@@ -80,9 +98,11 @@ if (!/Demo(%20| )Trang(%20| )Customer/.test(location.pathname) && !/\.html?$/i.t
   .interest-option span{display:block;border:1.5px solid var(--line);border-radius:100px;padding:7px 11px;font-size:11.5px;font-weight:600;cursor:pointer;color:var(--ink);background:#fff;}
   .interest-option input:checked + span{background:var(--ink);color:#fff;border-color:var(--ink);}
   .suggestions{display:none;margin-top:24px;border-top:1px solid var(--line);padding-top:18px;}
-  .suggestions-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;}
-  .suggestion-card{display:block;border:1px solid var(--line);border-radius:14px;padding:14px;text-decoration:none;color:var(--ink);cursor:pointer;background:#fff;}
+  .suggestions-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:stretch;}
+  .suggestion-card{display:flex;flex-direction:column;height:100%;border:1px solid var(--line);border-radius:14px;padding:14px;text-decoration:none;color:var(--ink);cursor:pointer;background:#fff;}
   .suggestion-card:hover{border-color:var(--rose);}
+  .suggestion-details{width:100%;flex:1;text-align:left;border:0;background:transparent;padding:0;color:inherit;cursor:pointer;}
+  .suggestion-card-action{width:100%;margin-top:14px;}
   .activity-overlay-card{width:min(560px,100%);}
   .activity-popup-meta{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px;font-size:13px;}
   .activity-popup-meta div{background:var(--paper);border-radius:10px;padding:10px;}
@@ -122,6 +142,59 @@ if (!/Demo(%20| )Trang(%20| )Customer/.test(location.pathname) && !/\.html?$/i.t
   .member-edit-footer{border-top:1px solid var(--line);padding-top:16px;margin-top:22px;}
   .created-members{display:none;}
   @media (max-width:600px){.member-form-grid,.member-edit-fields{grid-template-columns:1fr;}.member-form .interest-input,.member-edit-interests{grid-column:auto;}.group-actions{flex-direction:column;}.suggestions-grid{grid-template-columns:1fr;}.activity-popup-meta{grid-template-columns:1fr;}}
+
+  /* ===== Bình chọn nhiều hoạt động, kết quả, widget random/chúc mừng ===== */
+  .g-row-card{display:flex !important;align-items:center;gap:14px;}
+  .g-thumb{display:block;background:#F3D9A6;object-fit:cover;}
+  .g-thumb-empty{display:grid;place-items:center;font-size:20px;background:#F3D9A6;}
+  .g-chosen-label{font-size:11.5px;font-weight:700;color:var(--rose-dark);text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px;}
+  .suggestion-card{transition:border-color .2s ease,box-shadow .2s ease,transform .2s ease;}
+  .suggestion-card:hover{transform:translateY(-2px);box-shadow:0 10px 24px rgba(43,36,32,.08);}
+  .suggestion-card.is-voted{border-color:var(--rose);box-shadow:0 0 0 3px rgba(219,102,128,.12);}
+  .g-vote-badge{display:inline-block;margin-left:6px;padding:2px 9px;border-radius:999px;background:#FDEDEF;color:var(--rose-dark);font-size:11px;font-weight:800;vertical-align:middle;animation:gPop .25s ease-out;}
+  .g-voted{border-color:var(--rose) !important;color:var(--rose-dark) !important;}
+  .g-tally-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--line);}
+  .g-tally-row:first-of-type{border-top:0;}
+  .g-tally-row.tied .g-tally-name::after{content:'Hòa phiếu';margin-left:8px;padding:2px 8px;border-radius:999px;background:var(--warn-bg);color:var(--warn);font-size:10.5px;font-weight:800;}
+  .g-tally-main{flex:1;min-width:0;}
+  .g-tally-name{font-weight:700;font-size:13.5px;}
+  .g-tally-bar{height:6px;border-radius:999px;background:#F1E8D8;margin:6px 0 4px;overflow:hidden;}
+  .g-tally-bar span{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#E58AA0,var(--rose));transition:width .45s cubic-bezier(.2,.8,.2,1);}
+  .g-tally-voters{font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .g-tally-count{font-size:20px;font-weight:800;color:var(--rose-dark);text-align:center;line-height:1;}
+  .g-tally-count small{display:block;font-size:10.5px;font-weight:600;color:var(--muted);margin-top:3px;}
+  .g-wait{font-size:13px;font-weight:600;color:var(--muted);}
+  .g-wait::after{content:'';display:inline-block;width:12px;text-align:left;animation:gDots 1.2s steps(4,end) infinite;}
+  .g-pulse{animation:gPulse 2s ease-in-out infinite;}
+  .g-fade{animation:gFadeUp .25s ease-out;}
+  .g-reminded{opacity:.7;cursor:default;}
+  .g-decision-overlay{position:fixed;inset:0;z-index:120;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(43,36,32,.5);backdrop-filter:blur(3px);opacity:0;pointer-events:none;transition:opacity .22s ease;}
+  .g-decision-overlay.open{opacity:1;pointer-events:auto;}
+  .g-decision-card{position:relative;width:min(440px,100%);max-height:90vh;overflow:auto;background:#fff;border-radius:24px;padding:28px 26px 24px;box-shadow:0 30px 80px rgba(43,36,32,.3);transform:translateY(16px) scale(.97);transition:transform .25s cubic-bezier(.2,.8,.2,1);text-align:center;}
+  .g-decision-overlay.open .g-decision-card{transform:none;}
+  .g-decision-close{position:absolute;top:12px;right:14px;width:34px;height:34px;border:0;border-radius:50%;background:var(--cream);font-size:22px;line-height:1;cursor:pointer;z-index:2;}
+  .g-decision-body.g-swap{animation:gFadeUp .28s ease-out;}
+  .g-decision-kicker{font-size:11.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--rose-dark);}
+  .g-decision-title{font-size:22px;margin:6px 0 18px;}
+  .g-decision-meta{font-size:12.5px;color:var(--muted);margin-top:12px;line-height:1.5;}
+  .g-decision-actions{display:flex;justify-content:center;gap:10px;margin-top:20px;flex-wrap:wrap;}
+  .g-slot-window{height:150px;display:flex;align-items:center;justify-content:center;border-radius:18px;background:var(--paper,#FAF6EE);border:1px dashed var(--line);overflow:hidden;}
+  .g-slot{display:flex;flex-direction:column;align-items:center;gap:10px;padding:12px;}
+  .g-slot .g-thumb{width:64px;height:64px;}
+  .g-slot-name{font-weight:800;font-size:15.5px;line-height:1.3;max-width:320px;}
+  .g-slot-tick{animation:gTick .12s ease-out;}
+  .g-slot-win{padding:18px;border-radius:18px;background:linear-gradient(180deg,#FFF6F8,#fff);border:1.5px solid var(--rose);animation:gWin .45s cubic-bezier(.2,1.4,.4,1);}
+  .g-cheer{font-size:14.5px;line-height:1.6;margin:16px 0 0;}
+  .g-confetti{position:absolute;inset:0;pointer-events:none;overflow:hidden;border-radius:inherit;}
+  .g-confetti i{position:absolute;top:-12px;width:8px;height:14px;border-radius:2px;opacity:.9;animation:gConfetti 1.6s ease-in forwards;}
+  @keyframes gFadeUp{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
+  @keyframes gPop{from{transform:scale(.6);opacity:0;}to{transform:none;opacity:1;}}
+  @keyframes gTick{from{transform:translateY(-14px);opacity:.3;}to{transform:none;opacity:1;}}
+  @keyframes gWin{0%{transform:scale(.85);}60%{transform:scale(1.04);}100%{transform:none;}}
+  @keyframes gPulse{0%,100%{box-shadow:0 0 0 0 rgba(219,102,128,.35);}50%{box-shadow:0 0 0 8px rgba(219,102,128,0);}}
+  @keyframes gDots{0%{content:'';}25%{content:'.';}50%{content:'..';}75%{content:'...';}}
+  @keyframes gConfetti{to{transform:translateY(520px) rotate(540deg);opacity:0;}}
+  @media (prefers-reduced-motion:reduce){.g-decision-overlay,.g-decision-card,.g-tally-bar span,.suggestion-card{transition:none;}.g-pulse,.g-fade,.g-decision-body.g-swap,.g-slot-tick,.g-slot-win,.g-vote-badge,.g-confetti i,.g-wait::after{animation:none;}}
 </style>
 <style>
 /* ===== Font ===== */
@@ -244,8 +317,8 @@ html,body,input,button,select,textarea{font-family:'Inter',system-ui,-apple-syst
     </div>
 
     <div class="group-result" id="group-result" style="display:none;">
-      <div id="groupVoteSummary" class="group-vote-summary"></div>
       <div id="bestMatch"></div>
+      <div id="groupVoteSummary"></div>
       <div class="suggestions" id="suggestions">
         <div class="section-title" style="font-size:15px;">Gợi ý phù hợp khác</div>
         <div class="suggestions-grid" id="suggestionCards"></div>
@@ -253,7 +326,7 @@ html,body,input,button,select,textarea{font-family:'Inter',system-ui,-apple-syst
 
       <div style="display:flex;gap:10px;margin-top:20px;">
         <button class="btn btn-primary" id="resultExpenseButton" style="flex:1;" onclick="selectTab('expense')" disabled>Chờ host chốt hoạt động</button>
-        <button class="btn btn-secondary" type="button" id="suggestionsToggle" onclick="toggleSuggestions()">Xem gợi ý khác</button>
+        <button class="btn btn-secondary" type="button" id="suggestionsToggle" onclick="toggleSuggestions()" style="display:none">Xem gợi ý khác</button>
       </div>
     </div>
   </div>
@@ -325,6 +398,13 @@ html,body,input,button,select,textarea{font-family:'Inter',system-ui,-apple-syst
   <!-- ===== TAB 2: CHIA CHI PHÍ ===== -->
   <div class="tab-pane" id="pane-expense">
     <div id="expenseActivity"></div>
+    <div class="expense-entry-row" id="expenseTotalEntry" hidden>
+      <label for="expenseTotalInput">Nhập số tiền host đã chi</label>
+      <div class="expense-entry-controls">
+        <input class="expense-total-input" id="expenseTotalInput" type="number" min="0" step="1" placeholder="Nhập số tiền">
+        <button class="btn btn-primary" type="button" id="saveExpenseTotal">Cập nhật chi phí</button>
+      </div>
+    </div>
     <div class="cost-stats">
       <div class="cost-stat"><div class="num" id="expenseTotal">0 ₫</div><div class="lbl">Tổng chi phí</div></div>
       <div class="cost-stat"><div class="num" id="expensePerPerson">0 ₫</div><div class="lbl">Chi phí mỗi người</div></div>
@@ -337,6 +417,10 @@ html,body,input,button,select,textarea{font-family:'Inter',system-ui,-apple-syst
     <div id="paymentRows"></div>
 
   </div>
+
+  <section class="delete-group-section" id="deleteGroupSection" hidden>
+    <button class="btn btn-secondary delete-group-button" type="button" onclick="openGroupActionConfirm('deleteGroup')">Xóa nhóm</button>
+  </section>
 
   </div>
 </div>
@@ -362,7 +446,8 @@ function toggleMobileMenu(){
 </script>
 <script src="../js/config.js"></script>
 <script src="../js/customer-api.js"></script>
-<script src="../js/group.js?v=20261014-short-link"></script>
+<script src="../js/group.js?v=20261015-group-merge"></script>
 
+<script src="../js/notifications.js?v=20261015"></script>
 </body>
 </html>

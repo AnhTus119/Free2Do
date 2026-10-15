@@ -167,6 +167,24 @@ def update_user_status(
     return _to_user_admin_out(db, user)
 
 
+@router.get("/business-profiles", response_model=list[schemas.BusinessLookupOut])
+def lookup_business_profiles(
+    q: str = Query(..., min_length=1, max_length=100),
+    limit: int = Query(8, ge=1, le=20),
+    db: Session = Depends(get_db),
+    operator: models.Operator = Depends(get_current_operator),
+):
+    """Tìm doanh nghiệp theo tên hoặc mã (user_id) để operator tạo hoạt động cho đúng tài khoản."""
+    keyword = q.strip()
+    return (
+        db.query(models.BusinessProfile)
+        .filter(or_(models.BusinessProfile.business_name.ilike(f"%{keyword}%"), models.BusinessProfile.user_id.ilike(f"{keyword}%")))
+        .order_by(models.BusinessProfile.business_name)
+        .limit(limit)
+        .all()
+    )
+
+
 @router.get("/business-profiles/{user_id}", response_model=schemas.BusinessProfile)
 def get_business_profile(
     user_id: str,

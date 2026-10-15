@@ -10,7 +10,7 @@ body, html {
     position: relative;
     width: 100%;
     min-height: 100vh;
-    background-image: linear-gradient(rgba(251,247,240,.75), rgba(251,247,240,.75)), url('../assets/back.png');
+    background-image: linear-gradient(rgba(251,247,240,.75), rgba(251,247,240,.75)), url('../img/back.png');
     background-size: 150%;
   background-color: var(--cream);
 }

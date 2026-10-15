@@ -98,7 +98,7 @@
       await data.setStatus('activity', button.closest('tr').dataset.id, 'active');
       render();
     } catch (error) {
-      alert(error.message);
+      F2D.toast(error.message, 'error');
       button.disabled = false;
     }
   });

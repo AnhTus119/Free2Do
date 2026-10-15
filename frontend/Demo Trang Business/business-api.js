@@ -3,7 +3,12 @@
   if (!config?.API_BASE_URL) throw new Error('Thiếu FREE2DO_CONFIG.API_BASE_URL');
   const base = config.API_BASE_URL.replace(/\/$/, '');
 
-  async function request(path, options = {}) {
+  // Mọi yêu cầu ghi đi qua F2D.mutate (js/main.js): khóa nút vừa bấm + toast thành công/thất bại.
+  function request(path, options = {}) {
+    const { toast, ...rest } = options;
+    return window.F2D ? window.F2D.mutate(rest.method, path, () => send(path, rest), { toast }) : send(path, rest);
+  }
+  async function send(path, options = {}) {
     const headers = new Headers(options.headers || {});
     const token = localStorage.getItem('token');
     if (options.auth !== false) {
@@ -91,29 +96,15 @@
   const formatMoney = activity => activity.price_text || (activity.price == null
     ? 'Miễn phí'
     : `${Number(activity.price).toLocaleString('vi-VN')} ₫`);
-  const formatDate = value => value ? new Intl.DateTimeFormat('vi-VN', {
-    day: '2-digit', month: '2-digit', year: 'numeric'
-  }).format(new Date(value)) : '—';
+  const formatDate = value => window.F2D.date(value, 'Chưa cập nhật');
+  const formatDateTime = value => window.F2D.dateTime(value, 'Chưa cập nhật');
   const formatTime = value => value ? new Intl.DateTimeFormat('vi-VN', {
     hour: '2-digit', minute: '2-digit'
   }).format(new Date(value)) : '—';
   const statusLabels = {
     active: 'Đang hiển thị', pending: 'Chờ duyệt', hidden: 'Đã ẩn', cancelled: 'Đã hủy'
   };
-  const notify = (message, type = 'success') => {
-    let toast = document.getElementById('app-toast');
-    if (!toast) {
-      toast = document.createElement('div');
-      toast.id = 'app-toast';
-      toast.style.cssText = 'position:fixed;right:20px;bottom:20px;z-index:9999;max-width:360px;padding:13px 17px;border-radius:12px;color:#fff;font:600 13px Inter,sans-serif;box-shadow:0 8px 30px rgba(0,0,0,.18)';
-      document.body.appendChild(toast);
-    }
-    toast.style.background = type === 'error' ? '#B42318' : '#287A52';
-    toast.textContent = message;
-    toast.hidden = false;
-    clearTimeout(notify.timer);
-    notify.timer = setTimeout(() => { toast.hidden = true; }, 3200);
-  };
+  const notify = (message, type = 'success') => window.F2D.toast(message, type);
 
   let lastRefreshAt = Date.now();
   window.setInterval(() => {
@@ -141,6 +132,6 @@
 
   window.BusinessAPI = {
     request, requireBusiness, applyIdentity, logout, escapeHTML, formatNumber,
-    formatMoney, formatDate, formatTime, statusLabels, notify
+    formatMoney, formatDate, formatDateTime, formatTime, statusLabels, notify
   };
 })();

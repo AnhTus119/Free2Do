@@ -7,7 +7,7 @@
     const labels = { pending: 'Đang chờ duyệt', approved: 'Đã duyệt', rejected: 'Đã từ chối' };
     const history = document.getElementById('requestHistory');
     history.innerHTML = requests.length
-      ? `<h2>Lịch sử yêu cầu</h2>${requests.map(item => `<article class="history-card"><b>${api.escapeHTML(item.business_name)}</b><div class="activity-meta">${api.escapeHTML(labels[item.status] || item.status)} · ${api.escapeHTML(new Date(item.created_at).toLocaleString('vi-VN'))}</div><p>${api.escapeHTML(item.business_address)}</p>${item.description ? `<p>${api.escapeHTML(item.description)}</p>` : ''}${item.rejection_reason ? `<p style="color:#b42318">Lý do từ chối: ${api.escapeHTML(item.rejection_reason)}</p>` : ''}</article>`).join('')}`
+      ? `<h2>Lịch sử yêu cầu</h2>${requests.map(item => `<article class="history-card"><b>${api.escapeHTML(item.business_name)}</b><div class="activity-meta">${api.escapeHTML(labels[item.status] || item.status)} · ${api.escapeHTML(F2D.dateTime(item.created_at))}</div><p>${api.escapeHTML(item.business_address)}</p>${item.description ? `<p>${api.escapeHTML(item.description)}</p>` : ''}${item.rejection_reason ? `<p style="color:#b42318">Lý do từ chối: ${api.escapeHTML(item.rejection_reason)}</p>` : ''}</article>`).join('')}`
       : '';
   }
   api.requireUser().then(async me => {

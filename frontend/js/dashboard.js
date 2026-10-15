@@ -561,7 +561,7 @@
 
   function renderAll() {
     const updated = document.querySelector('.updated');
-    if (updated) updated.textContent = `Cập nhật: ${new Date().toLocaleString('vi-VN')}`;
+    if (updated) updated.textContent = `Cập nhật: ${F2D.dateTime(new Date())}`;
     updateOverview();
     renderPendingActivities();
     renderPendingBusinesses();

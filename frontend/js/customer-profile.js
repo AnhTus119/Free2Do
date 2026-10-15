@@ -78,7 +78,7 @@
     try {
       await data.setStatus('customer', customer.id, customer.status === 'locked' ? 'active' : 'locked');
       render();
-    } catch (error) { alert(error.message); }
+    } catch (error) { F2D.toast(error.message, 'error'); }
   });
 
   data.ready.then(() => { id ||= data.customers[0]?.id; render(); }).catch(error => {

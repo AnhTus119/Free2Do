@@ -96,7 +96,7 @@
       await data.setStatus('business', id, nextStatus);
       render();
     } catch (error) {
-      alert(error.message);
+      F2D.toast(error.message, 'error');
       button.disabled = false;
     }
   });

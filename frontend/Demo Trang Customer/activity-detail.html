@@ -42,17 +42,6 @@
   .review-rating-value{min-width:74px;color:var(--muted);font-size:13px;}
   .review-media-item img{cursor:zoom-in;transition:transform .15s;}
   .review-media-item img:hover{transform:scale(1.03);}
-  .review-image-lightbox{position:fixed;inset:0;z-index:3000;display:none;align-items:center;justify-content:center;padding:56px 20px 20px;background:rgba(0,0,0,.88);}
-  .review-image-lightbox.open{display:flex;}
-  .review-image-lightbox img{display:block;max-width:min(92vw,1400px);max-height:86vh;object-fit:contain;border-radius:8px;}
-  .review-image-lightbox-nav{position:absolute;top:50%;transform:translateY(-50%);width:46px;height:46px;border:0;border-radius:50%;background:rgba(255,255,255,.14);color:#fff;font-size:32px;line-height:1;cursor:pointer;}
-  .review-image-lightbox-nav:hover{background:rgba(255,255,255,.26);}
-  .review-image-lightbox-nav[hidden]{display:none;}
-  #previousReviewImage{left:18px;}
-  #nextReviewImage{right:18px;}
-  .review-image-lightbox-count{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);color:#fff;font-size:13px;}
-  .review-image-lightbox-close{position:absolute;top:14px;right:18px;width:44px;height:44px;border:0;border-radius:50%;background:rgba(255,255,255,.14);color:#fff;font-size:32px;line-height:1;cursor:pointer;}
-  .review-image-lightbox-close:hover{background:rgba(255,255,255,.26);}
   .review-media-preview{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;}
   .review-media-preview-item{width:92px;height:76px;position:relative;overflow:hidden;border:1px solid var(--line);border-radius:9px;background:var(--paper);}
   .review-media-preview-item img,.review-media-preview-item video{width:100%;height:100%;display:block;object-fit:cover;}
@@ -199,14 +188,6 @@ html,body,input,button,select,textarea{font-family:'Inter',system-ui,-apple-syst
   </div>
 </div>
 
-<div class="review-image-lightbox" id="reviewImageLightbox" role="dialog" aria-modal="true" aria-label="Ảnh đánh giá">
-  <button class="review-image-lightbox-close" id="closeReviewImage" type="button" aria-label="Đóng ảnh">&times;</button>
-  <button class="review-image-lightbox-nav" id="previousReviewImage" type="button" aria-label="Ảnh trước" hidden>‹</button>
-  <img id="reviewImageLarge" alt="Ảnh đánh giá phóng to">
-  <button class="review-image-lightbox-nav" id="nextReviewImage" type="button" aria-label="Ảnh tiếp theo" hidden>›</button>
-  <span class="review-image-lightbox-count" id="reviewImageCount" aria-live="polite"></span>
-</div>
-
 <div class="mobile-nav-panel" id="mobile-nav">
   <div class="mobile-nav-content">
     <button class="mobile-nav-close" type="button" onclick="toggleMobileMenu()">&times;</button>
@@ -236,7 +217,7 @@ document.addEventListener('click', function (e) {
   if (history.length > 1 && sameSite) { e.preventDefault(); history.back(); }
 });
 </script>
-<script src="../js/config.js"></script>
+<script src="../js/config.js"></script><script src="../js/main.js"></script>
 <script src="../js/customer-api.js?v=20261003-speed"></script>
 <script src="../js/customer-business-media.js?v=20261014"></script><script src="../js/customer-detail.js?v=20261014-photos"></script>
 <script src="../js/notifications.js?v=20261015"></script>

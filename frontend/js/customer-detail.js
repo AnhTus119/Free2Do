@@ -9,7 +9,7 @@
     const url = api.escapeHTML(item.media_url);
     const content = item.media_type === 'video'
       ? `<video src="${url}" controls preload="metadata"></video>`
-      : `<img src="${url}" alt="Media đánh giá" loading="lazy" data-review-image="${url}">`;
+      : `<img src="${url}" alt="Media đánh giá" loading="lazy" data-zoom="${url}">`;
     return `<span class="review-media-item">${content}${own && item.media_id ? `<button class="delete-review-media" data-media-id="${api.escapeHTML(item.media_id)}" type="button">Xóa</button>` : ''}</span>`;
   };
   function renderGallery(activity) {
@@ -19,31 +19,6 @@
     const visibleMedia = media.slice(0, 5);
     gallery.classList.remove('activity-photo-grid--1', 'activity-photo-grid--2', 'activity-photo-grid--3', 'activity-photo-grid--4', 'activity-photo-grid--5');
     gallery.classList.add(`activity-photo-grid--${visibleMedia.length}`);
-    let lightbox;
-    const openLightbox = index => {
-      if (!media.length) return;
-      if (!lightbox) {
-        lightbox = document.createElement('div');
-        lightbox.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#000e;display:flex;align-items:center;justify-content:center;color:white;';
-        lightbox.innerHTML = '<button data-prev aria-label="Ảnh trước" style="position:absolute;left:20px;font-size:32px">‹</button><button data-close aria-label="Đóng" style="position:absolute;right:20px;top:16px;font-size:30px">×</button><div data-image style="max-width:88vw;max-height:86vh"></div><button data-next aria-label="Ảnh tiếp" style="position:absolute;right:20px;font-size:32px">›</button><span data-count style="position:absolute;bottom:16px"></span>';
-        lightbox.addEventListener('click', event => {
-          if (event.target === lightbox || event.target.closest('[data-close]')) { lightbox.remove(); lightbox = null; }
-          else if (event.target.closest('[data-prev]')) show(index - 1);
-          else if (event.target.closest('[data-next]')) show(index + 1);
-        });
-        document.body.append(lightbox);
-      }
-      const show = next => {
-        index = (next + media.length) % media.length;
-        const item = media[index];
-        const url = api.escapeHTML(item.media_url);
-        lightbox.querySelector('[data-image]').innerHTML = item.media_type === 'video'
-          ? `<video src="${url}" controls autoplay style="max-width:88vw;max-height:86vh"></video>`
-          : `<img src="${url}" alt="${api.escapeHTML(activity.name)}" style="max-width:88vw;max-height:86vh;object-fit:contain;border-radius:14px">`;
-        lightbox.querySelector('[data-count]').textContent = `${index + 1} / ${media.length}`;
-      };
-      show(index);
-    };
     if (!media.length) {
       gallery.innerHTML = '<div class="activity-photo-empty">Chưa có hình ảnh</div>';
       return;
@@ -58,7 +33,7 @@
     gallery.onclick = event => {
       const button = event.target.closest('.activity-photo-item');
       if (!button || event.target.closest('video')) return;
-      if (button.dataset.galleryIndex != null) openLightbox(Number(button.dataset.galleryIndex));
+      if (button.dataset.galleryIndex != null) F2D.lightbox(media.map(item => ({ url: item.media_url, type: item.media_type, alt: activity.name })), Number(button.dataset.galleryIndex));
     };
   }
   function renderReviews(reviews, me) {
@@ -67,57 +42,8 @@
       const media = (review.media || []).map(item => mediaHTML(item, own)).join('');
       const replyMedia = (review.reply?.media || []).map(item => mediaHTML(item)).join('');
       const reply = review.reply ? `<div class="business-reply"><b>Phản hồi từ doanh nghiệp</b><p>${api.escapeHTML(review.reply.content)}</p><div class="review-media-list">${replyMedia}</div></div>` : '';
-      return `<article class="review-card" data-review-id="${api.escapeHTML(review.review_id)}" data-rating="${review.rating}" data-content="${api.escapeHTML(review.content || '')}"><div class="review-top"><div class="review-name">${api.escapeHTML(review.reviewer_name)}</div><div class="review-stars">${'★'.repeat(Math.max(0, Math.min(5, review.rating)))}</div><div class="review-date">${api.escapeHTML(new Date(review.created_at).toLocaleDateString('vi-VN'))}</div></div><div class="review-text">${api.escapeHTML(review.content || '')}</div><div class="review-media-list">${media}</div>${reply}${own ? '<div class="review-actions"><button class="btn btn-secondary edit-review" type="button">Sửa</button><button class="btn btn-ghost delete-review" type="button">Xóa</button></div>' : ''}</article>`;
+      return `<article class="review-card" data-zoom-group data-review-id="${api.escapeHTML(review.review_id)}" data-rating="${review.rating}" data-content="${api.escapeHTML(review.content || '')}"><div class="review-top"><div class="review-name">${api.escapeHTML(review.reviewer_name)}</div><div class="review-stars">${'★'.repeat(Math.max(0, Math.min(5, review.rating)))}</div><div class="review-date">${api.escapeHTML(F2D.dateTime(review.created_at))}</div></div><div class="review-text">${api.escapeHTML(review.content || '')}</div><div class="review-media-list">${media}</div>${reply}${own ? '<div class="review-actions"><button class="btn btn-secondary edit-review" type="button">Sửa</button><button class="btn btn-ghost delete-review" type="button">Xóa</button></div>' : ''}</article>`;
     }).join('') : '<p>Chưa có đánh giá.</p>';
-  }
-  function setupReviewImageLightbox() {
-    const lightbox = document.getElementById('reviewImageLightbox');
-    const image = document.getElementById('reviewImageLarge');
-    const closeButton = document.getElementById('closeReviewImage');
-    const previousButton = document.getElementById('previousReviewImage');
-    const nextButton = document.getElementById('nextReviewImage');
-    const count = document.getElementById('reviewImageCount');
-    let reviewImages = [];
-    let currentIndex = 0;
-    const showImage = index => {
-      if (!reviewImages.length) return;
-      currentIndex = (index + reviewImages.length) % reviewImages.length;
-      const thumbnail = reviewImages[currentIndex];
-      image.src = thumbnail.dataset.reviewImage;
-      image.alt = thumbnail.alt || 'Ảnh đánh giá phóng to';
-      count.textContent = `${currentIndex + 1} / ${reviewImages.length}`;
-      previousButton.hidden = reviewImages.length < 2;
-      nextButton.hidden = reviewImages.length < 2;
-    };
-    const close = () => {
-      lightbox.classList.remove('open');
-      image.removeAttribute('src');
-      reviewImages = [];
-      count.textContent = '';
-      document.body.style.overflow = '';
-    };
-    document.getElementById('activityReviews').addEventListener('click', event => {
-      const thumbnail = event.target.closest('[data-review-image]');
-      const reviewCard = thumbnail?.closest('[data-review-id]');
-      if (!thumbnail || !reviewCard) return;
-      reviewImages = [...reviewCard.querySelectorAll('[data-review-image]')];
-      currentIndex = reviewImages.indexOf(thumbnail);
-      showImage(currentIndex);
-      lightbox.classList.add('open');
-      document.body.style.overflow = 'hidden';
-    });
-    closeButton.addEventListener('click', close);
-    previousButton.addEventListener('click', () => showImage(currentIndex - 1));
-    nextButton.addEventListener('click', () => showImage(currentIndex + 1));
-    lightbox.addEventListener('click', event => {
-      if (event.target === lightbox) close();
-    });
-    document.addEventListener('keydown', event => {
-      if (!lightbox.classList.contains('open')) return;
-      if (event.key === 'Escape') close();
-      if (event.key === 'ArrowLeft') showImage(currentIndex - 1);
-      if (event.key === 'ArrowRight') showImage(currentIndex + 1);
-    });
   }
   function buildReviewForm(existingReview, me) {
     let formArea = document.getElementById('reviewFormArea');
@@ -239,7 +165,7 @@
     text('sideActivityPrice', api.priceLabel(activity.price_text, activity.price)); text('sideActivityMeta', api.hours(activity.time_open, activity.time_close));
     text('reviewsTitle', `Đánh giá (${reviews.length})`);
     document.getElementById('activityTags').innerHTML = matched.map(item => `<span class="tag">${api.escapeHTML(item.name)}</span>`).join('');
-    renderGallery(activity); renderReviews(reviews, me); setupReviewImageLightbox(); buildReviewForm(reviews.find(review => isOwnReview(review, me)), me);
+    renderGallery(activity); renderReviews(reviews, me); buildReviewForm(reviews.find(review => isOwnReview(review, me)), me);
     if (activity.google_maps_url) {
       const directionsLink = document.getElementById('activityDirectionsLink');
       directionsLink.href = activity.google_maps_url;
@@ -266,14 +192,14 @@
           }, formArea, me);
           formArea.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
-      } catch (error) { alert(error.message); }
+      } catch (error) { F2D.toast(error.message, 'error'); }
     });
     document.title = `FREE2DO — ${activity.name}`;
     const favorite = document.getElementById('favoriteButton'); const label = document.getElementById('favoriteLabel'); let saved = false;
     if (me?.account_type === 'user') saved = bookmarks.some(item => item.activity_id === id);
     const updateFavorite = () => { label.textContent = saved ? 'Đã yêu thích' : 'Lưu vào yêu thích'; favorite.classList.toggle('is-favorite', saved); }; updateFavorite();
-    favorite.onclick = async () => { if (!me) return location.href = '../log-in.html'; favorite.disabled = true; try { await api.request(`/bookmarks/${encodeURIComponent(id)}`, { method: saved ? 'DELETE' : 'POST' }); saved = !saved; updateFavorite(); } catch (error) { alert(error.message); } finally { favorite.disabled = false; } };
-    document.getElementById('reportActivity').onclick = async event => { event.preventDefault(); if (!me) return location.href = '../log-in.html'; const reason = prompt('Lý do báo cáo hoạt động:'); if (!reason?.trim()) return; const description = prompt('Mô tả thêm (không bắt buộc):') ?? ''; try { await api.request('/reports', { method: 'POST', body: { activity_id: id, reason: reason.trim(), description: description.trim() || null } }); alert('Đã gửi báo cáo.'); } catch (error) { alert(error.message); } };
+    favorite.onclick = async () => { if (!me) return location.href = '../log-in.html'; favorite.disabled = true; try { await api.request(`/bookmarks/${encodeURIComponent(id)}`, { method: saved ? 'DELETE' : 'POST' }); saved = !saved; updateFavorite(); } catch (error) { F2D.toast(error.message, 'error'); } finally { favorite.disabled = false; } };
+    document.getElementById('reportActivity').onclick = async event => { event.preventDefault(); if (!me) return location.href = '../log-in.html'; const reason = prompt('Lý do báo cáo hoạt động:'); if (!reason?.trim()) return; const description = prompt('Mô tả thêm (không bắt buộc):') ?? ''; try { await api.request('/reports', { method: 'POST', body: { activity_id: id, reason: reason.trim(), description: description.trim() || null } }); F2D.toast('Đã gửi báo cáo.', 'error'); } catch (error) { F2D.toast(error.message, 'error'); } };
   }
   run().catch(error => { document.querySelector('.wrap').innerHTML = `<div class="card" style="padding:24px">${api.escapeHTML(error.message)}</div>`; });
 })();

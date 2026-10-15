@@ -114,7 +114,7 @@
       await setStatus('customer', id, customer.status === 'locked' ? 'active' : 'locked');
       render();
     } catch (error) {
-      alert(error.message);
+      F2D.toast(error.message, 'error');
       button.disabled = false;
     }
   });

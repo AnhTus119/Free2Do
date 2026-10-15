@@ -31,11 +31,10 @@
       if (subtitle) subtitle.textContent = [profile.email, profile.phone].filter(Boolean).join(' · ');
       document.querySelectorAll('.nav-name').forEach(element => { element.textContent = profile.name; });
       setAvatar(profile.avatar_url, profile.name);
-      document.getElementById('save-toast').textContent = '✓ Đã cập nhật hồ sơ và sở thích.';
-      document.getElementById('save-toast').style.display = 'block';
+      F2D.toast('Đã cập nhật hồ sơ và sở thích.');
       document.getElementById('edit-mode').style.display = 'none';
       renderCategories();
-    } catch (error) { alert(error.message); } finally { button.disabled = false; }
+    } catch (error) { F2D.toast(error.message, 'error'); } finally { button.disabled = false; }
   };
   function renderCategories() {
     const chosenCategories = available.filter(category => selected.has(category.category_id));
@@ -134,7 +133,7 @@
     const button = e.target.closest('[data-remove-id]'); if (!button) return;
     button.disabled = true;
     try { await api.request(`/bookmarks/${encodeURIComponent(button.dataset.removeId)}`, { method: 'DELETE' }); await renderBookmarks(); }
-    catch (error) { alert(error.message); button.disabled = false; }
+    catch (error) { F2D.toast(error.message, 'error'); button.disabled = false; }
   };
   function setAvatar(url, name) {
     document.querySelectorAll('.nav-avatar').forEach(element => {
@@ -145,16 +144,16 @@
     event.preventDefault(); const file = document.getElementById('avatarFile').files[0]; if (!file) return;
     const form = new FormData(); form.append('file', file);
     try { const asset = await api.request('/media/avatar', { method: 'POST', body: form }); currentUser.avatar_url = asset.media_url; setAvatar(asset.media_url, currentUser.name); }
-    catch (error) { alert(error.message); }
+    catch (error) { F2D.toast(error.message, 'error'); }
   });
   document.getElementById('avatarPresets').addEventListener('click', async event => {
     const button = event.target.closest('[data-preset-id]'); if (!button) return;
     try { const preset = await api.request(`/media/avatar/preset/${encodeURIComponent(button.dataset.presetId)}`, { method: 'PUT' }); currentUser.avatar_url = preset.media_url; setAvatar(preset.media_url, currentUser.name); }
-    catch (error) { alert(error.message); }
+    catch (error) { F2D.toast(error.message, 'error'); }
   });
   document.getElementById('removeAvatar').addEventListener('click', async () => {
     try { await api.request('/media/avatar', { method: 'DELETE' }); currentUser.avatar_url = null; setAvatar(null, currentUser.name); }
-    catch (error) { alert(error.message); }
+    catch (error) { F2D.toast(error.message, 'error'); }
   });
   async function renderBookmarks() {
     const list = await api.request('/bookmarks/me');
@@ -179,7 +178,7 @@
     renderCategories(); await loadCustomInterests(); await renderBookmarks();
     const historyItems = await api.request('/users/me/search-history');
     const history = document.querySelector('#pane-lichsu');
-    history.innerHTML = historyItems.length ? historyItems.map(item => `<div class="history-card"><b>${api.escapeHTML(item.keyword || 'Tìm quanh vị trí đã chọn')}</b><div class="activity-meta">${api.escapeHTML(new Date(item.created_at).toLocaleString('vi-VN'))} · Bán kính ${api.escapeHTML(item.radius)} km${item.budget == null ? '' : ` · ≤ ${api.escapeHTML(api.price(item.budget))}`}${item.free_time == null ? '' : ` · ${api.escapeHTML(item.free_time)} phút`}</div><a class="btn btn-secondary" href="search.html${item.keyword ? `?q=${encodeURIComponent(item.keyword)}` : ''}">Tìm lại</a></div>`).join('') : '<p>Chưa có lịch sử tìm kiếm.</p>';
+    history.innerHTML = historyItems.length ? historyItems.map(item => `<div class="history-card"><b>${api.escapeHTML(item.keyword || 'Tìm quanh vị trí đã chọn')}</b><div class="activity-meta">${api.escapeHTML(F2D.dateTime(item.created_at))} · Bán kính ${api.escapeHTML(item.radius)} km${item.budget == null ? '' : ` · ≤ ${api.escapeHTML(api.price(item.budget))}`}${item.free_time == null ? '' : ` · ${api.escapeHTML(item.free_time)} phút`}</div><a class="btn btn-secondary" href="search.html${item.keyword ? `?q=${encodeURIComponent(item.keyword)}` : ''}">Tìm lại</a></div>`).join('') : '<p>Chưa có lịch sử tìm kiếm.</p>';
   }).catch(error => { document.getElementById('favoriteActivities').textContent = error.message; });
   function updateTab() { selectTab(['hoso', 'lichsu'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'yeuthich'); }
   window.addEventListener('hashchange', updateTab); updateTab();

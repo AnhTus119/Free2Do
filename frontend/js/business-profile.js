@@ -59,7 +59,7 @@
     try {
       await data.setStatus('business', business.id, business.status === 'locked' ? 'active' : 'locked');
       render();
-    } catch (error) { alert(error.message); }
+    } catch (error) { F2D.toast(error.message, 'error'); }
   });
 
   data.ready.then(() => { id ||= data.businesses[0]?.id; render(); }).catch(error => {

@@ -18,9 +18,9 @@ function card(review) {
     ${mediaHTML(review.media)}
     ${reply ? `<div class="biz-reply"><b>Doanh nghiệp phản hồi:</b> ${BusinessAPI.escapeHTML(reply.content)}${mediaHTML(reply.media, true)}
       <div class="rv-actions"><button class="row-btn" data-action="edit-reply">Sửa</button><button class="row-btn danger" data-action="delete-reply">Xóa</button></div></div>` : ''}
-    ${complaint ? `<div class="rv-complaint-note"><b>Khiếu nại ${BusinessAPI.escapeHTML(complaint.status)}:</b> ${BusinessAPI.escapeHTML(complaint.reason)}${complaint.description ? ` — ${BusinessAPI.escapeHTML(complaint.description)}` : ''}</div>` : ''}
-    ${!reply ? `<div class="rv-actions"><button class="btn btn-secondary" data-action="toggle-reply">Phản hồi</button>${!complaint ? '<button class="btn btn-ghost" data-action="toggle-complaint">Khiếu nại</button>' : ''}</div>
-      <div class="reply-box"><textarea placeholder="Nhập phản hồi..."></textarea><input type="file" accept="image/*,video/*"><button class="btn btn-primary" data-action="submit-reply">Gửi phản hồi</button></div>` : ''}
+    ${complaint ? `<div class="rv-complaint-note"><b>Khiếu nại đang chờ xử lý:</b> ${BusinessAPI.escapeHTML(complaint.reason)}${complaint.description ? `. ${BusinessAPI.escapeHTML(complaint.description)}` : ''}</div>` : ''}
+    ${!reply || !complaint ? `<div class="rv-actions">${!reply ? '<button class="btn btn-secondary" data-action="toggle-reply">Phản hồi</button>' : ''}${!complaint ? '<button class="btn btn-ghost" data-action="toggle-complaint">Khiếu nại</button>' : ''}</div>` : ''}
+    ${!reply ? `<div class="reply-box"><textarea placeholder="Nhập phản hồi..."></textarea><input type="file" accept="image/*,video/*"><button class="btn btn-primary" data-action="submit-reply">Gửi phản hồi</button></div>` : ''}
     ${!complaint ? `<div class="complaint-box"><input class="complaint-reason" placeholder="Lý do khiếu nại"><textarea class="complaint-description" placeholder="Mô tả chi tiết..."></textarea><button class="btn btn-primary" data-action="submit-complaint">Gửi khiếu nại</button></div>` : ''}
   </article>`;
 }

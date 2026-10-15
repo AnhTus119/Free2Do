@@ -87,7 +87,13 @@ function selectedCategoryIds() {
   return [...document.querySelectorAll('#f-categories input:checked')].map(input => input.value);
 }
 
-async function submitActivity() {
+// Nguyên nhân tạo 1 ra 2: nút không bị khóa trong lúc chờ xác minh Google Maps (vài giây)
+// nên bấm lần 2 gửi thêm một POST. Khóa nút suốt cả luồng tạo + tải ảnh.
+function submitActivity() {
+  return F2D.busy(document.getElementById('f-submit'), saveActivity);
+}
+
+async function saveActivity() {
   const name = document.getElementById('f-name').value.trim();
   const address = document.getElementById('f-address').value.trim();
   setAddressError('');

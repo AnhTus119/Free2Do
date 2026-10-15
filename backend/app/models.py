@@ -6,6 +6,28 @@ from app.database import Base
 def gen_id() -> str:
     return str(uuid.uuid4())
 
+
+_sqlite_activity_code = 0
+
+
+def next_activity_code(context) -> str:
+    """Mã hiển thị A1, A2... cho hoạt động mới (khóa chính vẫn là activity_id).
+
+    PostgreSQL: lấy từ SEQUENCE activity_code_seq (tạo trong migrations/2026-10-16_ui_round2.sql),
+    an toàn khi nhiều request đồng thời, mã đã xóa không bị dùng lại."""
+    connection = context.connection
+    if connection.dialect.name == "postgresql":
+        return "A" + str(connection.execute(text("SELECT nextval('activity_code_seq')")).scalar())
+    # ponytail: SQLite chỉ dùng cho test/chạy local 1 tiến trình, max+1 + bộ đếm là đủ.
+    global _sqlite_activity_code
+    numbers = [
+        int(code[1:])
+        for code in connection.execute(text("SELECT code FROM activities WHERE code LIKE 'A%'")).scalars()
+        if code and code[1:].isdigit()
+    ]
+    _sqlite_activity_code = max([_sqlite_activity_code, *numbers]) + 1
+    return f"A{_sqlite_activity_code}"
+
 class Account(Base):
     __tablename__ = "accounts"
 
@@ -112,6 +134,23 @@ class BusinessRequest(Base):
     created_at = Column(DateTime, nullable=False)
     reviewed_at = Column(DateTime)
     user = relationship("User", back_populates="business_requests")
+    proofs = relationship(
+        "BusinessRequestProof", back_populates="request", cascade="all, delete-orphan",
+        order_by="BusinessRequestProof.created_at",
+    )
+
+
+class BusinessRequestProof(Base):
+    """Ảnh minh chứng của đơn đăng ký doanh nghiệp. Tách hẳn khỏi activities_media."""
+    __tablename__ = "business_request_proofs"
+
+    proof_id = Column(String, primary_key=True, default=gen_id)
+    request_id = Column(String, ForeignKey("business_requests.request_id", ondelete="CASCADE"), nullable=False, index=True)
+    media_url = Column(String, nullable=False)
+    public_id = Column(String, nullable=False)
+    bytes = Column(Integer)
+    created_at = Column(DateTime, nullable=False)
+    request = relationship("BusinessRequest", back_populates="proofs")
 
 class CustomerProfile(Base):
     __tablename__ = "customer_profiles"
@@ -125,6 +164,7 @@ class Activity(Base):
     __tablename__ = "activities"
 
     activity_id = Column(String, primary_key=True, default=gen_id)
+    code = Column(String, unique=True, index=True, default=next_activity_code)  # mã hiển thị A{n}
     business_id = Column(String, ForeignKey("business_profiles.user_id"), nullable=False)
     name = Column(String, nullable=False)
     description = Column(Text)
@@ -303,6 +343,7 @@ class SearchHistory(Base):
     radius = Column(Float, nullable=False)
     budget = Column(Float)
     free_time = Column(Integer)
+    location_label = Column(String)  # tên vị trí lúc tìm, vd "Cầu Giấy"
     created_at = Column(DateTime, nullable=False)
     user = relationship("User", back_populates="search_history")
 

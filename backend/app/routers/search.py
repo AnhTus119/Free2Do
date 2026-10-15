@@ -230,6 +230,7 @@ def search_activities(
             radius=payload.radius,
             budget=payload.budget,
             free_time=payload.free_time,
+            location_label=(payload.location_label or "").strip() or None,
             created_at=datetime.now(UTC).replace(tzinfo=None),
         )
         if background_tasks is not None:

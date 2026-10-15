@@ -197,18 +197,30 @@ def send_business_request_rejected_email(to_email: str, business_name: str) -> N
     )
 
 
-def send_activity_approved_email(to_email: str, activity_name: str) -> None:
-    send_notification_email(
-        to_email,
+def _email_activity_owner(activity, subject: str, body: str) -> None:
+    """Best-effort: thao tác của operator đã ghi vào DB thì lỗi email (SMTP bị chặn, doanh nghiệp
+    đăng ký bằng số điện thoại nên không có email...) không được biến thành lỗi 500."""
+    try:
+        account = activity.business.user.account
+        recipient = account.email or account.recovery_email
+        if recipient:
+            send_notification_email(recipient, subject, body)
+    except Exception:  # noqa: BLE001
+        logger.exception("Không gửi được email cho chủ hoạt động %s", getattr(activity, "activity_id", "?"))
+
+
+def send_activity_approved_email(activity) -> None:
+    _email_activity_owner(
+        activity,
         "Hoạt động đã được duyệt",
-        f'Hoạt động "{activity_name}" của bạn đã được duyệt và hiển thị công khai trên Free2Do.',
+        f'Hoạt động "{activity.name}" của bạn đã được duyệt và hiển thị công khai trên Free2Do.',
     )
 
 
-def send_activity_hidden_email(to_email: str, activity_name: str) -> None:
-    send_notification_email(
-        to_email,
+def send_activity_hidden_email(activity) -> None:
+    _email_activity_owner(
+        activity,
         "Hoạt động đã bị ẩn",
-        f'Hoạt động "{activity_name}" của bạn trên Free2Do đã bị ẩn khỏi kết quả tìm kiếm. '
+        f'Hoạt động "{activity.name}" của bạn trên Free2Do đã bị ẩn khỏi kết quả tìm kiếm. '
         f"Vui lòng liên hệ Free2Do để biết thêm chi tiết.",
     )

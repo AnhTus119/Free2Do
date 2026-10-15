@@ -139,6 +139,12 @@ class BusinessRequestCreate(BaseModel):
     business_address: Optional[str] = None
     description: Optional[str] = None
 
+class BusinessRequestProofOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    proof_id: str
+    media_url: str
+    created_at: datetime
+
 class BusinessRequest(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     request_id: str
@@ -152,6 +158,8 @@ class BusinessRequest(BaseModel):
     reviewed_by: Optional[str] = None
     created_at: datetime
     reviewed_at: Optional[datetime] = None
+    proofs: list[BusinessRequestProofOut] = Field(default_factory=list)
+
 
 # CustomerProfile
 class CustomerProfile(BaseModel):
@@ -193,6 +201,7 @@ class BusinessLookupOut(BaseModel):
 class Activity(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     activity_id: str
+    code: Optional[str] = None  # mã hiển thị A{n}
     business_id: str
     name: str
     description: Optional[str] = None
@@ -308,9 +317,14 @@ class Complaint(BaseModel):
     created_at: datetime
     resolved_at: Optional[datetime] = None
     activity_name: Optional[str] = None
+    activity_id: Optional[str] = None
+    activity_code: Optional[str] = None
+    complainant_name: Optional[str] = None  # tên doanh nghiệp gửi khiếu nại
     reviewer_name: Optional[str] = None
     review_rating: Optional[int] = None
     review_content: Optional[str] = None
+    review_created_at: Optional[datetime] = None
+    reply_content: Optional[str] = None  # phản hồi của doanh nghiệp cho đánh giá gốc
     evidence: list[ReviewMedia] = Field(default_factory=list)
 
 # Report
@@ -329,6 +343,9 @@ class Report(BaseModel):
     status: str
     created_at: datetime
     resolved_at: Optional[datetime] = None
+    activity_name: Optional[str] = None
+    activity_code: Optional[str] = None
+    reporter_name: Optional[str] = None
 
 # SearchHistory
 class SearchParams(BaseModel):
@@ -343,6 +360,7 @@ class SearchParams(BaseModel):
     category_ids: list[str] = Field(default_factory=list)
     sort_by: Literal["match", "distance", "price", "rating"] = "match"
     record_history: bool = True
+    location_label: Optional[str] = Field(None, max_length=120)  # lưu cùng lịch sử tìm kiếm
 
 class SearchHistory(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -354,6 +372,7 @@ class SearchHistory(BaseModel):
     radius: float
     budget: Optional[float] = None
     free_time: Optional[int] = None
+    location_label: Optional[str] = None
     created_at: datetime
 
 # Auth
@@ -724,6 +743,7 @@ class BusinessCategoryPoint(BaseModel):
 
 class BusinessActivityPerformance(BaseModel):
     activity_id: str
+    activity_code: Optional[str] = None
     activity_name: str
     status: str
     review_count: int
@@ -797,6 +817,7 @@ class BusinessReviewOut(BaseModel):
     review_id: str
     user_id: str
     activity_id: str
+    activity_code: Optional[str] = None
     activity_name: str
     reviewer_name: str
     rating: int

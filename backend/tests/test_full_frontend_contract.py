@@ -78,7 +78,7 @@ class FullFrontendContractTests(unittest.TestCase):
 
     def test_removed_empty_demo_files_are_gone(self):
         removed = (
-            "js/main.js", "js/search.js", "js/results.js", "js/detail.js",
+            "js/search.js", "js/results.js", "js/detail.js",
             "js/review.js", "js/admin.js", "search-results.html",
             "activity-detail.html", "review.html", "js/public-data.js",
             "js/user-nav.js", "js/api.js",

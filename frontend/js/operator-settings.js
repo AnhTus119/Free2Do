@@ -21,7 +21,6 @@
     $('pName').value = me.name || '';
     $('pEmail').value = me.email || '';
     $('pLevel').value = me.level === 'admin' ? 'Quản trị viên cấp cao' : 'Nhân viên vận hành';
-    $('emailToggle').checked = me.email_notifications !== false;
     $('operatorsTab').hidden = me.level !== 'admin';
     showTab(location.hash.slice(1) || 'profile');
   }
@@ -61,11 +60,5 @@
       button.disabled = false;
     });
 
-    $('emailToggle').addEventListener('change', async event => {
-      try {
-        me = await AdminAuth.authFetch('/operator/me', { method: 'PATCH', body: JSON.stringify({ email_notifications: event.target.checked }) });
-        say('notifyMsg', event.target.checked ? '✓ Đã bật email thông báo.' : '✓ Đã tắt email thông báo.');
-      } catch (error) { event.target.checked = !event.target.checked; say('notifyMsg', error.message, false); }
-    });
   });
 })();

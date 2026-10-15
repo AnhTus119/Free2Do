@@ -1,17 +1,20 @@
 from datetime import datetime
 import re
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, File, HTTPException, status, Query, UploadFile
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from app.utils.operator_alerts import notify_operators_by_email
 from app.database import get_db
 from app import models, schemas
 from app.auth import get_current_user, get_current_operator
+from app.services.supabase_storage import InvalidMedia, StorageNotConfigured, sniff_image_type, upload_asset
 from app.utils.email import send_business_request_approved_email, send_business_request_rejected_email
 
 router = APIRouter(tags=["business-requests"])
+
+MAX_PROOFS = 5
+PROOF_TYPES = {"image/jpeg", "image/png", "image/webp"}
 
 
 @router.post("/business-requests", response_model=schemas.BusinessRequest, status_code=status.HTTP_201_CREATED)
@@ -44,11 +47,62 @@ def create_business_request(
     db.add(request)
     db.commit()
     db.refresh(request)
-    notify_operators_by_email(
-        db,
-        "Free2Do: yêu cầu doanh nghiệp mới",
-        f"Có yêu cầu nâng cấp doanh nghiệp mới chờ duyệt: {request.business_name}.",
+    # Operator nhận thông báo trong web (GET /notifications, loại pending_request), không gửi Gmail.
+    return request
+
+
+@router.post(
+    "/business-requests/{request_id}/proofs",
+    response_model=schemas.BusinessRequest,
+    status_code=status.HTTP_201_CREATED,
+)
+async def upload_business_request_proofs(
+    request_id: str,
+    files: list[UploadFile] = File(...),
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    """Ảnh minh chứng (jpg/png/webp, tối đa 5 ảnh/đơn) cho đơn đang chờ duyệt.
+
+    Lưu ở bảng business_request_proofs + thư mục business-proofs/{request_id} trên Storage,
+    không bao giờ ghi vào activities_media."""
+    request = (
+        db.query(models.BusinessRequest)
+        .filter(models.BusinessRequest.request_id == request_id, models.BusinessRequest.user_id == user.user_id)
+        .first()
     )
+    if not request:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Không tìm thấy yêu cầu")
+    if request.status != "pending":
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Chỉ thêm minh chứng cho yêu cầu đang chờ duyệt")
+    if len(request.proofs) + len(files) > MAX_PROOFS:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, f"Mỗi yêu cầu có tối đa {MAX_PROOFS} ảnh minh chứng")
+
+    contents = []
+    for file in files:
+        content = await file.read()
+        content_type = sniff_image_type(content)
+        if content_type not in PROOF_TYPES:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "Minh chứng chỉ nhận ảnh JPG, PNG hoặc WEBP")
+        contents.append((content, content_type))
+    try:
+        for content, content_type in contents:
+            asset = upload_asset(
+                content=content, content_type=content_type,
+                folder=f"business-proofs/{request.request_id}", owner_id=user.user_id, kind="proof",
+            )
+            request.proofs.append(models.BusinessRequestProof(
+                media_url=asset.media_url, public_id=asset.public_id, bytes=asset.bytes, created_at=datetime.utcnow(),
+            ))
+    except StorageNotConfigured as exc:
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, str(exc)) from exc
+    except InvalidMedia as exc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, "Không thể tải ảnh minh chứng lên Storage") from exc
+    finally:
+        db.commit()  # giữ lại các ảnh đã tải thành công trước khi lỗi
+    db.refresh(request)
     return request
 
 
@@ -74,12 +128,15 @@ operator_router = APIRouter(prefix="/operator/business-requests", tags=["operato
 @operator_router.get("", response_model=list[schemas.BusinessRequest])
 def list_business_requests(
     status_filter: Optional[str] = Query(None, alias="status"),
+    user_id: Optional[str] = Query(None),
     db: Session = Depends(get_db),
     _operator: models.Operator = Depends(get_current_operator),
 ):
     query = db.query(models.BusinessRequest)
     if status_filter:
         query = query.filter(models.BusinessRequest.status == status_filter)
+    if user_id:
+        query = query.filter(models.BusinessRequest.user_id == user_id)
     return query.order_by(models.BusinessRequest.created_at.desc()).all()
 
 

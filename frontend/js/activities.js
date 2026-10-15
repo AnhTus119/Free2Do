@@ -34,7 +34,7 @@
     const activities = data.activities.filter(activity => {
       const matchesStatus = selectedStatus === 'all' || activity.status === selectedStatus;
       const matchesType = typeFilter.value === 'all' || activity.type === typeFilter.value;
-      const matchesSearch = !query || data.normalize(`${activity.id} ${activity.name} ${data.businessName(activity)}`).includes(query);
+      const matchesSearch = !query || data.normalize(`${activity.code} ${activity.name} ${data.businessName(activity)}`).includes(query);
       return matchesStatus && matchesType && matchesSearch;
     });
     if (priceFilter.value === 'priceAsc') activities.sort((a, b) => startingPrice(a) - startingPrice(b));
@@ -50,7 +50,7 @@
     tableBody.innerHTML = activities.map(activity => {
       const approve = activity.status === 'pending' ? '<button class="row-btn approve" data-action="approve">Duyệt</button>' : '';
       return `<tr data-id="${data.escapeHTML(activity.id)}" data-type="${data.escapeHTML(activity.type)}">
-        <td>${data.escapeHTML(activity.id)}</td><td class="cell-title">${data.escapeHTML(activity.name)}</td>
+        <td class="cell-code">${data.escapeHTML(activity.code)}</td><td class="cell-title">${data.escapeHTML(activity.name)}</td>
         <td>${data.escapeHTML(data.businessName(activity))}</td><td>${data.escapeHTML(activity.price)}</td><td>${data.escapeHTML(activity.hours)}</td>
         <td><span class="badge ${data.escapeHTML(activity.status)}">${data.statusLabels[activity.status]}</span></td>
         <td><div class="row-actions"><a class="row-btn" href="activity-profile.html?id=${encodeURIComponent(activity.id)}">Xem</a>${approve}</div></td>

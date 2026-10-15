@@ -183,7 +183,10 @@ class BusinessFeatureTests(unittest.TestCase):
         self.assertEqual(public_review.reply.content, "Cảm ơn bạn")
 
     def test_supabase_storage_validation_and_metadata(self):
-        self.assertEqual(validate_upload(b"image", "image/png", False), "image")
+        png = b"\x89PNG\r\n\x1a\n" + b"pixels"
+        self.assertEqual(validate_upload(png, "image/png", False), "image")
+        with self.assertRaises(InvalidMedia):  # đuôi/Content-Type là PNG nhưng nội dung không phải ảnh
+            validate_upload(b"image", "image/png", False)
         with self.assertRaises(InvalidMedia):
             validate_upload(b"payload", "application/pdf", False)
 
@@ -195,7 +198,7 @@ class BusinessFeatureTests(unittest.TestCase):
         ):
             upload_mock.return_value.status_code = 200
             asset = upload_asset(
-                content=b"image",
+                content=png,
                 content_type="image/png",
                 folder="users/B1/avatar",
                 owner_id="B1",
@@ -204,7 +207,7 @@ class BusinessFeatureTests(unittest.TestCase):
         self.assertTrue(asset.public_id.startswith("users/B1/avatar/avatar-"))
         self.assertTrue(asset.public_id.endswith(".png"))
         self.assertIn("/storage/v1/object/public/free2do-media/", asset.media_url)
-        self.assertEqual(asset.bytes, 5)
+        self.assertEqual(asset.bytes, len(png))
         self.assertEqual(upload_mock.call_args.kwargs["headers"]["Content-Type"], "image/png")
 
 

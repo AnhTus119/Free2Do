@@ -1,10 +1,55 @@
 <!DOCTYPE html>
 <html lang="vi">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>FREE2DO Business — Đánh giá</title><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"><link rel="stylesheet" href="app-style.css"><style>.rv-filters{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:20px 0}.rv-filter{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px}.rv-filter.active{border-color:var(--rose);color:var(--rose)}.rv-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:16px}.rv-card.complained{border-style:dashed;border-color:var(--warn)}.rv-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.rv-date{margin-left:auto;color:var(--muted);font-size:12px}.rv-meta{color:var(--muted);font-size:12.5px;margin:8px 0}.rv-text{line-height:1.6}.rv-media{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.rv-thumb{width:100px;height:100px;object-fit:cover;border-radius:10px}.reply-box,.complaint-box{display:none;background:var(--paper);padding:14px;border-radius:12px;margin-top:12px}.reply-box.show,.complaint-box.show{display:grid;gap:10px}.biz-reply,.rv-complaint-note{padding:12px;border-radius:10px;margin-top:12px}.biz-reply{background:#F3EFE4;border-left:3px solid var(--rose)}.rv-complaint-note{background:var(--warn-bg)}.rv-actions{display:flex;gap:8px;margin-top:12px}</style></head>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>FREE2DO Business — Đánh giá</title><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"><link rel="stylesheet" href="app-style.css"><style>
+.rv-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:18px}
+.rv-head .section-sub{margin:4px 0 0}
+.rv-activity-filter{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:700;color:var(--muted);min-width:240px}
+.rv-activity-filter select{height:42px;padding:0 36px 0 14px;border:1.5px solid var(--line);border-radius:12px;background:#fff;color:var(--ink);font:600 14px Inter,sans-serif;cursor:pointer;transition:border-color .2s ease}
+.rv-activity-filter select:hover,.rv-activity-filter select:focus{border-color:var(--rose);outline:none}
+.rv-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:20px;padding:12px;background:#fff;border:1px solid var(--line);border-radius:16px}
+.rv-stars{display:flex;gap:8px;flex-wrap:wrap}
+.rv-pill{display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 14px;border:1.5px solid var(--line);border-radius:999px;background:#fff;color:var(--ink);font:600 13px Inter,sans-serif;cursor:pointer;transition:background .2s ease,border-color .2s ease,color .2s ease,transform .12s ease}
+.rv-pill:hover{border-color:var(--rose)}
+.rv-pill:active{transform:scale(.97)}
+.rv-pill:focus-visible{outline:2px solid var(--rose);outline-offset:2px}
+.rv-pill small{font-weight:600;color:var(--muted);font-variant-numeric:tabular-nums}
+.rv-pill[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
+.rv-pill[aria-pressed="true"] small{color:rgba(255,255,255,.75)}
+.rv-star{width:15px;height:15px;fill:#F5B921;flex:0 0 auto}
+.rv-star.empty{fill:var(--line)}
+.rv-rating{display:inline-flex;gap:2px;vertical-align:-2px}
+.rv-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:16px}
+.rv-card.complained{border-color:color-mix(in srgb,var(--line) 40%,var(--warn))}
+.rv-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.rv-date{margin-left:auto;color:var(--muted);font-size:12.5px}
+.rv-meta{color:var(--muted);font-size:12.5px;margin:8px 0}
+.rv-text{line-height:1.6;margin:0}
+.rv-media{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+.rv-media>span{display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+.rv-thumb{width:100px;height:100px;object-fit:cover;border-radius:10px}
+.reply-box,.complaint-box{display:none;background:var(--paper);padding:14px;border-radius:12px;margin-top:12px}
+.reply-box.show,.complaint-box.show{display:grid;gap:10px}
+.reply-box textarea,.complaint-box textarea,.complaint-box input{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;font:14px Inter,sans-serif;background:#fff}
+.biz-reply,.rv-complaint-note{padding:12px 14px;border-radius:12px;margin-top:12px;line-height:1.55}
+.biz-reply{background:color-mix(in srgb,var(--paper) 70%,var(--cream));border-left:3px solid var(--rose)}
+.rv-complaint-note{background:var(--warn-bg);color:var(--ink)}
+.rv-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+@media(max-width:640px){.rv-activity-filter{min-width:0;width:100%}.rv-toolbar{padding:10px}.rv-date{margin-left:0;width:100%}}
+</style></head>
 <body>
-  <header class="navbar"><div class="nav-left"><button class="mobile-menu-btn" onclick="toggleMobileMenu()">☰</button><a href="business-home.html" class="nav-logo"><img src="Logo.svg" alt="FREE2DO" style="width:38px">FREE2DO <span style="color:var(--muted)">Business</span></a></div><nav class="nav-center"><a href="business-home.html" class="nav-link">Tổng quan</a><a href="my-activities.html" class="nav-link">Hoạt động của tôi</a><a href="reviews.html" class="nav-link active">Đánh giá</a></nav><div class="nav-right"><div class="nav-who dropdown-wrap" onclick="toggleMenu(event)"><div class="nav-avatar" data-business-avatar>B</div><div class="nav-name" data-business-name>Đang tải...</div><div class="dropdown-menu" id="nav-user-menu"><a href="business-profile.html">Hồ sơ Doanh nghiệp</a><a href="upgrade-plan.html">Gói dịch vụ</a><a href="#" data-logout>Đăng xuất</a></div></div></div></header>
-  <main class="wrap" style="padding-top:32px;padding-bottom:60px;max-width:800px"><h2 class="section-title">Đánh giá hoạt động</h2><p class="section-sub" id="review-summary">Đang tải dữ liệu...</p><div class="rv-filters"><button class="rv-filter active" id="f-all">Tất cả <small id="c-all"></small></button><button class="rv-filter" id="f-media">Có ảnh/video <small id="c-media"></small></button><div class="dropdown-wrap"><button class="rv-filter" id="f-star">Sao <small id="c-star">Tất cả</small></button><div class="dropdown-menu" id="star-menu"></div></div></div><div id="rv-list"></div></main>
-  <div class="mobile-nav-panel" id="mobile-nav"><div class="mobile-nav-content"><button class="mobile-nav-close" onclick="toggleMobileMenu()">&times;</button><a href="business-home.html" class="mobile-nav-link">Tổng quan</a><a href="my-activities.html" class="mobile-nav-link">Hoạt động của tôi</a><a href="reviews.html" class="mobile-nav-link active">Đánh giá</a></div></div>
+  <header class="navbar"><div class="nav-left"><button class="mobile-menu-btn" onclick="toggleMobileMenu()">☰</button><a href="business-home.html" class="nav-logo"><img src="Logo.svg" alt="FREE2DO" style="width:38px">FREE2DO <span style="color:var(--muted)">Business</span></a></div><nav class="nav-center"><a href="business-home.html" class="nav-link">Tổng quan</a><a href="my-activities.html" class="nav-link">Hoạt động của tôi</a><a href="reviews.html" class="nav-link active" aria-current="page">Đánh giá</a><a href="upgrade-plan.html" class="nav-link">Gói dịch vụ</a></nav><div class="nav-right"><div class="nav-who dropdown-wrap" onclick="toggleMenu(event)"><div class="nav-avatar" data-business-avatar>B</div><div class="nav-name" data-business-name>Đang tải...</div><div class="dropdown-menu" id="nav-user-menu"><a href="business-profile.html">Hồ sơ Doanh nghiệp</a><a href="upgrade-plan.html">Gói dịch vụ</a><a href="#" data-logout>Đăng xuất</a></div></div></div></header>
+  <main class="wrap" style="padding-top:32px;padding-bottom:60px;max-width:860px">
+    <div class="rv-head">
+      <div><h2 class="section-title">Đánh giá hoạt động</h2><p class="section-sub" id="review-summary">Đang tải dữ liệu...</p></div>
+      <label class="rv-activity-filter"><span>Hoạt động</span><select id="f-activity" aria-label="Lọc theo hoạt động"><option value="">Tất cả</option></select></label>
+    </div>
+    <div class="rv-toolbar">
+      <div class="rv-stars" id="f-stars" role="group" aria-label="Lọc theo số sao"></div>
+      <button type="button" class="rv-pill" id="f-media" aria-pressed="false">Có ảnh/video <small id="c-media"></small></button>
+    </div>
+    <div id="rv-list"></div>
+  </main>
+  <div class="mobile-nav-panel" id="mobile-nav"><div class="mobile-nav-content"><button class="mobile-nav-close" onclick="toggleMobileMenu()">&times;</button><a href="business-home.html" class="mobile-nav-link">Tổng quan</a><a href="my-activities.html" class="mobile-nav-link">Hoạt động của tôi</a><a href="reviews.html" class="mobile-nav-link active">Đánh giá</a><a href="upgrade-plan.html" class="mobile-nav-link">Gói dịch vụ</a></div></div>
   <script src="../js/config.js"></script><script src="../js/main.js"></script><script src="business-api.js"></script><script src="business-reviews.js"></script>
 <script src="../js/notifications.js?v=20261015"></script>
 </body>

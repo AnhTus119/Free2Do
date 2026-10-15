@@ -15,7 +15,7 @@ function renderRows() {
       <td>${BusinessAPI.escapeHTML(BusinessAPI.formatTime(item.time_open))}–${BusinessAPI.escapeHTML(BusinessAPI.formatTime(item.time_close))}</td>
       <td>${BusinessAPI.escapeHTML(item.address)}</td>
       <td>${BusinessAPI.escapeHTML(BusinessAPI.formatMoney(item))}</td>
-      <td>★ ${item.avg_rating == null ? '—' : Number(item.avg_rating).toFixed(1)} (${item.review_count})</td>
+      <td>${item.avg_rating == null ? 'Chưa có' : `★ ${Number(item.avg_rating).toFixed(1)}`} (${item.review_count})</td>
       <td><span class="b-badge ${statusClass(item.status)}">${BusinessAPI.escapeHTML(BusinessAPI.statusLabels[item.status] || item.status)}</span></td>
       <td><div class="row-actions">
         <button class="row-btn" data-action="detail">Xem</button>
@@ -163,24 +163,64 @@ async function saveActivity() {
 }
 window.submitActivity = submitActivity;
 
-function openDetail(id) {
+const STAR = '<path d="M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.3 1.3-6.6L2.5 9.4l6.6-.8z"/>';
+const starRow = rating => `<span class="ad-stars" role="img" aria-label="${rating} trên 5 sao">${Array.from({ length: 5 }, (_, index) => `<svg viewBox="0 0 24 24" class="${index < Math.round(rating) ? '' : 'empty'}" aria-hidden="true">${STAR}</svg>`).join('')}</span>`;
+
+// Popup "Xem" hoạt động: tên -> 4 ô số liệu -> thông tin chi tiết + ảnh/video -> đánh giá -> nút Chỉnh sửa.
+async function openDetail(id) {
   const item = activities.find(activity => activity.activity_id === id);
   if (!item) return;
+  const esc = BusinessAPI.escapeHTML;
   const metrics = performance.get(id) || {};
   document.getElementById('detail-title').textContent = item.name;
-  document.getElementById('detail-summary').textContent = `${BusinessAPI.formatMoney(item)} · ${BusinessAPI.formatTime(item.time_open)}–${BusinessAPI.formatTime(item.time_close)} · ${item.address}`;
+  const badge = document.getElementById('detail-status');
+  badge.className = `b-badge ${statusClass(item.status)}`;
+  badge.textContent = BusinessAPI.statusLabels[item.status] || item.status;
   document.getElementById('detail-bookmarks').textContent = metrics.bookmark_count || 0;
   document.getElementById('detail-interactions').textContent = metrics.interaction_count || 0;
-  document.getElementById('detail-rating').textContent = item.avg_rating == null ? '—' : Number(item.avg_rating).toFixed(1);
+  document.getElementById('detail-rating').textContent = item.avg_rating == null ? '0' : Number(item.avg_rating).toFixed(1);
   document.getElementById('detail-reviews').textContent = item.review_count || 0;
+  const hours = item.time_open || item.time_close
+    ? `${BusinessAPI.formatTime(item.time_open)} - ${BusinessAPI.formatTime(item.time_close)}` : 'Chưa cập nhật';
+  const period = item.always_available
+    ? 'Mở vĩnh viễn'
+    : `${BusinessAPI.formatDate(item.available_from)} đến ${BusinessAPI.formatDate(item.available_until)}`;
+  document.getElementById('detail-info').innerHTML = [
+    ['Mã hoạt động', item.code || 'Chưa có mã'],
+    ['Giá', BusinessAPI.formatMoney(item)],
+    ['Giờ mở cửa', hours],
+    ['Thời gian áp dụng', period],
+    ['Địa chỉ', item.address || 'Chưa cập nhật'],
+    ['Mô tả', item.description || 'Chưa có mô tả'],
+  ].map(([label, value]) => `<dt>${esc(label)}</dt><dd>${esc(value)}</dd>`).join('');
   document.getElementById('detail-media').innerHTML = item.media?.length ? item.media.map(media => `
-    <div style="position:relative;display:inline-block;margin:5px;">
-      ${media.media_type === 'video' ? `<video src="${BusinessAPI.escapeHTML(media.media_url)}" controls style="width:120px;height:90px;object-fit:cover;border-radius:8px;"></video>` : `<img src="${BusinessAPI.escapeHTML(media.media_url)}" alt="Media" style="width:120px;height:90px;object-fit:cover;border-radius:8px;">`}
-      <button class="row-btn danger" data-delete-activity-media="${BusinessAPI.escapeHTML(media.media_id)}" style="display:block;width:100%;">Xóa</button>
-    </div>`).join('') : '<span style="color:var(--muted);font-size:13px;">Chưa có ảnh/video.</span>';
+    <div class="ad-media-item">
+      ${media.media_type === 'video'
+        ? `<video src="${esc(media.media_url)}" controls preload="metadata"></video>`
+        : `<img src="${esc(media.media_url)}" alt="Ảnh hoạt động" data-zoom loading="lazy">`}
+      <button type="button" class="row-btn danger" data-delete-activity-media="${esc(media.media_id)}">Xóa</button>
+    </div>`).join('') : '<span class="f2d-empty">Chưa có ảnh/video.</span>';
+  document.getElementById('detail-all-reviews').href = `reviews.html?activity_id=${encodeURIComponent(id)}`;
   document.getElementById('detail-edit').dataset.id = id;
   document.getElementById('detail-overlay').classList.add('show');
   document.getElementById('detail-panel').classList.add('show');
+
+  const list = document.getElementById('detail-review-list');
+  const summary = document.getElementById('detail-review-summary');
+  summary.innerHTML = item.review_count
+    ? `<b>${Number(item.avg_rating || 0).toFixed(1)}</b>${starRow(item.avg_rating || 0)}<span class="f2d-empty">${item.review_count} đánh giá</span>`
+    : '';
+  list.innerHTML = '<span class="f2d-empty">Đang tải đánh giá...</span>';
+  try {
+    const reviews = (await BusinessAPI.request('/business/reviews')).filter(review => review.activity_id === id);
+    list.innerHTML = reviews.length ? reviews.slice(0, 5).map(review => `<article class="ad-review">
+        <div class="ad-review-top"><b>${esc(review.reviewer_name)}</b>${starRow(review.rating)}<time>${esc(BusinessAPI.formatDateTime(review.created_at))}</time></div>
+        <p>${esc(review.content || 'Không có nội dung.')}</p>
+        ${review.reply ? `<div class="ad-reply">Phản hồi của bạn: ${esc(review.reply.content)}</div>` : ''}
+      </article>`).join('') : '<span class="f2d-empty">Hoạt động này chưa có đánh giá.</span>';
+  } catch (error) {
+    list.innerHTML = `<span class="f2d-empty">${esc(error.message)}</span>`;
+  }
 }
 
 async function reloadActivities() {

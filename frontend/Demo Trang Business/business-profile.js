@@ -2,91 +2,144 @@ let profileState;
 let accountState;
 let mediaState = [];
 
+const KINDS = { logo: 'logo', gallery: 'ảnh gallery', menu: 'ảnh menu' };
+const MISSING = 'Chưa cập nhật';
+
+function setText(id, value) {
+  const node = document.getElementById(id);
+  const text = String(value ?? '').trim();
+  node.textContent = text || MISSING;
+  node.classList.toggle('is-empty', !text);
+}
+
 function renderProfile() {
   BusinessAPI.applyIdentity(accountState, profileState);
   document.getElementById('profile-name').textContent = profileState.business_name;
-  document.getElementById('profile-description').textContent = profileState.description || 'Chưa có mô tả.';
-  document.getElementById('profile-phone').textContent = profileState.phone || 'Chưa cung cấp';
-  document.getElementById('profile-email').textContent = accountState.email || '—';
-  document.getElementById('profile-address').textContent = profileState.business_address;
+  const status = document.getElementById('profile-status');
+  status.className = `bp-status ${profileState.verified_at ? 'verified' : 'pending'}`;
+  status.textContent = profileState.verified_at ? 'Đã xác minh' : 'Chờ xác minh';
+  document.getElementById('profile-tagline').textContent = profileState.verified_at
+    ? `Đối tác FREE2DO từ ${BusinessAPI.formatDate(profileState.verified_at)}`
+    : 'Hồ sơ đang chờ FREE2DO xác minh';
+  const about = document.getElementById('profile-description');
+  about.textContent = profileState.description || 'Chưa có phần giới thiệu. Bấm "Chỉnh sửa hồ sơ" để thêm vài dòng về doanh nghiệp của bạn.';
+  about.classList.toggle('is-empty', !profileState.description);
+  setText('profile-phone', profileState.phone);
+  setText('profile-email', accountState.email || accountState.recovery_email);
+  setText('profile-address', profileState.business_address);
+  setText('profile-code', profileState.business_code);
+}
+
+function renderMedia() {
+  Object.keys(KINDS).forEach(kind => {
+    const items = mediaState.filter(item => item.media_kind === kind);
+    document.getElementById(`media-${kind}`).innerHTML = items.map((item, index) => `
+      <div class="f2d-thumb">
+        <img src="${BusinessAPI.escapeHTML(item.media_url)}" alt="${BusinessAPI.escapeHTML(`${KINDS[kind]} ${index + 1}`)}" data-zoom loading="lazy">
+        <button type="button" class="f2d-thumb-remove" data-delete-media="${BusinessAPI.escapeHTML(item.media_id)}" data-kind="${kind}" aria-label="Xóa ${BusinessAPI.escapeHTML(KINDS[kind])} ${index + 1}">&times;</button>
+      </div>`).join('');
+  });
+}
+
+async function refreshProfile() {
+  profileState = await BusinessAPI.request('/business/me');
+  renderProfile();
+}
+
+async function uploadFiles(kind, files) {
+  const pickerZone = document.querySelector(`#picker-${kind} .f2d-dropzone`);
+  pickerZone.classList.add('is-disabled');
+  let uploaded = 0;
+  try {
+    for (const file of files) {
+      const form = new FormData();
+      form.append('file', file);
+      const item = await BusinessAPI.request(`/business/media?kind=${encodeURIComponent(kind)}`, { method: 'POST', body: form, toast: false });
+      if (kind === 'logo') mediaState = mediaState.filter(media => media.media_kind !== 'logo');
+      mediaState.unshift(item);
+      uploaded += 1;
+    }
+    if (kind === 'logo') await refreshProfile();
+    BusinessAPI.notify(kind === 'logo' ? 'Đã cập nhật logo.' : `Đã tải lên ${uploaded} ${KINDS[kind]}.`);
+  } catch (error) {
+    BusinessAPI.notify(uploaded ? `Đã tải ${uploaded} ảnh, ảnh còn lại lỗi: ${error.message}` : error.message, 'error');
+  } finally {
+    pickerZone.classList.remove('is-disabled');
+    renderMedia();
+  }
+}
+
+const dialog = () => document.getElementById('edit-dialog');
+
+function openEdit() {
   document.getElementById('edit-name').value = profileState.business_name || '';
   document.getElementById('edit-phone').value = profileState.phone || '';
   document.getElementById('edit-address').value = profileState.business_address || '';
   document.getElementById('edit-description').value = profileState.description || '';
+  dialog().showModal();
 }
 
-function renderMedia() {
-  const target = document.getElementById('business-media-list');
-  target.innerHTML = mediaState.length ? mediaState.map(item => `
-    <div style="border:1px solid var(--line);border-radius:12px;padding:10px;">
-      <img src="${BusinessAPI.escapeHTML(item.media_url)}" alt="${BusinessAPI.escapeHTML(item.media_kind)}" style="width:100%;height:120px;object-fit:cover;border-radius:8px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:12px;">
-        <b>${BusinessAPI.escapeHTML(item.media_kind)}</b>
-        <button class="row-btn danger" data-delete-media="${BusinessAPI.escapeHTML(item.media_id)}">Xóa</button>
-      </div>
-    </div>`).join('') : '<p style="color:var(--muted);font-size:13px;">Chưa có logo, ảnh gallery hoặc menu.</p>';
+async function saveProfile(event) {
+  event.preventDefault();
+  const name = document.getElementById('edit-name').value.trim();
+  const address = document.getElementById('edit-address').value.trim();
+  if (!name) return BusinessAPI.notify('Tên doanh nghiệp không được để trống.', 'error');
+  if (!address) return BusinessAPI.notify('Địa chỉ không được để trống.', 'error');
+  await F2D.busy(document.getElementById('save-profile'), async () => {
+    try {
+      profileState = await BusinessAPI.request('/business/me', {
+        method: 'PATCH', toast: false,
+        body: {
+          business_name: name,
+          phone: document.getElementById('edit-phone').value.trim() || null,
+          business_address: address,
+          description: document.getElementById('edit-description').value.trim() || null,
+        },
+      });
+      renderProfile();
+      dialog().close();
+      BusinessAPI.notify('Đã chỉnh sửa hồ sơ thành công.');
+    } catch (error) { BusinessAPI.notify(error.message, 'error'); }
+  });
 }
 
-window.toggleEdit = () => {
-  const edit = document.getElementById('edit-mode');
-  const opening = edit.style.display !== 'block';
-  edit.style.display = opening ? 'block' : 'none';
-  document.getElementById('view-mode').style.display = opening ? 'none' : 'block';
-};
-
-async function saveProfile() {
-  try {
-    profileState = await BusinessAPI.request('/business/me', { method: 'PATCH', body: {
-      business_name: document.getElementById('edit-name').value.trim(),
-      phone: document.getElementById('edit-phone').value.trim() || null,
-      business_address: document.getElementById('edit-address').value.trim(),
-      description: document.getElementById('edit-description').value.trim() || null
-    }});
-    renderProfile();
-    toggleEdit();
-    BusinessAPI.notify('Cập nhật hồ sơ thành công.');
-  } catch (error) { BusinessAPI.notify(error.message, 'error'); }
-}
-
-async function uploadMedia() {
-  const file = document.getElementById('media-file').files[0];
-  const kind = document.getElementById('media-kind').value;
-  if (!file) return BusinessAPI.notify('Vui lòng chọn ảnh.', 'error');
-  const form = new FormData();
-  form.append('file', file);
-  try {
-    const item = await BusinessAPI.request(`/business/media?kind=${encodeURIComponent(kind)}`, { method: 'POST', body: form });
-    mediaState.unshift(item);
-    if (kind === 'logo') profileState = await BusinessAPI.request('/business/me');
-    renderProfile(); renderMedia();
-    document.getElementById('media-file').value = '';
-    BusinessAPI.notify('Đã tải ảnh lên kho lưu trữ.');
-  } catch (error) { BusinessAPI.notify(error.message, 'error'); }
+async function deleteMedia(button) {
+  const kind = button.dataset.kind;
+  if (!confirm(kind === 'logo' ? 'Xóa logo hiện tại?' : `Xóa ${KINDS[kind]} này?`)) return;
+  await F2D.busy(button, async () => {
+    try {
+      await BusinessAPI.request(`/business/media/${encodeURIComponent(button.dataset.deleteMedia)}`, { method: 'DELETE', toast: false });
+      mediaState = mediaState.filter(item => item.media_id !== button.dataset.deleteMedia);
+      if (kind === 'logo') await refreshProfile();
+      renderMedia();
+      BusinessAPI.notify('Đã xóa ảnh.');
+    } catch (error) { BusinessAPI.notify(error.message, 'error'); }
+  });
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+  Object.keys(KINDS).forEach(kind => F2D.imagePicker(document.getElementById(`picker-${kind}`), {
+    max: kind === 'logo' ? 1 : 10,
+    label: kind === 'logo' ? 'Chọn logo' : 'Chọn ảnh',
+    hint: kind === 'logo' ? 'JPG, PNG hoặc WEBP, tối đa 5MB' : 'JPG, PNG hoặc WEBP, mỗi ảnh tối đa 5MB',
+    onFiles: files => uploadFiles(kind, files),
+  }));
   try {
     const context = await BusinessAPI.requireBusiness();
     accountState = context.me; profileState = context.profile;
     mediaState = await BusinessAPI.request('/business/media');
     renderProfile(); renderMedia();
   } catch (error) { BusinessAPI.notify(error.message, 'error'); }
-  document.getElementById('save-profile').addEventListener('click', saveProfile);
-  document.getElementById('upload-media').addEventListener('click', uploadMedia);
-  document.getElementById('business-media-list').addEventListener('click', async event => {
+  document.getElementById('open-edit').addEventListener('click', openEdit);
+  document.getElementById('cancel-edit').addEventListener('click', () => dialog().close());
+  document.getElementById('edit-form').addEventListener('submit', saveProfile);
+  document.querySelector('.bp-wrap').addEventListener('click', event => {
     const button = event.target.closest('[data-delete-media]');
-    if (!button || !confirm('Xóa ảnh này?')) return;
-    try {
-      await BusinessAPI.request(`/business/media/${button.dataset.deleteMedia}`, { method: 'DELETE' });
-      mediaState = mediaState.filter(item => item.media_id !== button.dataset.deleteMedia);
-      profileState = await BusinessAPI.request('/business/me');
-      renderProfile(); renderMedia();
-      BusinessAPI.notify('Đã xóa ảnh.');
-    } catch (error) { BusinessAPI.notify(error.message, 'error'); }
+    if (button) deleteMedia(button);
   });
 });
 window.addEventListener('free2do:business-data-refresh', async () => {
-  if (document.getElementById('edit-mode').style.display === 'block') return;
+  if (dialog()?.open) return;
   try {
     const context = await BusinessAPI.requireBusiness();
     accountState = context.me;

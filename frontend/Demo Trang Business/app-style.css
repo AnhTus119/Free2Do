@@ -319,3 +319,11 @@ main{animation:f2dPageIn .28s ease-out both;}
 @keyframes f2dDrop{from{opacity:0;transform:translateY(-6px);}to{opacity:1;transform:none;}}
 @keyframes f2dFade{from{opacity:0;}to{opacity:1;}}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important;}}
+
+/* Bảng "Hoạt động của tôi": giờ, giá, rating, trạng thái, nút không bị bẻ dòng; bảng cuộn ngang khi hẹp */
+.biz-table-scroll{overflow-x:auto;border-radius:16px;-webkit-overflow-scrolling:touch;}
+.biz-table td:nth-child(2),.biz-table td:nth-child(4),.biz-table td:nth-child(5),.biz-table td:nth-child(6),.biz-table td:nth-child(7){white-space:nowrap;}
+.biz-table td:first-child{min-width:150px;}
+.biz-table td:nth-child(3){min-width:180px;}
+.biz-table .row-actions{flex-wrap:nowrap;}
+.biz-table .row-btn{white-space:nowrap;}

@@ -77,14 +77,20 @@ if (loginForm) {
         return;
       }
 
+      // Chỉ theo lời mời nhóm khi trang đăng nhập được mở từ nút "Đồng ý" (URL có ?groupInvite).
+      // Xóa giá trị cũ còn sót trong tab, tránh tài khoản khác bị hỏi tham gia nhóm sau khi đăng nhập.
+      const invite = new URLSearchParams(location.search).get("groupInvite");
+      if (invite) sessionStorage.setItem("pending_group_invite", invite); else sessionStorage.removeItem("pending_group_invite");
+      sessionStorage.removeItem("f2d:viewing-group");
+
       if (me.requires_recovery_email) {
         window.location.href = "recovery-email.html";
         return;
       }
 
-      const pendingGroupInvite = sessionStorage.getItem("pending_group_invite") || new URLSearchParams(location.search).get("groupInvite");
+      const pendingGroupInvite = new URLSearchParams(location.search).get("groupInvite");
       if (pendingGroupInvite && me.account_type === "user" && me.role !== "business") {
-        sessionStorage.removeItem("pending_group_invite");
+        sessionStorage.setItem("pending_group_invite", pendingGroupInvite); // đã đồng ý trước khi đăng nhập: vào thẳng nhóm
         window.location.href = `Demo Trang Customer/group.html?groupInvite=${encodeURIComponent(pendingGroupInvite)}`;
         return;
       }
@@ -105,3 +111,6 @@ if (loginForm) {
     }
   });
 }
+
+// Giữ lời mời nhóm (?groupInvite) khi chuyển sang trang đăng ký.
+document.querySelectorAll('a[href="sign-up.html"]').forEach(link => { link.href += location.search; });

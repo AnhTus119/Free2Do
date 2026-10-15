@@ -348,3 +348,16 @@ tbody tr:hover{background:#FCFAF6;}
 @media (max-width:900px){.op-cases{grid-template-columns:1fr;}}
 @media (max-width:560px){.op-fields{grid-template-columns:1fr;gap:2px;}.op-fields dd{margin-bottom:8px;}.op-case{grid-template-columns:minmax(0,1fr) 14px;}.op-case-time{display:none;}}
 .modal-license.f2d-thumbs{height:auto;margin:0;}
+/* Bảng hoạt động operator: giá, giờ, trạng thái không rơi chữ; bảng cuộn ngang khi màn hẹp */
+.activity-table{min-width:860px;}
+.activity-table td:nth-child(4),.activity-table td:nth-child(5),.activity-table td:nth-child(6){white-space:nowrap;}
+.activity-table .row-actions{flex-wrap:nowrap;}
+.badge{white-space:nowrap;}
+/* Sidebar có nhóm + icon SVG; thẻ số liệu dùng icon SVG thay emoji */
+.nav-item .ic{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;}
+.nav-item .ic svg,.stat-icon svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;}
+.nav-label{margin:16px 12px 6px;font-size:12px;font-weight:600;color:var(--side-text-dim);}
+.nav-item{position:relative;transition:background-color .2s ease,color .2s ease,transform .2s ease;}
+.nav-item:hover:not(.active){transform:translateX(3px);}
+.stat-icon{color:var(--brown);}
+.stat-num{font-variant-numeric:tabular-nums;}

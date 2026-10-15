@@ -22,12 +22,12 @@
   </div>
   <div class="nav-right">
     <div class="nav-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="dot-badge"></span></div>
-    <div class="nav-who dropdown-wrap" onclick="toggleMenu(event)">
+    <div class="nav-who dropdown-wrap" role="button" tabindex="0" aria-haspopup="menu" aria-label="Menu tài khoản" onclick="toggleMenu(event)">
       <div class="nav-avatar" data-business-avatar>B</div><div class="nav-name" data-business-name>Đang tải...</div><svg class="icon icon-sm icon-muted" viewBox="0 0 24 24" style="margin-left:-4px;"><polyline points="6 9 12 15 18 9"/></svg>
       <div class="dropdown-menu" id="nav-user-menu">
         <a href="business-profile.html">Hồ sơ Doanh nghiệp</a>
         <a href="upgrade-plan.html">Gói dịch vụ</a>
-        <a href="#" data-logout>Đăng xuất</a>
+        <a href="../log-in.html" data-logout>Đăng xuất</a>
       </div>
     </div>
   </div>

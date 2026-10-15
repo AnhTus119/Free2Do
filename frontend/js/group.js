@@ -12,6 +12,9 @@
     return /^[A-Za-z0-9]+$/.test(segment) ? segment : null;
   }
   const inviteCode = params.get('groupInvite') || inviteCodeFromPath();
+  // pending_group_invite: chỉ dùng cho lời mời người dùng đã bấm "Đồng ý" (đi qua đăng nhập).
+  // Nhóm đang xem lưu riêng, để lần đăng nhập sau (tài khoản khác) không bị đưa vào nhóm này.
+  const VIEWING_KEY = 'f2d:viewing-group';
   let currentUser = null;
   let categories = [];
   let currentGroup = null;
@@ -196,7 +199,7 @@
       currentGroup = joining
         ? await api.request(`/groups/invite/${encodeURIComponent(inviteCode)}/join`, { method: 'POST', body: members[0] })
         : await api.request('/groups', { method: 'POST', body: { host: members[0], group_name: groupName } });
-      if (!joining) sessionStorage.setItem('pending_group_invite', currentGroup.invite_code);
+      if (!joining) sessionStorage.setItem(VIEWING_KEY, currentGroup.invite_code);
       joinMode = false;
       applyGroup(currentGroup);
       closeGroupModal();
@@ -405,7 +408,7 @@
   window.openPastGroup = async function (code) {
     try {
       const group = await api.request(`/groups/invite/${encodeURIComponent(code)}`);
-      sessionStorage.setItem('pending_group_invite', group.invite_code);
+      sessionStorage.setItem(VIEWING_KEY, group.invite_code);
       applyGroup(group);
       connectRealtime();
     }
@@ -951,7 +954,8 @@
   };
 
   function initialize() {
-    if (inviteCode && sessionStorage.getItem('pending_group_invite') !== inviteCode) {
+    // Không hỏi lại với nhóm chính mình vừa tạo/mở (URL có ?groupInvite do applyGroup ghi vào).
+    if (inviteCode && sessionStorage.getItem('pending_group_invite') !== inviteCode && sessionStorage.getItem(VIEWING_KEY) !== inviteCode) {
       document.getElementById('groupInviteConsent').classList.add('open');
       return;
     }

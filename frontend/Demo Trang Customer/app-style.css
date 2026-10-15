@@ -281,3 +281,19 @@ main{animation:f2dPageIn .28s ease-out both;}
 @keyframes f2dDrop{from{opacity:0;transform:translateY(-6px);}to{opacity:1;transform:none;}}
 @keyframes f2dFade{from{opacity:0;}to{opacity:1;}}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important;}}
+
+/* ===== Lịch sử tìm kiếm (account.html#lichsu) ===== */
+.search-history-list{display:grid;gap:14px;max-width:760px;}
+.search-history-card{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:18px;min-height:132px;padding:18px 22px;border-radius:16px;
+  background:color-mix(in srgb,var(--paper) 72%,var(--cream));border:1px solid var(--line);transition:border-color .2s ease,box-shadow .2s ease;}
+.search-history-card:hover{border-color:color-mix(in srgb,var(--line) 60%,var(--rose));box-shadow:0 8px 22px rgba(110,82,72,.08);}
+.search-history-info{display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:0;text-align:left;}
+.search-history-place{margin:0 0 4px;font-size:19px;font-weight:800;line-height:1.3;color:var(--ink);overflow-wrap:anywhere;}
+.search-history-info p{margin:0;font-size:15px;line-height:1.5;color:var(--brown);}
+.search-history-again{display:inline-flex;align-items:center;justify-content:center;padding:11px 22px;border-radius:999px;background:var(--rose);color:#fff;
+  font-weight:700;font-size:14px;text-decoration:none;white-space:nowrap;transition:background .2s ease,transform .15s ease;}
+.search-history-again:hover{background:var(--rose-dark);color:#fff;text-decoration:none;}
+.search-history-again:active{transform:translateY(1px);}
+.search-history-again:focus-visible{outline:2px solid var(--rose-dark);outline-offset:3px;}
+.search-history-empty{padding:28px;border:1px dashed var(--line);border-radius:16px;color:var(--muted);text-align:center;max-width:760px;}
+@media (max-width:520px){.search-history-card{padding:16px;gap:12px;}.search-history-place{font-size:17px;}.search-history-again{padding:10px 16px;}}

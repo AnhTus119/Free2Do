@@ -146,6 +146,7 @@
       radius: Number(radiusSlider.value), budget: selectedBudget(), free_time: availableMinutes(),
       selected_date: otherTime.checked ? (dateFilter.value || localToday) : localToday,
       category_ids: selectedCategories(), sort_by: sortSelect.value, record_history: recordHistory,
+      location_label: String(locationLabel || '').slice(0, 120) || null,
     } });
     if (sequence === requestSequence) render(items.filter(activityMatchesSchedule));
   }

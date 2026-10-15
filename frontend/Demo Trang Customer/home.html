@@ -23,6 +23,14 @@ html,body,input,button,select,textarea{font-family:'Inter',system-ui,-apple-syst
 .pager button:disabled{opacity:.4;cursor:not-allowed}
 .map-section-wrap{margin:20px 0 60px}
 
+/* ===== Ô tìm kiếm cạnh logo (gửi sang search.html?q=...) ===== */
+.home-nav-search{flex:0 1 260px;width:auto;min-width:0;padding:8px 14px;transition:border-color .2s ease,box-shadow .2s ease,background .2s ease}
+.home-nav-search:focus-within{border-color:var(--rose);background:#fff;box-shadow:0 0 0 3px rgba(219,102,128,.14)}
+.home-nav-search input::-webkit-search-cancel-button{cursor:pointer}
+@media(max-width:1100px){.navbar .nav-center{gap:24px}}
+@media(max-width:860px){.navbar .home-nav-search{display:flex !important;flex:1 1 auto;max-width:none}.navbar .nav-left{flex:1 1 auto !important}.navbar .nav-right{flex:0 0 auto !important;gap:6px}}
+@media(max-width:480px){.nav-logo-text{display:none}.navbar .nav-left{gap:8px !important}}
+
 /* ===== Navbar: 3 link ở giữa ===== */
 .navbar .nav-left,.navbar .nav-right{flex:1 1 0;min-width:0}
 .navbar .nav-right{display:flex;justify-content:flex-end;align-items:center}
@@ -105,7 +113,11 @@ html,body,input,button,select,textarea{font-family:'Inter',system-ui,-apple-syst
 <nav class="navbar">
   <div class="nav-left" style="display:flex;align-items:center;gap:12px;">
     <button class="mobile-menu-btn" type="button" aria-label="Mở menu" onclick="toggleMobileMenu()"><svg class="icon icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
-    <a class="nav-logo" href="home.html"><img src="Logo.svg" alt="FREE2DO" style="width:38px">FREE2DO</a>
+    <a class="nav-logo" href="home.html"><img src="Logo.svg" alt="FREE2DO" style="width:38px"><span class="nav-logo-text">FREE2DO</span></a>
+    <form class="nav-search home-nav-search" role="search" action="search.html">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" name="q" placeholder="Tìm hoạt động, địa điểm..." aria-label="Tìm hoạt động, địa điểm" autocomplete="off">
+    </form>
   </div>
   <div class="nav-center">
     <a class="nav-link active" href="home.html">Trang chủ</a>

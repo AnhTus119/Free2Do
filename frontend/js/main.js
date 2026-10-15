@@ -188,5 +188,158 @@
     lightbox(list.map(zoomItem), list.indexOf(target));
   });
 
-  window.F2D = Object.freeze({ toast, busy, mutate, lightbox, closeLightbox, date, dateTime, toDate, escapeHTML });
+  // ---------- Editor sở thích (hồ sơ cá nhân + popup sau đăng ký) ----------
+  // Chọn tag có sẵn (/categories) + nhập sở thích cá nhân. Chỉ ghi lên server khi gọi save().
+  const MAX_INTERESTS = 20;
+  const LEGACY_INTERESTS_KEY = 'free2do_custom_interests';
+  function interestsEditor(container, api) {
+    const state = { categories: [], selected: new Set(), custom: [] };
+    const message = (text, isError = false) => {
+      const box = container.querySelector('.personal-interests-msg');
+      if (!box) return;
+      box.textContent = text || '';
+      box.classList.toggle('error', isError);
+    };
+    function render() {
+      const pending = container.querySelector('.custom-interest-input')?.value || '';
+      const hadFocus = document.activeElement?.matches?.('.custom-interest-input') && container.contains(document.activeElement);
+      container.innerHTML = `<div class="interest-tags">${state.categories.map(category => `<button type="button" class="chip ${state.selected.has(category.category_id) ? 'active' : ''}" data-category-id="${escapeHTML(category.category_id)}" aria-pressed="${state.selected.has(category.category_id)}">${escapeHTML(category.name)}</button>`).join('')}</div>
+        <div class="personal-interests">
+          <div class="personal-interests-label">Sở thích cá nhân <span>(nhập rồi nhấn Enter, tối đa ${MAX_INTERESTS})</span></div>
+          <div class="personal-interests-row">
+            ${state.custom.map((interest, index) => `<span class="chip active personal">${escapeHTML(interest)}<button type="button" class="chip-x" data-remove-custom-interest="${index}" aria-label="Xóa ${escapeHTML(interest)}">&times;</button></span>`).join('')}
+            <input class="custom-interest-input" type="text" maxlength="60" placeholder="VD: leo núi, nhạc acoustic..." aria-label="Thêm sở thích cá nhân" value="${escapeHTML(pending)}">
+            <button type="button" class="chip add-chip" data-add-custom-interest>＋ Thêm sở thích</button>
+          </div>
+          <div class="personal-interests-msg" role="status"></div>
+        </div>`;
+      if (hadFocus) container.querySelector('.custom-interest-input').focus();
+    }
+    function addFromInput() {
+      const input = container.querySelector('.custom-interest-input');
+      const value = (input?.value || '').replace(/\s+/g, ' ').trim();
+      if (!value) return input?.focus();
+      if (state.custom.some(item => item.toLocaleLowerCase('vi') === value.toLocaleLowerCase('vi'))) return message(`"${value}" đã có trong danh sách.`, true);
+      if (state.custom.length >= MAX_INTERESTS) return message(`Bạn chỉ có thể lưu tối đa ${MAX_INTERESTS} sở thích cá nhân.`, true);
+      input.value = '';
+      state.custom = [...state.custom, value];
+      render();
+      container.querySelector('.custom-interest-input')?.focus();
+    }
+    container.addEventListener('click', event => {
+      const button = event.target.closest('button');
+      if (!button || !container.contains(button)) return;
+      if (button.hasAttribute('data-add-custom-interest')) return addFromInput();
+      if (button.hasAttribute('data-remove-custom-interest')) {
+        state.custom = state.custom.filter((_, index) => index !== Number(button.dataset.removeCustomInterest));
+        return render();
+      }
+      const id = button.dataset.categoryId;
+      if (!id) return;
+      if (state.selected.has(id)) state.selected.delete(id); else state.selected.add(id);
+      render();
+    });
+    container.addEventListener('keydown', event => {
+      if (!event.target.matches('.custom-interest-input')) return;
+      if (event.key === 'Enter') { event.preventDefault(); addFromInput(); }
+      else if (event.key === 'Escape') { event.stopPropagation(); event.target.value = ''; message(''); }
+    });
+    return {
+      state,
+      render,
+      async load() {
+        const [categories, mine, interests] = await Promise.all([
+          api.request('/categories'), api.request('/users/me/categories'), api.request('/users/me/interests'),
+        ]);
+        state.categories = categories;
+        state.selected = new Set(mine.map(category => category.category_id));
+        state.custom = interests.interests;
+        // Sở thích cũ từng lưu trong trình duyệt: gộp vào và chuyển lên server một lần.
+        let legacy = [];
+        try { legacy = JSON.parse(localStorage.getItem(LEGACY_INTERESTS_KEY) || '[]'); localStorage.removeItem(LEGACY_INTERESTS_KEY); } catch (error) { legacy = []; }
+        const extra = Array.isArray(legacy) ? legacy.filter(item => typeof item === 'string' && item.trim()) : [];
+        if (extra.length) {
+          state.custom = (await api.request('/users/me/interests', { method: 'PUT', body: { interests: [...state.custom, ...extra].slice(0, MAX_INTERESTS) }, toast: false })).interests;
+        }
+        render();
+      },
+      async save() {
+        const [, interests] = await Promise.all([
+          api.request('/users/me/categories', { method: 'PUT', body: { category_ids: [...state.selected] }, toast: false }),
+          api.request('/users/me/interests', { method: 'PUT', body: { interests: state.custom }, toast: false }),
+        ]);
+        state.custom = interests.interests;
+        render();
+      },
+      chosenLabels() {
+        return [
+          ...state.categories.filter(category => state.selected.has(category.category_id)).map(category => category.name),
+          ...state.custom,
+        ];
+      },
+    };
+  }
+
+  // ---------- Chọn ảnh: vùng kéo thả + lưới ảnh xem trước + xóa trước khi gửi ----------
+  // options.max: số ảnh tối đa; options.maxMB; options.accept;
+  // options.onFiles(files): nếu có thì tải lên ngay (không giữ trong picker), vd hồ sơ doanh nghiệp.
+  const IMAGE_ACCEPT = 'image/jpeg,image/png,image/webp';
+  function imagePicker(container, options = {}) {
+    const max = options.max || 5;
+    const maxMB = options.maxMB || 5;
+    const accept = options.accept || IMAGE_ACCEPT;
+    const picked = [];
+    const inputId = `f2d-pick-${Math.random().toString(36).slice(2, 8)}`;
+    container.classList.add('f2d-picker');
+    container.innerHTML = `<label class="f2d-dropzone" for="${inputId}">
+        <input id="${inputId}" type="file" accept="${escapeHTML(accept)}" ${max > 1 ? 'multiple' : ''} class="f2d-sr-only">
+        <span class="f2d-dropzone-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="2"/><path d="m21 15-4.5-4.5L6 21"/></svg></span>
+        <span class="f2d-dropzone-text"><b>${escapeHTML(options.label || 'Chọn ảnh')}</b> hoặc kéo thả vào đây</span>
+        <span class="f2d-dropzone-hint">${escapeHTML(options.hint || `JPG, PNG hoặc WEBP, tối đa ${max} ảnh, mỗi ảnh tối đa ${maxMB}MB`)}</span>
+      </label>
+      <div class="f2d-thumbs" data-zoom-group></div>`;
+    const input = container.querySelector('input');
+    const zone = container.querySelector('.f2d-dropzone');
+    const grid = container.querySelector('.f2d-thumbs');
+    function render() {
+      grid.innerHTML = picked.map((item, index) => `<div class="f2d-thumb"><img src="${item.url}" alt="Ảnh đã chọn ${index + 1}" data-zoom><button type="button" class="f2d-thumb-remove" data-remove="${index}" aria-label="Bỏ ảnh ${index + 1}">&times;</button></div>`).join('');
+      zone.classList.toggle('is-full', !options.onFiles && picked.length >= max);
+    }
+    function add(fileList) {
+      const allowed = accept.split(',');
+      const files = [...fileList].filter(file => {
+        if (!allowed.includes(file.type)) { toast(`"${file.name}" không phải ảnh JPG, PNG hoặc WEBP.`, 'error'); return false; }
+        if (file.size > maxMB * 1024 * 1024) { toast(`"${file.name}" lớn hơn ${maxMB}MB.`, 'error'); return false; }
+        return true;
+      });
+      if (options.onFiles) { if (files.length) options.onFiles(files.slice(0, max)); return; }
+      const room = max - picked.length;
+      if (files.length > room) toast(`Chỉ chọn được tối đa ${max} ảnh.`, 'error');
+      files.slice(0, Math.max(0, room)).forEach(file => picked.push({ file, url: URL.createObjectURL(file) }));
+      render();
+    }
+    input.addEventListener('change', () => { add(input.files); input.value = ''; });
+    grid.addEventListener('click', event => {
+      const button = event.target.closest('[data-remove]');
+      if (!button) return;
+      const [removed] = picked.splice(Number(button.dataset.remove), 1);
+      URL.revokeObjectURL(removed.url);
+      render();
+    });
+    ['dragenter', 'dragover'].forEach(type => zone.addEventListener(type, event => { event.preventDefault(); zone.classList.add('is-over'); }));
+    ['dragleave', 'drop'].forEach(type => zone.addEventListener(type, () => zone.classList.remove('is-over')));
+    zone.addEventListener('drop', event => { event.preventDefault(); add(event.dataTransfer.files); });
+    return {
+      files: () => picked.map(item => item.file),
+      clear() { picked.splice(0).forEach(item => URL.revokeObjectURL(item.url)); render(); },
+      setDisabled(disabled) { input.disabled = disabled; zone.classList.toggle('is-disabled', disabled); },
+    };
+  }
+
+  // Đọc account id (sub) từ JWT đang lưu, dùng cho các cờ gắn với từng tài khoản.
+  function accountId() {
+    try { return JSON.parse(atob(localStorage.getItem('token').split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).sub || null; } catch (error) { return null; }
+  }
+
+  window.F2D = Object.freeze({ toast, busy, mutate, lightbox, closeLightbox, date, dateTime, toDate, escapeHTML, interestsEditor, imagePicker, accountId });
 })();

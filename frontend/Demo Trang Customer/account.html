@@ -53,19 +53,6 @@ html,body,input,button,select,textarea{font-family:'Inter',system-ui,-apple-syst
   #avatarUploadForm{display:flex;flex-direction:column;gap:10px}
   #pane-hoso>div:first-child .btn{margin-left:0 !important;width:100%;justify-content:center}
 }
-.custom-interest-editor{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.custom-interest-input{height:36px;min-width:200px;max-width:260px;border:1.5px solid var(--line);border-radius:100px;padding:0 14px;font-size:13px}
-.personal-interests{flex-basis:100%;width:100%;margin-top:14px;padding-top:14px;border-top:1px dashed var(--line)}
-.personal-interests-label{font-size:13px;font-weight:700;margin-bottom:10px}.personal-interests-label span{font-weight:500;color:var(--muted)}
-.personal-interests-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-.chip.personal{display:inline-flex;align-items:center;gap:6px;animation:chipIn .18s ease-out}
-.chip-x{border:0;background:rgba(255,255,255,.25);color:inherit;width:18px;height:18px;border-radius:50%;line-height:16px;font-size:14px;cursor:pointer;padding:0}
-.chip-x:hover{background:rgba(255,255,255,.45)}
-.chip.add-chip{border-style:dashed}
-.personal-interests-msg{min-height:18px;margin-top:8px;font-size:12.5px;font-weight:600;color:#2E7D4F}.personal-interests-msg.error{color:#C0392B}
-@keyframes chipIn{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:none}}
-@media (prefers-reduced-motion:reduce){.chip.personal{animation:none}}
-.custom-interest-input:focus{outline:none;border-color:var(--rose)}
 </style>
 </head>
 <body>
@@ -89,10 +76,10 @@ html,body,input,button,select,textarea{font-family:'Inter',system-ui,-apple-syst
 <div class="navbar">
   <div class="nav-left"><button class="mobile-menu-btn" type="button" aria-label="Mở menu" onclick="toggleMobileMenu()"><svg class="icon icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
     <a href="home.html" class="nav-logo" style="text-decoration:none; color:inherit;"><img src="Logo.svg" alt="logo" style="width:38px;height:auto;">FREE2DO</a>
-    <div class="nav-search">
+    <form class="nav-search" role="search" action="search.html">
       <svg class="icon"><use href="#icon-search"></use></svg>
-      <input type="text" placeholder="Tìm hoạt động, địa điểm...">
-    </div>
+      <input type="search" name="q" placeholder="Tìm hoạt động, địa điểm..." aria-label="Tìm hoạt động, địa điểm">
+    </form>
   </div>
   <div class="nav-center">
       <a href="home.html" class="nav-link">Trang chủ</a>

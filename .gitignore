@@ -23,3 +23,5 @@ Thumbs.db
 backend/BACKEND_CODE_EXPLAINED.md
 .pytest_cache/
 .claude/
+# Playwright CLI output (may contain credentials)
+.playwright-cli/

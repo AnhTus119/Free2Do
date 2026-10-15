@@ -1,18 +1,98 @@
 <!DOCTYPE html>
 <html lang="vi">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>FREE2DO Business — Hồ sơ</title><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"><link rel="stylesheet" href="app-style.css"></head>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>FREE2DO Business — Hồ sơ</title><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"><link rel="stylesheet" href="app-style.css"><style>
+.bp-wrap{max-width:960px;padding-top:32px;padding-bottom:64px;display:grid;gap:20px}
+.bp-card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:24px}
+.bp-card-title{margin:0 0 14px;font-size:16px;font-weight:800}
+.bp-hero{display:flex;align-items:center;gap:20px;flex-wrap:wrap;background:linear-gradient(135deg,#fff 55%,color-mix(in srgb,var(--paper) 60%,var(--cream)))}
+.bp-hero .bp-logo{width:84px;height:84px;border-radius:22px;font-size:30px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;overflow:hidden;background:var(--cream);color:var(--brown);font-weight:800}
+.bp-hero .bp-logo img{width:100%;height:100%;object-fit:cover;border-radius:0 !important}
+.bp-hero-text{flex:1;min-width:220px}
+.bp-hero-title{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.bp-hero-title h1{margin:0;font-size:24px;line-height:1.25;overflow-wrap:anywhere}
+.bp-status{padding:4px 11px;border-radius:999px;font-size:12px;font-weight:700}
+.bp-status.verified{background:var(--success-bg);color:var(--success)}
+.bp-status.pending{background:var(--warn-bg);color:var(--warn)}
+.bp-tagline{margin:6px 0 0;color:var(--muted);font-size:14px}
+.bp-edit-btn svg,.bp-contact dt svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.bp-grid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:20px}
+.bp-about{margin:0;line-height:1.7;white-space:pre-line;max-width:65ch}
+.bp-about.is-empty,.bp-contact dd.is-empty{color:var(--muted);font-style:italic}
+.bp-contact{display:grid;gap:14px;margin:0}
+.bp-contact>div{display:grid;grid-template-columns:150px minmax(0,1fr);gap:12px;align-items:baseline}
+.bp-contact dt{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--muted)}
+.bp-contact dt svg{color:var(--rose)}
+.bp-contact dd{margin:0;font-size:14.5px;font-weight:600;overflow-wrap:anywhere}
+.bp-media-block{padding:18px 0;border-top:1px solid var(--line)}
+.bp-media-block:first-of-type{border-top:0;padding-top:0}
+.bp-media-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.bp-media-head h3{margin:0;font-size:15px;font-weight:800}
+.bp-media-head span{font-size:13px;color:var(--muted)}
+.bp-media-row{display:grid;grid-template-columns:240px minmax(0,1fr);gap:16px;align-items:start}
+.bp-media-row .bp-thumbs:empty{display:flex}
+.bp-media-row .bp-thumbs:empty::before{content:"Chưa có ảnh";display:flex;align-items:center;justify-content:center;width:100%;min-height:96px;border:1px dashed var(--line);border-radius:12px;color:var(--muted);font-size:13px}
+.bp-thumbs .f2d-thumb{width:112px;height:112px}
+@media(max-width:760px){.bp-grid,.bp-media-row{grid-template-columns:1fr}.bp-contact>div{grid-template-columns:1fr;gap:4px}.bp-edit-btn{width:100%}}
+</style></head>
 <body>
-  <header class="navbar"><div class="nav-left"><button class="mobile-menu-btn" onclick="toggleMobileMenu()">☰</button><a href="business-home.html" class="nav-logo"><img src="Logo.svg" alt="FREE2DO" style="width:38px">FREE2DO <span style="color:var(--muted)">Business</span></a></div><nav class="nav-center"><a href="business-home.html" class="nav-link">Tổng quan</a><a href="my-activities.html" class="nav-link">Hoạt động của tôi</a><a href="reviews.html" class="nav-link">Đánh giá</a></nav><div class="nav-right"><div class="nav-who dropdown-wrap" onclick="toggleMenu(event)"><div class="nav-avatar" data-business-avatar>B</div><div class="nav-name" data-business-name>Đang tải...</div><div class="dropdown-menu" id="nav-user-menu"><a href="business-profile.html">Hồ sơ Doanh nghiệp</a><a href="upgrade-plan.html">Gói dịch vụ</a><a href="#" data-logout>Đăng xuất</a></div></div></div></header>
-  <main class="wrap" style="padding-top:32px;padding-bottom:60px;max-width:900px">
-    <section style="display:flex;align-items:center;gap:18px;margin-bottom:28px"><div class="nav-avatar" data-business-avatar style="width:64px;height:64px;font-size:22px">B</div><div style="flex:1"><h2 id="profile-name" style="font-size:19px;margin:0">Đang tải...</h2><div style="color:var(--muted);font-size:13px"><span id="profile-address">—</span></div></div><button class="btn btn-secondary" onclick="toggleEdit()">Chỉnh sửa hồ sơ</button></section>
-    <section id="view-mode">
-      <div style="background:#fff;border:1px solid var(--line);border-radius:16px;padding:22px;margin-bottom:20px"><h3 class="section-title">Giới thiệu</h3><p id="profile-description" style="line-height:1.7"></p></div>
-      <div style="background:#fff;border:1px solid var(--line);border-radius:16px;padding:22px;margin-bottom:20px"><h3 class="section-title">Thông tin liên hệ</h3><div class="info-row"><span>Số điện thoại</span><b id="profile-phone">—</b></div><div class="info-row"><span>Email</span><b id="profile-email">—</b></div></div>
+  <header class="navbar"><div class="nav-left"><button class="mobile-menu-btn" onclick="toggleMobileMenu()">☰</button><a href="business-home.html" class="nav-logo"><img src="Logo.svg" alt="FREE2DO" style="width:38px">FREE2DO <span style="color:var(--muted)">Business</span></a></div><nav class="nav-center"><a href="business-home.html" class="nav-link">Tổng quan</a><a href="my-activities.html" class="nav-link">Hoạt động của tôi</a><a href="reviews.html" class="nav-link">Đánh giá</a><a href="upgrade-plan.html" class="nav-link">Gói dịch vụ</a></nav><div class="nav-right"><div class="nav-who dropdown-wrap" onclick="toggleMenu(event)"><div class="nav-avatar" data-business-avatar>B</div><div class="nav-name" data-business-name>Đang tải...</div><div class="dropdown-menu" id="nav-user-menu"><a href="business-profile.html">Hồ sơ Doanh nghiệp</a><a href="upgrade-plan.html">Gói dịch vụ</a><a href="#" data-logout>Đăng xuất</a></div></div></div></header>
+  <main class="wrap bp-wrap">
+    <section class="bp-card bp-hero">
+      <div class="bp-logo" data-business-avatar>B</div>
+      <div class="bp-hero-text">
+        <div class="bp-hero-title"><h1 id="profile-name">Đang tải...</h1><span id="profile-status" class="bp-status"></span></div>
+        <p id="profile-tagline" class="bp-tagline"></p>
+      </div>
+      <button class="btn btn-secondary bp-edit-btn" type="button" id="open-edit"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>Chỉnh sửa hồ sơ</button>
     </section>
-    <section id="edit-mode" style="display:none;background:#fff;border:1px solid var(--line);border-radius:16px;padding:22px"><div class="field"><label>Tên doanh nghiệp</label><input id="edit-name"></div><div class="field"><label>Số điện thoại</label><input id="edit-phone"></div><div class="field"><label>Địa chỉ</label><input id="edit-address"></div><div class="field"><label>Mô tả</label><textarea id="edit-description"></textarea></div><div style="display:flex;gap:10px"><button class="btn btn-primary" id="save-profile">Lưu thay đổi</button><button class="btn btn-secondary" onclick="toggleEdit()">Hủy</button></div></section>
-    <section style="background:#fff;border:1px solid var(--line);border-radius:16px;padding:22px;margin-top:24px"><h3 class="section-title">Logo, gallery và menu</h3><p style="color:var(--muted);font-size:13px">Ảnh được tải qua backend lên Supabase Storage và URL được lưu trong database.</p><div style="display:grid;grid-template-columns:160px 1fr auto;gap:10px;align-items:end"><div class="field"><label>Loại ảnh</label><select id="media-kind"><option value="logo">Logo</option><option value="gallery">Gallery</option><option value="menu">Menu</option></select></div><div class="field"><label>Chọn ảnh</label><input id="media-file" type="file" accept="image/*"></div><button class="btn btn-primary" id="upload-media">Tải lên</button></div><div id="business-media-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-top:16px"></div></section>
+
+    <div class="bp-grid">
+      <section class="bp-card">
+        <h2 class="bp-card-title">Giới thiệu</h2>
+        <p id="profile-description" class="bp-about"></p>
+      </section>
+      <section class="bp-card">
+        <h2 class="bp-card-title">Thông tin liên hệ</h2>
+        <dl class="bp-contact">
+          <div><dt><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2Z"/></svg>Số điện thoại</dt><dd id="profile-phone"></dd></div>
+          <div><dt><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></svg>Email</dt><dd id="profile-email"></dd></div>
+          <div><dt><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>Địa chỉ</dt><dd id="profile-address"></dd></div>
+          <div><dt><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9h10M7 13h6"/></svg>Mã doanh nghiệp</dt><dd id="profile-code"></dd></div>
+        </dl>
+      </section>
+    </div>
+
+    <section class="bp-card">
+      <h2 class="bp-card-title">Hình ảnh doanh nghiệp</h2>
+      <div class="bp-media-block" data-kind="logo">
+        <div class="bp-media-head"><h3>Logo</h3><span>Ảnh vuông, hiển thị ở hồ sơ và kết quả tìm kiếm. Tải ảnh mới sẽ thay logo hiện tại.</span></div>
+        <div class="bp-media-row"><div class="bp-picker" id="picker-logo"></div><div class="f2d-thumbs bp-thumbs" id="media-logo" data-zoom-group></div></div>
+      </div>
+      <div class="bp-media-block" data-kind="gallery">
+        <div class="bp-media-head"><h3>Gallery</h3><span>Không gian, sản phẩm, khoảnh khắc khách hàng.</span></div>
+        <div class="bp-media-row"><div class="bp-picker" id="picker-gallery"></div><div class="f2d-thumbs bp-thumbs" id="media-gallery" data-zoom-group></div></div>
+      </div>
+      <div class="bp-media-block" data-kind="menu">
+        <div class="bp-media-head"><h3>Menu</h3><span>Ảnh thực đơn hoặc bảng giá.</span></div>
+        <div class="bp-media-row"><div class="bp-picker" id="picker-menu"></div><div class="f2d-thumbs bp-thumbs" id="media-menu" data-zoom-group></div></div>
+      </div>
+    </section>
   </main>
-  <div class="mobile-nav-panel" id="mobile-nav"><div class="mobile-nav-content"><button class="mobile-nav-close" onclick="toggleMobileMenu()">&times;</button><a href="business-home.html" class="mobile-nav-link">Tổng quan</a><a href="my-activities.html" class="mobile-nav-link">Hoạt động của tôi</a><a href="reviews.html" class="mobile-nav-link">Đánh giá</a></div></div>
+
+  <dialog class="f2d-modal" id="edit-dialog" aria-labelledby="edit-title">
+    <form class="f2d-modal-card" id="edit-form" novalidate>
+      <h2 class="f2d-modal-title" id="edit-title">Chỉnh sửa hồ sơ</h2>
+      <p class="f2d-modal-sub">Thông tin này hiển thị cho khách hàng trên trang doanh nghiệp của bạn.</p>
+      <div class="f2d-modal-body">
+        <div class="field"><label for="edit-name">Tên doanh nghiệp</label><input id="edit-name" maxlength="255" required></div>
+        <div class="field"><label for="edit-phone">Số điện thoại</label><input id="edit-phone" type="tel" maxlength="30"></div>
+        <div class="field"><label for="edit-address">Địa chỉ</label><input id="edit-address" maxlength="500" required></div>
+        <div class="field"><label for="edit-description">Giới thiệu</label><textarea id="edit-description" rows="5" maxlength="5000"></textarea></div>
+      </div>
+      <div class="f2d-modal-actions"><button type="button" class="btn btn-secondary" id="cancel-edit">Hủy</button><button type="submit" class="btn btn-primary" id="save-profile">Lưu</button></div>
+    </form>
+  </dialog>
+  <div class="mobile-nav-panel" id="mobile-nav"><div class="mobile-nav-content"><button class="mobile-nav-close" onclick="toggleMobileMenu()">&times;</button><a href="business-home.html" class="mobile-nav-link">Tổng quan</a><a href="my-activities.html" class="mobile-nav-link">Hoạt động của tôi</a><a href="reviews.html" class="mobile-nav-link">Đánh giá</a><a href="upgrade-plan.html" class="mobile-nav-link">Gói dịch vụ</a></div></div>
   <script src="../js/config.js"></script><script src="../js/main.js"></script><script src="business-api.js"></script><script src="business-profile.js"></script>
 <script src="../js/notifications.js?v=20261015"></script>
 </body>

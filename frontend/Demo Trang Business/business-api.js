@@ -63,9 +63,9 @@
     const name = profile.business_name || me.name || 'Doanh nghiệp';
     const initial = name.trim().charAt(0).toUpperCase() || 'B';
     document.querySelectorAll('[data-business-name]').forEach(node => { node.textContent = name; });
-    document.querySelectorAll('[data-business-email]').forEach(node => { node.textContent = me.email || '—'; });
+    document.querySelectorAll('[data-business-email]').forEach(node => { node.textContent = me.email || 'Chưa cập nhật'; });
     document.querySelectorAll('[data-business-avatar]').forEach(node => {
-      node.textContent = initial;
+      node.textContent = profile.avatar_url ? '' : initial; // có logo thì không chồng chữ cái lên ảnh
       if (profile.avatar_url) {
         node.style.backgroundImage = `url("${String(profile.avatar_url).replace(/"/g, '%22')}")`;
         node.style.backgroundSize = 'cover';

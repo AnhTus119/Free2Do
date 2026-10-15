@@ -110,10 +110,10 @@ class FullFrontendContractTests(unittest.TestCase):
     def test_map_icons_exist_and_zoom_does_not_depend_on_leaflet(self):
         icon_source = (self.frontend / "js" / "customer-activity-icons.js").read_text(encoding="utf-8")
         map_source = (self.frontend / "js" / "customer-map.js").read_text(encoding="utf-8")
-        filenames = re.findall(r"\.\./assets/map-icons/([^'\"`\r\n]+)['\"]", icon_source)
+        filenames = re.findall(r"\.\./img/map-icons/([^'\"`\r\n]+)['\"]", icon_source)
         self.assertGreaterEqual(len(filenames), 14)
         for filename in filenames:
-            self.assertTrue((self.frontend / "assets" / "map-icons" / filename).is_file(), filename)
+            self.assertTrue((self.frontend / "img" / "map-icons" / filename).is_file(), filename)
         for marker in ("zoomBy", "addEventListener('wheel'", "addEventListener('dblclick'", "addEventListener('touchmove'", "addEventListener('pointermove'", "onSelectPosition"):
             self.assertIn(marker, map_source)
         self.assertIn("document.createElement('img')", map_source)

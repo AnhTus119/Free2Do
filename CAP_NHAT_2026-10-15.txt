@@ -11,4 +11,3 @@ CẬP NHẬT 15/10/2026 — CÁCH TRIỂN KHAI
 4. Deploy lại frontend (Vercel), bấm Ctrl+F5.
 
 Đăng nhập: mọi vai trò dùng chung log-in.html; admin-login.html đã bỏ (link cũ tự chuyển về log-in.html).
-Nếu chưa nạp ảnh doanh nghiệp vào database: xem HUONG_DAN_NAP_ANH.txt.

@@ -2,20 +2,20 @@
   'use strict';
 
   const ICONS = {
-    'an-uong': '../img/map-icons/an-uong.jpg',
-    billiard: '../img/map-icons/billiard.jpg',
-    bowling: '../img/map-icons/bowling.jpg',
-    'ca-hat': '../img/map-icons/ca-hat.jpg',
-    'ca-phe': '../img/map-icons/ca-phe.jpg',
-    game: '../img/map-icons/game.jpg',
-    'goi-dau': '../img/map-icons/goi-dau.jpg',
-    'lam-dep': '../img/map-icons/lam-dep.jpg',
-    'may-anh': '../img/map-icons/may-anh.jpg',
-    'mua-sam': '../img/map-icons/mua-sam.jpg',
-    'tham-quan': '../img/map-icons/tham-quan.jpg',
-    'the-thao': '../img/map-icons/the-thao.jpg',
-    workshop: '../img/map-icons/workshop.jpg',
-    'xem-phim': '../img/map-icons/xem-phim.jpg',
+    'an-uong': '../assets/map-icons/an-uong.jpg',
+    billiard: '../assets/map-icons/billiard.jpg',
+    bowling: '../assets/map-icons/bowling.jpg',
+    'ca-hat': '../assets/map-icons/ca-hat.jpg',
+    'ca-phe': '../assets/map-icons/ca-phe.jpg',
+    game: '../assets/map-icons/game.jpg',
+    'goi-dau': '../assets/map-icons/goi-dau.jpg',
+    'lam-dep': '../assets/map-icons/lam-dep.jpg',
+    'may-anh': '../assets/map-icons/may-anh.jpg',
+    'mua-sam': '../assets/map-icons/mua-sam.jpg',
+    'tham-quan': '../assets/map-icons/tham-quan.jpg',
+    'the-thao': '../assets/map-icons/the-thao.jpg',
+    workshop: '../assets/map-icons/workshop.jpg',
+    'xem-phim': '../assets/map-icons/xem-phim.jpg',
   };
 
   // Tên/mô tả hoạt động được ưu tiên trước tags. Nhờ vậy một quán cà phê có
@@ -68,7 +68,7 @@
     // chưa tồn tại, customer-map.js tự quay về marker mặc định.
     const firstCategory = (categoryNames || []).find(Boolean);
     const automaticKey = slugify(firstCategory);
-    return automaticKey ? `../img/map-icons/${automaticKey}.jpg` : null;
+    return automaticKey ? `../assets/map-icons/${automaticKey}.jpg` : null;
   }
 
   window.Free2DoActivityIcons = { ICONS, RULES, normalize, slugify, urlFor };

@@ -336,10 +336,114 @@
     };
   }
 
+  // ---------- Chiều sâu & chuyển động (chỉ transform/opacity, tắt khi reduced-motion) ----------
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Lớp nền: vài bong bóng màu palette trôi chậm phía sau nội dung (z-index âm, không bắt chuột).
+  function ambient() {
+    if (document.querySelector('.f2d-ambient')) return;
+    const layer = document.createElement('div');
+    layer.className = 'f2d-ambient';
+    layer.setAttribute('aria-hidden', 'true');
+    const bubbles = [
+      [340, 6, 12, 'rose', 26], [220, 78, 6, 'cream', 32], [160, 88, 58, 'sage', 24],
+      [280, 14, 70, 'cream', 36], [120, 52, 30, 'pink', 22], [90, 30, 88, 'rose', 28], [200, 64, 84, 'pink', 30],
+    ];
+    layer.innerHTML = bubbles.map(([size, x, y, tone, dur], i) =>
+      `<span class="f2d-bubble ${tone}" style="--s:${size}px;--x:${x}%;--y:${y}%;--t:${dur}s;--d:-${i * 3.7}s"></span>`).join('');
+    document.body.prepend(layer);
+  }
+
+  // Thành phần hiện lên khi cuộn tới: nâng 18px + mờ dần, so le 70ms trong cùng một nhóm.
+  // Nội dung luôn hiện nếu script lỗi: class ẩn chỉ được gắn bởi chính script này.
+  const REVEAL = '.activity-card,.history-card,.search-history-card,.request-card,.rv-card,.bp-card,.ad-stat,.stat-card,.biz-stat-card,.management-panel,.section > .card,.profile-head,.table-panel,.match-card,.welcome,.f2d-thumb';
+  let revealObserver = null;
+  function scanReveal(root = document) {
+    if (reduceMotion || !('IntersectionObserver' in window)) return;
+    revealObserver ||= new IntersectionObserver(entries => entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
+      const el = entry.target;
+      el.classList.add('f2d-in');
+      revealObserver.unobserve(el);
+      // Xong hiệu ứng vào thì gỡ class để hover/transition riêng của thẻ hoạt động lại bình thường.
+      setTimeout(() => el.classList.add('f2d-done'), 1200);
+    }), { rootMargin: '0px 0px -6% 0px' });
+    const fresh = [...root.querySelectorAll(REVEAL)].filter(el => !el.classList.contains('f2d-reveal') && !el.classList.contains('f2d-done') && !el.closest('dialog, .f2d-lightbox, .slide-panel:not(.show)'));
+    fresh.forEach(el => {
+      const siblings = [...el.parentElement.children].filter(node => node.matches(REVEAL));
+      el.style.setProperty('--rd', `${Math.min(siblings.indexOf(el), 8) * 70}ms`);
+      el.classList.add('f2d-reveal');
+      revealObserver.observe(el);
+    });
+  }
+
+  // Gợn sóng nhỏ tại điểm bấm trên mọi nút: phản hồi rõ ràng mà vẫn tối giản.
+  const PRESSABLE = '.btn,.qa-btn,.row-btn,.chip,.rv-pill,.page-btn,.status-tab,.nav-link,.search-history-again,.op-case,.tab-btn';
+  function ripple(event) {
+    const target = event.target.closest(PRESSABLE);
+    if (!target || target.disabled || reduceMotion) return;
+    const rect = target.getBoundingClientRect();
+    const size = Math.max(rect.width, rect.height) * 2;
+    const dot = document.createElement('span');
+    dot.className = 'f2d-ripple';
+    dot.style.cssText = `width:${size}px;height:${size}px;left:${event.clientX - rect.left - size / 2}px;top:${event.clientY - rect.top - size / 2}px`;
+    if (getComputedStyle(target).position === 'static') target.style.position = 'relative';
+    target.classList.add('f2d-has-ripple');
+    target.append(dot);
+    dot.addEventListener('animationend', () => dot.remove());
+  }
+
+  // Pháo giấy: hai ống bắn từ hai góc dưới + một đợt rơi từ trên, nhiều hình (giấy, tròn, ruy băng).
+  const CONFETTI_COLORS = ['#DB6680', '#FF9DA3', '#FFEBC6', '#B2BD8B', '#F5B921', '#BE4F68', '#8FB8DE'];
+  function confetti(host, { pieces = 140 } = {}) {
+    if (reduceMotion || !host) return;
+    const layer = document.createElement('div');
+    layer.className = 'f2d-confetti';
+    layer.setAttribute('aria-hidden', 'true');
+    host.append(layer);
+    const { width, height } = host.getBoundingClientRect();
+    const rand = (min, max) => min + Math.random() * (max - min);
+    const animations = [];
+    for (let i = 0; i < pieces; i += 1) {
+      const piece = document.createElement('i');
+      const shape = i % 3;
+      piece.className = shape === 0 ? 'rect' : shape === 1 ? 'dot' : 'ribbon';
+      piece.style.background = CONFETTI_COLORS[i % CONFETTI_COLORS.length];
+      layer.append(piece);
+      const wave = i % 3; // 0: ống trái, 1: ống phải, 2: mưa từ trên
+      const startX = wave === 0 ? 0 : wave === 1 ? width : rand(0, width);
+      const startY = wave === 2 ? -20 : height;
+      const dx = wave === 0 ? rand(width * 0.15, width * 0.85) : wave === 1 ? -rand(width * 0.15, width * 0.85) : rand(-60, 60);
+      const peak = wave === 2 ? rand(height * 0.4, height) : -rand(height * 0.55, height * 1.05);
+      const spin = rand(360, 1080) * (Math.random() < 0.5 ? -1 : 1);
+      const delay = wave === 2 ? rand(250, 900) : rand(0, 220);
+      animations.push(piece.animate([
+        { transform: `translate(${startX}px, ${startY}px) rotate(0deg) scale(${rand(0.7, 1.2)})`, opacity: 1 },
+        { transform: `translate(${startX + dx * 0.7}px, ${startY + peak}px) rotate(${spin * 0.6}deg)`, opacity: 1, offset: 0.45 },
+        { transform: `translate(${startX + dx}px, ${height + 40}px) rotate(${spin}deg)`, opacity: 0 },
+      ], { duration: rand(1800, 3000), delay, easing: 'cubic-bezier(.2,.7,.4,1)', fill: 'both' }).finished);
+    }
+    Promise.allSettled(animations).then(() => layer.remove());
+  }
+
+  function initMotion() {
+    ambient();
+    scanReveal();
+    document.addEventListener('pointerdown', ripple);
+    // Phần lớn nội dung được render sau khi gọi API: quét lại khi DOM đổi.
+    let pending = false;
+    new MutationObserver(() => {
+      if (pending) return;
+      pending = true;
+      requestAnimationFrame(() => { pending = false; scanReveal(); });
+    }).observe(document.body, { childList: true, subtree: true });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initMotion); else initMotion();
+
   // Đọc account id (sub) từ JWT đang lưu, dùng cho các cờ gắn với từng tài khoản.
   function accountId() {
     try { return JSON.parse(atob(localStorage.getItem('token').split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).sub || null; } catch (error) { return null; }
   }
 
-  window.F2D = Object.freeze({ toast, busy, mutate, lightbox, closeLightbox, date, dateTime, toDate, escapeHTML, interestsEditor, imagePicker, accountId });
+  window.F2D = Object.freeze({ toast, busy, mutate, lightbox, closeLightbox, date, dateTime, toDate, escapeHTML, interestsEditor, imagePicker, accountId, confetti });
 })();

@@ -327,3 +327,22 @@ main{animation:f2dPageIn .28s ease-out both;}
 .biz-table td:nth-child(3){min-width:180px;}
 .biz-table .row-actions{flex-wrap:nowrap;}
 .biz-table .row-btn{white-space:nowrap;}
+
+/* Chuyển trang mượt giữa các trang (View Transitions; trình duyệt không hỗ trợ thì bỏ qua) */
+@view-transition{navigation:auto;}
+::view-transition-old(root),::view-transition-new(root){animation-duration:.22s;}
+@media (prefers-reduced-motion:reduce){@view-transition{navigation:none;}}
+.navbar{view-transition-name:site-nav;}
+
+/* Gạch chân link điều hướng mở ra khi hover / trang hiện tại */
+.nav-link{position:relative;border-bottom:0;padding-bottom:8px;}
+.nav-link::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;border-radius:2px;background:var(--rose);transform:scaleX(0);transition:transform .26s cubic-bezier(.2,.8,.2,1);}
+.nav-link:hover{color:var(--ink);}
+.nav-link:hover::after,.nav-link.active::after{transform:scaleX(1);}
+
+/* Nút chính: có khối (ánh sáng từ trên, bóng màu hồng bên dưới) */
+.btn-primary{background:linear-gradient(180deg,#E2768E 0%,var(--rose) 48%,#CF5975 100%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.28),0 1px 2px rgba(120,40,60,.16),0 8px 18px -8px rgba(185,77,104,.5);}
+.btn-primary:hover:not(:disabled){background:linear-gradient(180deg,#D86A83 0%,var(--rose-dark) 100%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 2px 4px rgba(120,40,60,.16),0 14px 26px -10px rgba(185,77,104,.6);}
+.btn:focus-visible,.nav-link:focus-visible{outline:2px solid var(--rose-dark);outline-offset:3px;}

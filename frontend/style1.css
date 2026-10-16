@@ -361,3 +361,9 @@ tbody tr:hover{background:#FCFAF6;}
 .nav-item:hover:not(.active){transform:translateX(3px);}
 .stat-icon{color:var(--brown);}
 .stat-num{font-variant-numeric:tabular-nums;}
+
+/* Chuyển trang mượt giữa các trang (View Transitions; trình duyệt không hỗ trợ thì bỏ qua) */
+@view-transition{navigation:auto;}
+::view-transition-old(root),::view-transition-new(root){animation-duration:.22s;}
+@media (prefers-reduced-motion:reduce){@view-transition{navigation:none;}}
+.sidebar{view-transition-name:op-sidebar;}

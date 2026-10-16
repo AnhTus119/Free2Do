@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@700;800&display=swap');
 /* ===== FREE2DO CUSTOMER APP — SHARED STYLES ===== */
 :root{
   --sage:#B2BD8B; --pink:#FF9DA3; --rose:#DB6680; --rose-dark:#BE4F68;
@@ -297,3 +298,58 @@ main{animation:f2dPageIn .28s ease-out both;}
 .search-history-again:focus-visible{outline:2px solid var(--rose-dark);outline-offset:3px;}
 .search-history-empty{padding:28px;border:1px dashed var(--line);border-radius:16px;color:var(--muted);text-align:center;max-width:760px;}
 @media (max-width:520px){.search-history-card{padding:16px;gap:12px;}.search-history-place{font-size:17px;}.search-history-again{padding:10px 16px;}}
+
+/* ===== Chiều sâu & chuyển động (đồng bộ với trang giới thiệu index.html) ===== */
+:root{--font-display:'Be Vietnam Pro','Inter',sans-serif;--ease-out:cubic-bezier(.2,.8,.2,1);}
+
+/* Chuyển trang mượt giữa các trang (View Transitions; trình duyệt không hỗ trợ thì bỏ qua) */
+@view-transition{navigation:auto;}
+::view-transition-old(root),::view-transition-new(root){animation-duration:.22s;}
+.navbar{view-transition-name:site-nav;}
+
+/* Gạch chân link điều hướng mở từ giữa ra khi hover / trang hiện tại */
+.nav-link{position:relative;border-bottom:0;padding-bottom:8px;}
+.nav-link::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;border-radius:2px;background:var(--rose);transform:scaleX(0);transition:transform .26s var(--ease-out);}
+.nav-link:hover{color:var(--ink);}
+.nav-link:hover::after,.nav-link.active::after{transform:scaleX(1);}
+
+/* Nút chính: có khối (ánh sáng từ trên, bóng màu hồng bên dưới) */
+.btn-primary{background:linear-gradient(180deg,#E2768E 0%,var(--rose) 48%,#CF5975 100%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.28),0 1px 2px rgba(120,40,60,.16),0 8px 18px -8px rgba(185,77,104,.5);}
+.btn-primary:hover:not(:disabled){background:linear-gradient(180deg,#D86A83 0%,var(--rose-dark) 100%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 2px 4px rgba(120,40,60,.16),0 14px 26px -10px rgba(185,77,104,.6);}
+.btn-secondary:hover:not(:disabled){box-shadow:0 8px 18px -12px rgba(110,82,72,.45);}
+.btn:focus-visible,.nav-link:focus-visible,.activity-card:focus-visible{outline:2px solid var(--rose-dark);outline-offset:3px;}
+
+/* Tiêu đề dùng font hiển thị riêng cho tiếng Việt */
+.hero h1,.section-title,.business-hero h1{font-family:var(--font-display);letter-spacing:-.025em;}
+.section-title{font-size:24px;}
+
+/* Hero trang chủ: ánh nắng ấm phía sau ô "tìm theo thời gian rảnh" */
+/* Lớp nền tràn hết chiều ngang dù .hero nằm trong .wrap; body cắt phần thừa để không có thanh cuộn ngang */
+body{overflow-x:clip;}
+.hero{position:relative;isolation:isolate;background:transparent;}
+.hero::before{content:"";position:absolute;z-index:-1;top:0;bottom:0;left:calc(50% - 50vw);right:calc(50% - 50vw);pointer-events:none;
+  background:
+    radial-gradient(40% 80% at 22% 0%,rgba(242,178,92,.24),transparent 64%),
+    radial-gradient(34% 70% at 80% 6%,rgba(219,102,128,.14),transparent 64%),
+    linear-gradient(180deg,#FFF6E6 0%,rgba(251,247,240,0) 100%);}
+.hero h1{font-size:42px;line-height:1.15;text-wrap:balance;}
+.hero > h1,.hero > p{animation:f2dRise .6s var(--ease-out) both;}
+.hero > p{animation-delay:.08s;}
+@keyframes f2dRise{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:none;}}
+
+/* Ô tìm kiếm chính nổi lên khỏi nền */
+.match-card{border-color:rgba(234,223,203,.9);
+  box-shadow:inset 0 1px 0 #fff,0 1px 2px rgba(43,36,32,.05),0 30px 60px -34px rgba(110,82,72,.45);}
+.match-card input:focus,.match-card .time-select:focus{outline:none;border-color:var(--rose) !important;box-shadow:0 0 0 3px rgba(219,102,128,.15);}
+.chip:hover:not(.active){border-color:color-mix(in srgb,var(--line) 40%,var(--rose));}
+.chip.active{box-shadow:0 6px 14px -8px rgba(43,36,32,.55);}
+
+/* Thẻ hoạt động bấm được: ảnh phóng nhẹ trong khung khi hover */
+.activity-card .activity-image img,.activity-card .activity-img img{transition:transform .5s var(--ease-out);}
+.activity-card:hover .activity-image img,.activity-card:hover .activity-img img{transform:scale(1.05);}
+.activity-card:hover{box-shadow:0 2px 4px rgba(43,36,32,.04),0 20px 36px -20px rgba(110,82,72,.45);}
+
+@media (max-width:600px){.hero h1{font-size:28px;}.section-title{font-size:19px;}}
+@media (prefers-reduced-motion:reduce){@view-transition{navigation:none;}}

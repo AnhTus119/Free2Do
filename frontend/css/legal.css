@@ -62,3 +62,8 @@ body {
   .legal-main { padding: 28px 22px; }
   .legal-brand { font-size: 21px; }
 }
+
+/* Chuyển trang mượt giữa các trang (View Transitions; trình duyệt không hỗ trợ thì bỏ qua) */
+@view-transition{navigation:auto;}
+::view-transition-old(root),::view-transition-new(root){animation-duration:.22s;}
+@media (prefers-reduced-motion:reduce){@view-transition{navigation:none;}}

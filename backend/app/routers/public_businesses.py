@@ -37,7 +37,11 @@ def _to_public(
         business_address=business.business_address,
         avatar_url=business.avatar_url,
         activity_count=counts.get(business.user_id, 0),
-        media=[schemas.BusinessMediaOut.model_validate(item) for item in business.media],
+        media=[
+            schemas.BusinessMediaOut.model_validate(item)
+            for item in business.media
+            if item.media_kind != "proof"
+        ],
     )
 
 

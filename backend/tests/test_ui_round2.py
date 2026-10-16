@@ -13,8 +13,11 @@ from sqlalchemy.pool import StaticPool
 from app import models, schemas
 from app.routers import activities as activities_router
 from app.routers import business_requests as requests_router
+from app.routers import media as media_router
+from app.routers import public_businesses as public_businesses_router
 from app.routers.complaints import create_complaint, list_complaints, resolve_complaint
 from app.routers.reports import list_reports, resolve_report
+from app.services import supabase_storage
 from app.services.supabase_storage import UploadedAsset
 
 PNG = b"\x89PNG\r\n\x1a\n" + b"0" * 32
@@ -128,6 +131,90 @@ class UiRound2Tests(unittest.TestCase):
             with self.assertRaises(HTTPException):
                 asyncio.run(requests_router.upload_business_request_proofs("Q1", [upload(PNG)] * 4, db=self.db, user=user))
         self.assertEqual(self.db.query(models.ActivityMedia).count(), 0)  # không lẫn vào ảnh hoạt động
+
+    def test_operator_can_add_proofs_to_approved_business_request(self):
+        request = models.BusinessRequest(
+            request_id="Q2", user_id="B1", business_name="Quán A",
+            status="approved", created_at=self.now,
+        )
+        self.db.add(request)
+        self.db.commit()
+        upload = UploadFile(file=io.BytesIO(PNG), filename="proof.png")
+        asset = UploadedAsset(
+            media_url="https://s/business-proofs/Q2/proof.png",
+            public_id="business-proofs/Q2/proof.png",
+            media_type="image",
+            bytes=len(PNG),
+        )
+        with patch.object(requests_router, "upload_asset", return_value=asset):
+            result = asyncio.run(requests_router.operator_upload_business_request_proofs(
+                "Q2", [upload], db=self.db, _operator=self.operator,
+            ))
+        self.assertEqual(result.status, "approved")
+        self.assertEqual(len(result.proofs), 1)
+        self.assertTrue(result.proofs[0].media_url.endswith("proof.png"))
+
+    def test_operator_can_add_unlimited_business_profile_files(self):
+        contents = b"%PDF-1.7 arbitrary file proof"
+        uploads = [
+            UploadFile(file=io.BytesIO(contents), filename=f"proof-{number}.pdf")
+            for number in range(6)
+        ]
+        asset = UploadedAsset(
+            media_url="https://s/business-proofs/B1/proof.pdf",
+            public_id="business-proofs/B1/proof.pdf",
+            media_type="file",
+            bytes=len(contents),
+        )
+        with patch.object(media_router, "upload_proof_asset", return_value=asset) as upload_proof:
+            result = asyncio.run(media_router.upload_operator_business_proofs(
+                "B1", uploads, db=self.db, _operator=self.operator,
+            ))
+        self.assertEqual(len(result), 6)
+        self.assertTrue(all(item.media_kind == "proof" for item in result))
+        self.assertTrue(all(item.business_id == "B1" for item in result))
+        self.assertTrue(all(item.media_type == "file" for item in result))
+        self.assertEqual(upload_proof.call_count, 6)
+        self.assertEqual(upload_proof.call_args.kwargs["filename"], "proof-5.pdf")
+
+    def test_proof_upload_accepts_non_image_file_format(self):
+        with patch.object(
+            supabase_storage,
+            "_upload",
+            return_value=UploadedAsset(
+                media_url="https://s/business-proofs/B1/proof-1.pdf",
+                public_id="business-proofs/B1/proof-1.pdf",
+                media_type="image",
+                bytes=4,
+            ),
+        ) as storage_upload:
+            asset = supabase_storage.upload_proof_asset(
+                content=b"%PDF",
+                filename="giay-phep.pdf",
+                folder="business-proofs/B1",
+            )
+        self.assertEqual(asset.media_type, "file")
+        self.assertTrue(asset.public_id.endswith(".pdf"))
+        self.assertEqual(storage_upload.call_args.args[1], "application/octet-stream")
+
+    def test_business_proofs_are_not_in_public_business_media(self):
+        self.db.add_all([
+            models.BusinessMedia(
+                media_id="proof", business_id="B1", media_url="proof-url",
+                public_id="proof", media_type="image", media_kind="proof",
+                created_at=self.now,
+            ),
+            models.BusinessMedia(
+                media_id="gallery", business_id="B1", media_url="gallery-url",
+                public_id="gallery", media_type="image", media_kind="gallery",
+                created_at=self.now,
+            ),
+        ])
+        self.db.commit()
+        public = public_businesses_router._to_public(
+            self.db, self.db.get(models.BusinessProfile, "B1"),
+        )
+        self.assertEqual([media.media_kind for media in public.media], ["gallery"])
 
 
 if __name__ == "__main__":

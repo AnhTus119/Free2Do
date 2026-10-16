@@ -14,7 +14,7 @@ button, a, select, .status-tab { -webkit-tap-highlight-color: transparent; }
 .table-scroll { max-width: 100%; overflow-x: auto; overscroll-behavior-inline: contain; -webkit-overflow-scrolling: touch; }
 .table-scroll table { min-width: 680px; }
 .table-scroll .activity-table { min-width: 900px; }
-.table-scroll .business-table { min-width: 780px; }
+.table-scroll .business-table { min-width: 900px; }
 .table-scroll .pending-table { min-width: 760px; }
 .table-scroll:focus-visible { outline-offset: -3px; }
 .nav-toggle { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }

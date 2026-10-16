@@ -158,6 +158,7 @@
     // Xin GPS ngay khi mở trang, song song với API. Không dùng tọa độ Hà Nội
     // làm dữ liệu giả trong lúc chờ hoặc khi người dùng từ chối quyền vị trí.
     const gpsPromise = window.Free2DoMap.getCurrentPosition();
+    gpsPromise.catch(() => {}); // lỗi GPS được xử lý ở dưới; tránh "Uncaught (in promise)" khi bị từ chối sớm
     const mapPromise = window.Free2DoMap.create('homeMapBox');
     const [, activities, businesses, categories] = await Promise.all([
       api.requireUser(), api.request('/activities'), api.request('/businesses'), api.request('/categories'),

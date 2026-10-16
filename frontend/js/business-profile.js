@@ -57,26 +57,39 @@
     toggleButton.textContent = business.status === 'locked' ? '🔓 Mở khóa Doanh nghiệp' : '🔒 Khóa Doanh nghiệp';
   }
 
-  // Minh chứng (ảnh) lấy từ đơn đăng ký doanh nghiệp, hiển thị riêng, không lẫn với ảnh hoạt động.
+  // Minh chứng từ đơn đăng ký và hồ sơ doanh nghiệp, tách riêng khỏi ảnh hoạt động.
   let proofsFor = null;
   async function renderProofs() {
     if (proofsFor === business.id) return;
     proofsFor = business.id;
     const box = document.getElementById('businessProofs');
     try {
-      const requests = business.requestId
-        ? [await window.AdminAuth.authFetch(`/operator/business-requests/${encodeURIComponent(business.requestId)}`)]
-        : await window.AdminAuth.authFetch(`/operator/business-requests?user_id=${encodeURIComponent(business.id)}&status=approved`);
-      const proofs = requests.find(item => item.proofs?.length)?.proofs || [];
+      const [requests, profileProofs] = await Promise.all([
+        business.requestId
+          ? window.AdminAuth.authFetch(`/operator/business-requests/${encodeURIComponent(business.requestId)}`).then(request => [request])
+          : window.AdminAuth.authFetch(`/operator/business-requests?user_id=${encodeURIComponent(business.id)}&status=approved`),
+        window.AdminAuth.authFetch(`/operator/business-profiles/${encodeURIComponent(business.id)}/proofs`),
+      ]);
+      const proofs = [
+        ...requests.flatMap(request => request.proofs || []),
+        ...profileProofs,
+      ];
       box.innerHTML = proofs.length
-        ? `<div class="f2d-thumbs" data-zoom-group>${proofs.map((proof, index) => `<button type="button" class="f2d-thumb" data-zoom="${data.escapeHTML(proof.media_url)}" aria-label="Phóng to minh chứng ${index + 1}"><img src="${data.escapeHTML(proof.media_url)}" alt="Minh chứng ${index + 1}" loading="lazy"></button>`).join('')}</div>`
-        : '<p class="f2d-empty">Doanh nghiệp chưa gửi ảnh minh chứng.</p>';
+        ? `<div class="f2d-thumbs" data-zoom-group>${proofs.map((proof, index) => {
+          if (proof.media_type && proof.media_type !== 'image') {
+            const fileName = new URL(proof.media_url).pathname.split('/').pop() || `Minh-chung-${index + 1}`;
+            return `<a class="f2d-proof-file" href="${data.escapeHTML(proof.media_url)}" target="_blank" rel="noopener noreferrer"><span aria-hidden="true">📎</span><span>${data.escapeHTML(fileName)}</span></a>`;
+          }
+          return `<button type="button" class="f2d-thumb" data-zoom="${data.escapeHTML(proof.media_url)}" aria-label="Phóng to minh chứng ${index + 1}"><img src="${data.escapeHTML(proof.media_url)}" alt="Minh chứng ${index + 1}" loading="lazy"></button>`;
+        }).join('')}</div>`
+        : '<p class="f2d-empty">Doanh nghiệp chưa gửi file minh chứng.</p>';
     } catch (error) {
       box.innerHTML = `<p class="f2d-empty">${data.escapeHTML(error.message)}</p>`;
     }
   }
 
   const editDialog = document.getElementById('editBusinessDialog');
+  document.getElementById('closeBusinessProfileEdit').addEventListener('click', () => editDialog.close());
   document.getElementById('editBusiness').addEventListener('click', () => {
     if (!business || business.requestId) return F2D.toast('Chỉ sửa được hồ sơ của doanh nghiệp đã được duyệt.', 'error');
     document.getElementById('ebName').value = business.name || '';

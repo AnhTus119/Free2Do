@@ -75,6 +75,14 @@ async def upload_business_request_proofs(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Không tìm thấy yêu cầu")
     if request.status != "pending":
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Chỉ thêm minh chứng cho yêu cầu đang chờ duyệt")
+    return await _append_business_request_proofs(request, files, db)
+
+
+async def _append_business_request_proofs(
+    request: models.BusinessRequest,
+    files: list[UploadFile],
+    db: Session,
+) -> models.BusinessRequest:
     if len(request.proofs) + len(files) > MAX_PROOFS:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, f"Mỗi yêu cầu có tối đa {MAX_PROOFS} ảnh minh chứng")
 
@@ -89,7 +97,7 @@ async def upload_business_request_proofs(
         for content, content_type in contents:
             asset = upload_asset(
                 content=content, content_type=content_type,
-                folder=f"business-proofs/{request.request_id}", owner_id=user.user_id, kind="proof",
+                folder=f"business-proofs/{request.request_id}", owner_id=request.user_id, kind="proof",
             )
             request.proofs.append(models.BusinessRequestProof(
                 media_url=asset.media_url, public_id=asset.public_id, bytes=asset.bytes, created_at=datetime.utcnow(),
@@ -150,6 +158,23 @@ def get_business_request(
     if not request:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Không tìm thấy yêu cầu")
     return request
+
+
+@operator_router.post(
+    "/{request_id}/proofs",
+    response_model=schemas.BusinessRequest,
+    status_code=status.HTTP_201_CREATED,
+)
+async def operator_upload_business_request_proofs(
+    request_id: str,
+    files: list[UploadFile] = File(...),
+    db: Session = Depends(get_db),
+    _operator: models.Operator = Depends(get_current_operator),
+):
+    request = db.query(models.BusinessRequest).filter(models.BusinessRequest.request_id == request_id).first()
+    if not request:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Không tìm thấy yêu cầu")
+    return await _append_business_request_proofs(request, files, db)
 
 
 @operator_router.patch("/{request_id}/approve", response_model=schemas.BusinessRequest)

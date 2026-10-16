@@ -99,15 +99,18 @@
     </div>
   </div>
 </div>
-<dialog class="f2d-modal" id="editBusinessDialog" aria-labelledby="editBusinessTitle">
-  <form class="f2d-modal-card" id="editBusinessForm" novalidate>
+<dialog class="f2d-modal admin-edit-dialog" id="editBusinessDialog" aria-labelledby="editBusinessTitle">
+  <form class="f2d-modal-card admin-edit-card" id="editBusinessForm" novalidate>
+    <button type="button" class="f2d-modal-close" id="closeBusinessProfileEdit" aria-label="Đóng">&times;</button>
+    <span class="admin-edit-kicker">HỒ SƠ DOANH NGHIỆP</span>
     <h2 class="f2d-modal-title" id="editBusinessTitle">Chỉnh sửa hồ sơ doanh nghiệp</h2>
-    <p class="f2d-modal-sub">Thay đổi được áp dụng ngay cho trang doanh nghiệp mà khách hàng nhìn thấy.</p>
-    <div class="f2d-modal-body">
-      <div class="field"><label for="ebName">Tên doanh nghiệp</label><input id="ebName" maxlength="200" required></div>
+    <p class="f2d-modal-sub">Cập nhật thông tin hồ sơ đang được sử dụng trên FREE2DO.</p>
+    <div class="f2d-modal-body admin-edit-fields">
+      <div class="field"><label for="ebName">Tên doanh nghiệp <span>*</span></label><input id="ebName" maxlength="200" required></div>
       <div class="field"><label for="ebPhone">Số điện thoại</label><input id="ebPhone" type="tel" maxlength="30"></div>
       <div class="field"><label for="ebAddress">Địa chỉ</label><input id="ebAddress" maxlength="500"></div>
       <div class="field"><label for="ebDescription">Mô tả</label><textarea id="ebDescription" rows="5" maxlength="5000"></textarea></div>
+      <p class="admin-edit-note">Mã doanh nghiệp, trạng thái duyệt và thống kê được quản lý riêng, không chỉnh sửa tại đây.</p>
     </div>
     <div class="f2d-modal-actions"><button type="button" class="qa-btn" id="ebCancel">Hủy</button><button type="submit" class="qa-btn primary" id="ebSave">Lưu</button></div>
   </form>

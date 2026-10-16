@@ -90,6 +90,10 @@
     try { await data.setStatus('activity', activity.id, 'active'); render(); }
     catch (error) { F2D.toast(error.message, 'error'); }
   });
+  document.getElementById('editActivityProfile').addEventListener('click', () => {
+    if (!activity) return;
+    window.location.href = `activities.html?edit_id=${encodeURIComponent(activity.id)}`;
+  });
 
   data.ready.then(() => { id ||= data.activities[0]?.id; render(); }).catch(error => {
     document.querySelector('.content').textContent = error.message;

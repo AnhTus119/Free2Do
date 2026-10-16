@@ -627,6 +627,7 @@ class ActivityPublicOut(ActivityDetail):
     business_avatar_url: Optional[str] = None
     business_media: list[ActivityBusinessPhoto] = Field(default_factory=list)
     distance_km: Optional[float] = None
+    is_approved: bool = False
 
     @model_validator(mode="after")
     def _fill_google_maps_url(self):

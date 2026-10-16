@@ -174,6 +174,52 @@
   @media (max-width:640px){.op-modal{padding:24px 18px;}.op-grid{grid-template-columns:1fr;}}
   @media (prefers-reduced-motion:reduce){.op-overlay,.op-modal{transition:none;}.op-biz-card{animation:none;}}
 </style>
+<dialog class="f2d-modal admin-edit-dialog" id="editActivityDialog" aria-labelledby="editActivityTitle">
+  <form class="f2d-modal-card admin-edit-card" id="editActivityForm" novalidate>
+    <button type="button" class="f2d-modal-close" id="closeActivityEdit" aria-label="Đóng">&times;</button>
+    <span class="admin-edit-kicker">HỒ SƠ HOẠT ĐỘNG</span>
+    <h2 class="f2d-modal-title" id="editActivityTitle">Chỉnh sửa thông tin</h2>
+    <p class="f2d-modal-sub" id="editActivitySubtitle">Cập nhật thông tin hoạt động.</p>
+    <div class="f2d-modal-body admin-edit-fields">
+      <div class="field"><label for="editActivityName">Tên hoạt động <span>*</span></label><input id="editActivityName" required maxlength="200"></div>
+      <div class="field"><label for="editActivityDescription">Mô tả</label><textarea id="editActivityDescription" rows="4"></textarea></div>
+      <div class="field"><label for="editActivityPrice">Giá (₫)</label><input id="editActivityPrice" type="number" min="0" step="1"></div>
+      <div class="field"><label for="editActivityAddress">Địa chỉ <span>*</span></label><input id="editActivityAddress" required></div>
+      <div class="field"><label for="editActivityMaps">Link Google Maps <span>*</span></label><input id="editActivityMaps" type="url" required placeholder="https://maps.google.com/..."></div>
+      <div class="admin-edit-grid">
+        <div class="field"><label for="editActivityOpen">Giờ mở cửa</label><input id="editActivityOpen" type="time"></div>
+        <div class="field"><label for="editActivityClose">Giờ đóng cửa</label><input id="editActivityClose" type="time"></div>
+        <div class="field"><label for="editActivityFrom">Ngày bắt đầu</label><input id="editActivityFrom" type="date"></div>
+        <div class="field" id="editActivityUntilField"><label for="editActivityUntil">Ngày kết thúc</label><input id="editActivityUntil" type="date"></div>
+      </div>
+      <label class="admin-edit-check"><input id="editActivityAlways" type="checkbox"> Hoạt động áp dụng vô thời hạn</label>
+      <div class="field"><span class="admin-edit-label">Danh mục</span><div id="editActivityCategories" class="admin-category-list"><span class="f2d-empty">Đang tải danh mục...</span></div></div>
+      <div class="admin-edit-grid">
+        <div class="field">
+          <span class="admin-edit-label">Ảnh bìa mới (không bắt buộc)</span>
+          <label class="admin-file-dropzone compact" id="editActivityCoverDropzone" for="editActivityCover">
+            <span class="admin-file-dropzone-icon" aria-hidden="true">↑</span>
+            <span class="admin-file-dropzone-title">Thả ảnh vào đây hoặc bấm để chọn</span>
+            <span class="admin-file-dropzone-note" id="editActivityCoverSelection">Chọn một ảnh bìa</span>
+            <input id="editActivityCover" class="admin-file-input" type="file" accept="image/*">
+          </label>
+        </div>
+        <div class="field">
+          <span class="admin-edit-label">Ảnh/video bổ sung</span>
+          <label class="admin-file-dropzone compact" id="editActivityMediaDropzone" for="editActivityMedia">
+            <span class="admin-file-dropzone-icon" aria-hidden="true">↑</span>
+            <span class="admin-file-dropzone-title">Thả ảnh/video hoặc bấm để chọn</span>
+            <span class="admin-file-dropzone-note" id="editActivityMediaSelection">Có thể chọn nhiều file</span>
+            <input id="editActivityMedia" class="admin-file-input" type="file" accept="image/*,video/*" multiple>
+          </label>
+        </div>
+      </div>
+      <div class="admin-edit-note" id="editActivityExistingMedia"></div>
+      <p class="admin-edit-note">Trạng thái duyệt và thống kê không thay đổi khi admin chỉnh sửa.</p>
+    </div>
+    <div class="f2d-modal-actions"><button type="button" class="qa-btn" id="cancelActivityEdit">Hủy</button><button type="submit" class="qa-btn primary" id="saveActivityEdit">Lưu thay đổi</button></div>
+  </form>
+</dialog>
 <script src="js/config.js"></script><script src="js/main.js"></script>
 <script src="js/admin-auth.js"></script>
 <script src="js/admin-shell.js"></script>

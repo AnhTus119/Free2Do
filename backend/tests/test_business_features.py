@@ -12,8 +12,12 @@ from app.routers.businesses import (
     create_review_reply,
     get_business_analytics,
     get_business_dashboard,
+    list_business_activities,
+    list_business_reviews,
     update_business_profile,
 )
+from app.routers.activities import update_activity
+from app.routers.activities import get_activity_for_review
 from app.routers.complaints import create_complaint
 from app.routers.public_businesses import get_public_business
 from app.routers.reviews import _to_review_out
@@ -151,6 +155,97 @@ class BusinessFeatureTests(unittest.TestCase):
         self.assertEqual(analytics.rating_distribution[3].count, 1)
         self.assertEqual(analytics.activity_performance[0].activity_id, "A1")
         self.assertEqual(analytics.activity_performance[0].interaction_count, 2)
+
+    def test_unapproved_activities_do_not_expose_reviews_or_interactions(self):
+        now = datetime.now(UTC).replace(tzinfo=None)
+        pending_activity = models.Activity(
+            activity_id="A2",
+            business_id="B1",
+            name="Pending activity",
+            address="Hà Nội",
+            status="pending",
+            created_at=now,
+        )
+        pending_review = models.Review(
+            review_id="R2",
+            user_id="C1",
+            activity_id="A2",
+            rating=1,
+            content="Chưa duyệt",
+            created_at=now,
+        )
+        self.db.add_all([pending_activity, pending_review, models.Bookmark(
+            user_id="C1", activity_id="A2", created_at=now
+        )])
+        self.db.commit()
+
+        dashboard = get_business_dashboard(db=self.db, business=self.business)
+        self.assertEqual(dashboard.activity_count, 2)
+        self.assertEqual(dashboard.review_count, 1)
+        self.assertEqual(dashboard.bookmark_count, 1)
+
+        reviews = list_business_reviews(db=self.db, business=self.business)
+        self.assertEqual([review.review_id for review in reviews], ["R1"])
+        listed_activities = {
+            item.activity_id: item
+            for item in list_business_activities(db=self.db, business=self.business)
+        }
+        self.assertTrue(listed_activities["A1"].is_approved)
+        self.assertEqual(listed_activities["A1"].review_count, 1)
+        self.assertFalse(listed_activities["A2"].is_approved)
+        self.assertEqual(listed_activities["A2"].review_count, 0)
+
+        analytics = get_business_analytics(days=30, activity_id=None, db=self.db, business=self.business)
+        self.assertEqual(analytics.summary.period_review_count, 1)
+        self.assertEqual(analytics.summary.period_bookmark_count, 1)
+        self.assertEqual([item.activity_id for item in analytics.activity_performance], ["A1"])
+
+    def test_previously_approved_activity_keeps_metrics_during_edit_review(self):
+        now = datetime.now(UTC).replace(tzinfo=None)
+        self.activity.verified_at = now
+        self.db.commit()
+
+        result = update_activity(
+            "A1",
+            schemas.ActivityUpdate(description="Updated details"),
+            db=self.db,
+            business=self.business,
+        )
+
+        self.assertEqual(result.status, "pending")
+        self.assertTrue(result.is_approved)
+        self.assertIsNotNone(self.activity.verified_at)
+        dashboard = get_business_dashboard(db=self.db, business=self.business)
+        self.assertEqual(dashboard.review_count, 1)
+        self.assertEqual(dashboard.bookmark_count, 1)
+        self.assertEqual(
+            [review.review_id for review in list_business_reviews(db=self.db, business=self.business)],
+            ["R1"],
+        )
+        listed_activity = list_business_activities(db=self.db, business=self.business)[0]
+        self.assertTrue(listed_activity.is_approved)
+        self.assertEqual(listed_activity.review_count, 1)
+        analytics = get_business_analytics(days=30, activity_id=None, db=self.db, business=self.business)
+        self.assertEqual(analytics.summary.period_interaction_count, 2)
+        self.assertEqual(analytics.activity_performance[0].activity_id, "A1")
+
+    def test_operator_activity_detail_includes_latest_uploaded_media_and_fields(self):
+        media = models.ActivityMedia(
+            media_id="AM1",
+            activity_id="A1",
+            media_url="https://storage.test/activity-cover.jpg",
+            media_type="image",
+            media_kind="cover",
+        )
+        self.activity.description = "Mô tả vừa cập nhật"
+        self.db.add(media)
+        self.db.commit()
+
+        detail = get_activity_for_review("A1", db=self.db, _operator=None)
+
+        self.assertEqual(detail.description, "Mô tả vừa cập nhật")
+        self.assertEqual(detail.media[0].media_url, "https://storage.test/activity-cover.jpg")
+        self.assertEqual(detail.media[0].media_kind, "cover")
 
     def test_public_business_media_and_review_reply_are_exposed(self):
         media = models.BusinessMedia(

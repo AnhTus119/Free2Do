@@ -128,6 +128,17 @@
     state.activitySummary = activitySummary;
   }
 
+  async function refreshActivity(id) {
+    window.FREE2DO_CACHE.clear();
+    const activity = await auth.authFetch(`/operator/activities/${encodeURIComponent(id)}`);
+    const index = state.activities.findIndex(item => item.id === id);
+    if (index === -1) throw new Error('Không tìm thấy hoạt động cần cập nhật.');
+    const updated = mapActivity(activity);
+    state.activities.splice(index, 1, updated);
+    window.dispatchEvent(new Event('free2do:admin-data-updated'));
+    return updated;
+  }
+
   let refreshInProgress = false;
   async function refresh() {
     if (refreshInProgress) return;
@@ -183,7 +194,7 @@
     get customerSummary() { return state.customerSummary; },
     get businessSummary() { return state.businessSummary; },
     get activitySummary() { return state.activitySummary; },
-    statusLabels, setStatus, parseViDate, normalize, escapeHTML: auth.escapeHTML, refresh,
+    statusLabels, setStatus, refreshActivity, parseViDate, normalize, escapeHTML: auth.escapeHTML, refresh,
     businessName(activity) {
       return state.businesses.find(item => item.id === activity.businessId)?.name
         || activity.businessName || 'Chưa xác định';

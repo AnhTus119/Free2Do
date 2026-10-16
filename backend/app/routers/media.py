@@ -8,14 +8,88 @@ from app import models, schemas
 from app.auth import get_current_business_user, get_current_operator, get_current_user
 from app.database import get_db
 from app.services.supabase_storage import (
-    StorageNotConfigured,
     InvalidMedia,
+    StorageNotConfigured,
     delete_asset,
     upload_asset,
+    upload_proof_asset,
 )
 
 
 router = APIRouter(tags=["media"])
+
+
+@router.get(
+    "/operator/business-profiles/{business_id}/proofs",
+    response_model=list[schemas.BusinessMediaOut],
+)
+def list_operator_business_proofs(
+    business_id: str,
+    db: Session = Depends(get_db),
+    _operator: models.Operator = Depends(get_current_operator),
+):
+    if not db.query(models.BusinessProfile).filter(models.BusinessProfile.user_id == business_id).first():
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Không tìm thấy hồ sơ Doanh nghiệp")
+    return (
+        db.query(models.BusinessMedia)
+        .filter(
+            models.BusinessMedia.business_id == business_id,
+            models.BusinessMedia.media_kind == "proof",
+        )
+        .order_by(models.BusinessMedia.created_at.desc())
+        .all()
+    )
+
+
+@router.post(
+    "/operator/business-profiles/{business_id}/proofs",
+    response_model=list[schemas.BusinessMediaOut],
+    status_code=status.HTTP_201_CREATED,
+)
+async def upload_operator_business_proofs(
+    business_id: str,
+    files: list[UploadFile] = File(...),
+    db: Session = Depends(get_db),
+    _operator: models.Operator = Depends(get_current_operator),
+):
+    business = db.query(models.BusinessProfile).filter(models.BusinessProfile.user_id == business_id).first()
+    if not business:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Không tìm thấy hồ sơ Doanh nghiệp")
+    if not files:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Hãy chọn ít nhất một file minh chứng")
+
+    uploaded = []
+    for file in files:
+        content = await file.read()
+        try:
+            asset = upload_proof_asset(
+                content=content,
+                filename=file.filename or "",
+                folder=f"business-proofs/{business_id}",
+            )
+        except StorageNotConfigured as exc:
+            raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, str(exc)) from exc
+        except InvalidMedia as exc:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc)) from exc
+        except Exception as exc:
+            raise HTTPException(status.HTTP_502_BAD_GATEWAY, "Không thể tải file minh chứng lên Storage") from exc
+        media = models.BusinessMedia(
+            business_id=business_id,
+            media_url=asset.media_url,
+            public_id=asset.public_id,
+            media_type=asset.media_type,
+            media_kind="proof",
+            bytes=asset.bytes,
+            width=asset.width,
+            height=asset.height,
+            created_at=datetime.now(UTC).replace(tzinfo=None),
+        )
+        db.add(media)
+        uploaded.append(media)
+    db.commit()
+    for media in uploaded:
+        db.refresh(media)
+    return uploaded
 
 
 async def _upload(
@@ -146,7 +220,10 @@ def list_business_media(
     db: Session = Depends(get_db),
     business: models.BusinessProfile = Depends(get_current_business_user),
 ):
-    query = db.query(models.BusinessMedia).filter(models.BusinessMedia.business_id == business.user_id)
+    query = db.query(models.BusinessMedia).filter(
+        models.BusinessMedia.business_id == business.user_id,
+        models.BusinessMedia.media_kind != "proof",
+    )
     if kind:
         query = query.filter(models.BusinessMedia.media_kind == kind)
     return query.order_by(models.BusinessMedia.created_at.desc()).all()
@@ -213,6 +290,8 @@ def remove_business_media(
 ):
     media = db.query(models.BusinessMedia).filter(models.BusinessMedia.media_id == media_id).first()
     if not media or media.business_id != business.user_id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Không tìm thấy media")
+    if media.media_kind == "proof":
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Không tìm thấy media")
     _delete_or_502(media.public_id, media.media_type)
     if business.avatar_public_id == media.public_id:

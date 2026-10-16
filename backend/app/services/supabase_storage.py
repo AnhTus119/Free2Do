@@ -60,6 +60,17 @@ def ensure_bucket() -> None:
         timeout=20,
     )
     if existing.status_code == 200:
+        response = requests.put(
+            f"{base}/storage/v1/bucket/{quote(bucket, safe='')}",
+            headers={**_headers(key), "Content-Type": "application/json"},
+            json={
+                "allowed_mime_types": None,
+                "file_size_limit": settings.MAX_VIDEO_UPLOAD_MB * 1024 * 1024,
+            },
+            timeout=20,
+        )
+        if response.status_code not in (200, 201):
+            raise RuntimeError("Không thể cập nhật cấu hình định dạng file của bucket Supabase")
         _bucket_ready = True
         return
     response = requests.post(
@@ -70,7 +81,7 @@ def ensure_bucket() -> None:
             "name": bucket,
             "public": True,
             "file_size_limit": settings.MAX_VIDEO_UPLOAD_MB * 1024 * 1024,
-            "allowed_mime_types": sorted(IMAGE_TYPES | VIDEO_TYPES),
+            "allowed_mime_types": None,
         },
         timeout=20,
     )
@@ -149,6 +160,21 @@ def upload_asset(*, content: bytes, content_type: str, folder: str, owner_id: st
     object_path = f"{folder.strip('/')}/{kind}-{uuid.uuid4().hex}{_extension(content_type)}"
     asset = _upload(content, content_type, object_path, upsert=False)
     return UploadedAsset(**{**asset.__dict__, "media_type": media_type})
+
+
+def upload_proof_asset(*, content: bytes, filename: str, folder: str) -> UploadedAsset:
+    """Upload a business proof as a download-only generic file, regardless of its format."""
+    if not content:
+        raise InvalidMedia("File rỗng")
+    limit_mb = settings.MAX_VIDEO_UPLOAD_MB
+    if len(content) > limit_mb * 1024 * 1024:
+        raise InvalidMedia(f"File vượt quá giới hạn {limit_mb} MB")
+    suffix = Path(filename).suffix[:20]
+    if not suffix or not suffix[1:].isalnum():
+        suffix = ".bin"
+    object_path = f"{folder.strip('/')}/proof-{uuid.uuid4().hex}{suffix.lower()}"
+    asset = _upload(content, "application/octet-stream", object_path, upsert=False)
+    return UploadedAsset(**{**asset.__dict__, "media_type": "file"})
 
 
 def _read_source(source: str) -> tuple[bytes, str]:

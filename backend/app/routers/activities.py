@@ -72,6 +72,12 @@ def _review_stats(db: Session, activity_ids: list[str]) -> dict[str, tuple[float
     return {activity_id: (average, count) for activity_id, average, count in rows}
 
 
+def _is_approved(activity: models.Activity) -> bool:
+    return activity.status == "active" or (
+        activity.status == "pending" and activity.verified_at is not None
+    )
+
+
 def _to_detail(
     db: Session,
     activity: models.Activity,
@@ -87,6 +93,7 @@ def _to_detail(
         **schemas.Activity.model_validate(activity).model_dump(),
         business_name=activity.business.business_name,
         business_avatar_url=activity.business.avatar_url,
+        is_approved=_is_approved(activity),
         # Chỉ trang chi tiết mới cần ảnh gallery của doanh nghiệp (tránh N+1 truy vấn ở danh sách).
         business_media=[
             schemas.ActivityBusinessPhoto(media_url=item.media_url, media_type=item.media_type)
@@ -108,7 +115,8 @@ def _to_detail(
 
 def _to_details(db: Session, activities: list[models.Activity]) -> list[schemas.ActivityPublicOut]:
     """Chuyển cả danh sách hoạt động sang schema với số truy vấn cố định."""
-    stats = _review_stats(db, [activity.activity_id for activity in activities])
+    approved_ids = [activity.activity_id for activity in activities if _is_approved(activity)]
+    stats = _review_stats(db, approved_ids)
     return [_to_detail(db, activity, stats=stats) for activity in activities]
 
 
@@ -275,11 +283,9 @@ def update_activity(
     if payload.category_ids is not None:
         _set_categories(db, activity.activity_id, payload.category_ids)
 
-    # Sửa hoạt động đã duyệt (active) -> phải chờ Operator duyệt lại
+    # Giữ dấu xác nhận cũ để các trang Business vẫn nhận ra hoạt động từng được duyệt.
     if activity.status == "active":
         activity.status = "pending"
-        activity.verified_by = None
-        activity.verified_at = None
 
     activity.updated_at = datetime.utcnow()
     db.commit()
@@ -394,17 +400,27 @@ def get_activity_summary(
     )
 
 
-@operator_router.get("/{activity_id}", response_model=schemas.ActivityPublicOut)  # kèm business_name
+@operator_router.get("/{activity_id}", response_model=schemas.ActivityAdminOut)
 def get_activity_for_review(
     activity_id: str,
     db: Session = Depends(get_db),
     _operator: models.Operator = Depends(get_current_operator),
 ):
     """Operator xem chi tiết hoạt động ở bất kỳ trạng thái nào (kể cả hidden/cancelled)."""
-    activity = db.query(models.Activity).filter(models.Activity.activity_id == activity_id).first()
+    activity = (
+        db.query(models.Activity)
+        .options(*DETAIL_LOAD_OPTIONS)
+        .filter(models.Activity.activity_id == activity_id)
+        .first()
+    )
     if not activity:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Không tìm thấy hoạt động")
-    return _to_detail(db, activity)
+    return schemas.ActivityAdminOut(
+        **_to_detail(db, activity).model_dump(),
+        verified_by=activity.verified_by,
+        verified_at=activity.verified_at,
+        expire_at=activity.expire_at,
+    )
 
 
 @operator_router.patch("/{activity_id}", response_model=schemas.ActivityDetail)

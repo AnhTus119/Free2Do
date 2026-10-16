@@ -1,17 +1,24 @@
 from datetime import UTC, date, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import func
+from sqlalchemy import and_, func, or_
 from sqlalchemy.orm import Session
 
 from app import models, schemas
 from app.auth import get_current_business_user
 from app.database import get_db
-from app.routers.activities import DETAIL_LOAD_OPTIONS, _to_detail, _to_details
+from app.routers.activities import DETAIL_LOAD_OPTIONS, _is_approved, _to_details
 from app.services.supabase_storage import delete_asset
 
 
 router = APIRouter(prefix="/business", tags=["business"])
+
+
+def _approved_activity_filter():
+    return or_(
+        models.Activity.status == "active",
+        and_(models.Activity.status == "pending", models.Activity.verified_at.isnot(None)),
+    )
 
 
 def _bucket_date(value: datetime, granularity: str) -> date:
@@ -97,7 +104,7 @@ def get_business_dashboard(
     review_count, average_rating = (
         db.query(func.count(models.Review.review_id), func.avg(models.Review.rating))
         .join(models.Activity, models.Activity.activity_id == models.Review.activity_id)
-        .filter(models.Activity.business_id == business.user_id)
+        .filter(models.Activity.business_id == business.user_id, _approved_activity_filter())
         .one()
     )
     unanswered = (
@@ -106,6 +113,7 @@ def get_business_dashboard(
         .outerjoin(models.ReviewReply, models.ReviewReply.review_id == models.Review.review_id)
         .filter(
             models.Activity.business_id == business.user_id,
+            _approved_activity_filter(),
             models.ReviewReply.reply_id.is_(None),
         )
         .scalar()
@@ -123,7 +131,7 @@ def get_business_dashboard(
     bookmark_count = (
         db.query(func.count(models.Bookmark.activity_id))
         .join(models.Activity, models.Activity.activity_id == models.Bookmark.activity_id)
-        .filter(models.Activity.business_id == business.user_id)
+        .filter(models.Activity.business_id == business.user_id, _approved_activity_filter())
         .scalar()
         or 0
     )
@@ -156,7 +164,8 @@ def get_business_analytics(
     if activity_id and not activities:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Không tìm thấy hoạt động")
 
-    activity_ids = [activity.activity_id for activity in activities]
+    approved_activities = [activity for activity in activities if _is_approved(activity)]
+    activity_ids = [activity.activity_id for activity in approved_activities]
     now = datetime.now(UTC).replace(tzinfo=None)
     start = datetime.combine((now - timedelta(days=days - 1)).date(), datetime.min.time())
     granularity = "day" if days <= 31 else "week" if days <= 120 else "month"
@@ -272,7 +281,7 @@ def get_business_analytics(
         )
 
     performance = []
-    for activity in activities:
+    for activity in approved_activities:
         review_count, average_rating = review_metrics.get(activity.activity_id, (0, None))
         bookmark_count = bookmark_metrics.get(activity.activity_id, 0)
         performance.append(
@@ -334,7 +343,7 @@ def list_business_reviews(
     reviews = (
         db.query(models.Review)
         .join(models.Activity, models.Activity.activity_id == models.Review.activity_id)
-        .filter(models.Activity.business_id == business.user_id)
+        .filter(models.Activity.business_id == business.user_id, _approved_activity_filter())
         .order_by(models.Review.created_at.desc())
         .all()
     )

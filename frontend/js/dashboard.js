@@ -361,12 +361,26 @@
       'activityModal'
     );
 
-  function openActivityModal(id) {
-    const activity = data.activities.find(
+  async function openActivityModal(id) {
+    let activity = data.activities.find(
       item => item.id === id
     );
 
     if (!activity) {
+      return;
+    }
+
+    activityModal.classList.add('open');
+    document.getElementById('modalTitle').textContent = 'Đang tải...';
+    document.getElementById('modalImage').className = 'modal-image empty';
+    document.getElementById('modalImage').textContent = 'Đang tải thông tin hoạt động...';
+
+    try {
+      activity = await data.refreshActivity(id);
+    } catch (error) {
+      document.getElementById('modalTitle').textContent = 'Không thể tải hoạt động';
+      document.getElementById('modalImage').textContent = error.message;
+      window.F2D.toast(error.message, 'error');
       return;
     }
 
@@ -383,14 +397,20 @@
       'modalDesc'
     ).textContent = activity.description;
 
-    document.getElementById(
-      'modalImage'
-    ).className = 'modal-image empty';
-
-    document.getElementById(
-      'modalImage'
-    ).textContent =
-      'Chưa có hình ảnh mô tả';
+    const media = (activity.media || []).slice().sort((left, right) =>
+      (left.media_kind === 'cover' ? 0 : 1) - (right.media_kind === 'cover' ? 0 : 1)
+    );
+    const imageBox = document.getElementById('modalImage');
+    if (media.length) {
+      imageBox.className = 'modal-image has-media';
+      imageBox.innerHTML = media.map(item => item.media_type === 'video'
+        ? `<video src="${data.escapeHTML(item.media_url)}" controls preload="metadata"></video>`
+        : `<img src="${data.escapeHTML(item.media_url)}" alt="Ảnh hoạt động">`
+      ).join('');
+    } else {
+      imageBox.className = 'modal-image empty';
+      imageBox.textContent = 'Chưa có hình ảnh mô tả';
+    }
 
     const information = [
       [
@@ -439,7 +459,6 @@
       decideActivity(id, 'rejected');
     };
 
-    activityModal.classList.add('open');
   }
 
   async function decideActivity(id, status) {

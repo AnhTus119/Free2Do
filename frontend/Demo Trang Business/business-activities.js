@@ -15,7 +15,7 @@ function renderRows() {
       <td>${BusinessAPI.escapeHTML(BusinessAPI.formatTime(item.time_open))}–${BusinessAPI.escapeHTML(BusinessAPI.formatTime(item.time_close))}</td>
       <td>${BusinessAPI.escapeHTML(item.address)}</td>
       <td>${BusinessAPI.escapeHTML(BusinessAPI.formatMoney(item))}</td>
-      <td>${item.avg_rating == null ? 'Chưa có' : `★ ${Number(item.avg_rating).toFixed(1)}`} (${item.review_count})</td>
+      <td>${item.is_approved ? `${item.avg_rating == null ? 'Chưa có' : `★ ${Number(item.avg_rating).toFixed(1)}`} (${item.review_count})` : '—'}</td>
       <td><span class="b-badge ${statusClass(item.status)}">${BusinessAPI.escapeHTML(BusinessAPI.statusLabels[item.status] || item.status)}</span></td>
       <td><div class="row-actions">
         <button class="row-btn" data-action="detail">Xem</button>
@@ -176,6 +176,8 @@ async function openDetail(id) {
   const badge = document.getElementById('detail-status');
   badge.className = `b-badge ${statusClass(item.status)}`;
   badge.textContent = BusinessAPI.statusLabels[item.status] || item.status;
+  document.querySelector('#detail-panel .ad-stats').style.display = item.is_approved ? '' : 'none';
+  document.getElementById('detail-review-list').closest('.ad-section').style.display = item.is_approved ? '' : 'none';
   document.getElementById('detail-bookmarks').textContent = metrics.bookmark_count || 0;
   document.getElementById('detail-interactions').textContent = metrics.interaction_count || 0;
   document.getElementById('detail-rating').textContent = item.avg_rating == null ? '0' : Number(item.avg_rating).toFixed(1);
@@ -207,7 +209,7 @@ async function openDetail(id) {
 
   const list = document.getElementById('detail-review-list');
   const summary = document.getElementById('detail-review-summary');
-  summary.innerHTML = item.review_count
+  summary.innerHTML = item.is_approved && item.review_count
     ? `<b>${Number(item.avg_rating || 0).toFixed(1)}</b>${starRow(item.avg_rating || 0)}<span class="f2d-empty">${item.review_count} đánh giá</span>`
     : '';
   list.innerHTML = '<span class="f2d-empty">Đang tải đánh giá...</span>';

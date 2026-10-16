@@ -4,6 +4,7 @@
     { "source": "/admin-login.html", "destination": "/log-in.html", "permanent": true }
   ],
   "rewrites": [
+    { "source": "/favicon.ico", "destination": "/img/logo.svg" },
     { "source": "/g/:code", "destination": "/Demo%20Trang%20Customer/group.html" }
   ]
 }

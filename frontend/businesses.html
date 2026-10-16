@@ -85,6 +85,32 @@
     </div>
   </div>
 </div>
+<dialog class="f2d-modal admin-edit-dialog" id="editBusinessDialog" aria-labelledby="editBusinessTitle">
+  <form class="f2d-modal-card admin-edit-card" id="editBusinessForm" novalidate>
+    <button type="button" class="f2d-modal-close" id="closeBusinessEdit" aria-label="Đóng">&times;</button>
+    <span class="admin-edit-kicker">HỒ SƠ DOANH NGHIỆP</span>
+    <h2 class="f2d-modal-title" id="editBusinessTitle">Chỉnh sửa thông tin</h2>
+    <p class="f2d-modal-sub">Cập nhật thông tin hồ sơ đang được sử dụng trên FREE2DO.</p>
+    <div class="f2d-modal-body admin-edit-fields">
+      <div class="field"><label for="editBusinessName">Tên doanh nghiệp <span>*</span></label><input id="editBusinessName" maxlength="200" required></div>
+      <div class="field"><label for="editBusinessPhone">Số điện thoại</label><input id="editBusinessPhone" type="tel" maxlength="30"></div>
+      <div class="field"><label for="editBusinessAddress">Địa chỉ doanh nghiệp</label><input id="editBusinessAddress" maxlength="500"></div>
+      <div class="field"><label for="editBusinessDescription">Mô tả</label><textarea id="editBusinessDescription" rows="5" maxlength="5000"></textarea></div>
+      <div class="field">
+        <span class="admin-edit-label">File minh chứng</span>
+        <label class="admin-file-dropzone" id="editBusinessProofsDropzone" for="editBusinessProofs">
+          <span class="admin-file-dropzone-icon" aria-hidden="true">↑</span>
+          <span class="admin-file-dropzone-title">Thả file vào đây hoặc bấm để chọn</span>
+          <span class="admin-file-dropzone-note" id="editBusinessProofsSelection">Mọi định dạng · không giới hạn số lượng</span>
+          <input id="editBusinessProofs" class="admin-file-input" type="file" multiple>
+        </label>
+        <span class="admin-edit-note" id="editBusinessProofsNote">Đang tải thông tin minh chứng...</span>
+      </div>
+      <p class="admin-edit-note">Mã doanh nghiệp, trạng thái duyệt và thống kê được quản lý riêng, không chỉnh sửa tại đây.</p>
+    </div>
+    <div class="f2d-modal-actions"><button type="button" class="qa-btn" id="cancelBusinessEdit">Hủy</button><button type="submit" class="qa-btn primary" id="saveBusinessEdit">Lưu thay đổi</button></div>
+  </form>
+</dialog>
 <script src="js/config.js"></script><script src="js/main.js"></script>
 <script src="js/admin-auth.js"></script>
 <script src="js/admin-shell.js"></script>

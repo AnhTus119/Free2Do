@@ -49,12 +49,20 @@ function render() {
 
 function renderActivityOptions() {
   const select = document.getElementById('f-activity');
-  select.innerHTML = '<option value="">Tất cả</option>' + activities.map(item => `<option value="${esc(item.activity_id)}">${esc(item.name)}</option>`).join('');
-  if (!activities.some(item => item.activity_id === filters.activityId)) filters.activityId = '';
+  const approvedActivities = activities.filter(item => {
+    const status = String(item.status || '').trim().toLowerCase();
+    return item.is_approved === true
+      || status === 'active'
+      || status === 'approved'
+      || (status === 'pending' && Boolean(item.verified_at || item.verified_by));
+  });
+  select.innerHTML = '<option value="">Tất cả</option>' + approvedActivities.map(item => `<option value="${esc(item.activity_id)}">${esc(item.name)}</option>`).join('');
+  if (!approvedActivities.some(item => item.activity_id === filters.activityId)) filters.activityId = '';
   select.value = filters.activityId;
 }
 
 async function reload() {
+  window.FREE2DO_CACHE?.clear();
   const [items, complaintItems, dashboard, activityItems] = await Promise.all([
     BusinessAPI.request('/business/reviews'), BusinessAPI.request('/business/complaints'),
     BusinessAPI.request('/business/dashboard'), BusinessAPI.request('/business/activities'),

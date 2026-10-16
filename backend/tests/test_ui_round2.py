@@ -216,6 +216,11 @@ class UiRound2Tests(unittest.TestCase):
         )
         self.assertEqual([media.media_kind for media in public.media], ["gallery"])
 
+    def test_public_business_allows_missing_address(self):
+        # Doanh nghiệp chưa có địa chỉ không được làm GET /businesses lỗi 500.
+        out = schemas.BusinessPublicOut(user_id="B1", business_name="X", business_address=None)
+        self.assertIsNone(out.business_address)
+
 
 if __name__ == "__main__":
     unittest.main()

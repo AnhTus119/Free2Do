@@ -783,7 +783,7 @@ class BusinessPublicOut(BaseModel):
     business_name: str
     phone: Optional[str] = None
     description: Optional[str] = None
-    business_address: str
+    business_address: Optional[str] = None
     avatar_url: Optional[str] = None
     activity_count: int = 0
     media: list[BusinessMediaOut] = Field(default_factory=list)

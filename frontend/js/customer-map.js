@@ -11,6 +11,8 @@
   const VIETNAM_MIN_ZOOM = 8;
 
   function validCoordinate(latitude, longitude) {
+    // null/'' không phải tọa độ (Number(null) === 0 sẽ thành điểm 0,0 ngoài biển).
+    if (latitude == null || longitude == null || latitude === '' || longitude === '') return false;
     return Number.isFinite(Number(latitude)) && Number.isFinite(Number(longitude))
       && Number(latitude) >= -90 && Number(latitude) <= 90
       && Number(longitude) >= -180 && Number(longitude) <= 180;

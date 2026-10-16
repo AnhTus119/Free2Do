@@ -180,7 +180,7 @@
         document.getElementById('customBudgetInput').value = budget;
       }
     }
-    if (window.Free2DoMap.validCoordinate(Number(params.get('latitude')), Number(params.get('longitude')))) {
+    if (window.Free2DoMap.validCoordinate(params.get('latitude'), params.get('longitude'))) {
       position = { latitude: Number(params.get('latitude')), longitude: Number(params.get('longitude')) };
       locationTouched = true;
     }

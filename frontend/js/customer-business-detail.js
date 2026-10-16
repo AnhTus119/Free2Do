@@ -25,5 +25,10 @@
     }).join('') : '<p>Doanh nghiệp chưa có hoạt động đang mở.</p>';
     if (localStorage.getItem('token')) await api.requireUser();
   }
-  load().catch(error => { document.getElementById('businessHero').textContent = error.message; });
+  load().catch(error => {
+    const hero = document.getElementById('businessHero');
+    hero.textContent = error.message;
+    // Không có doanh nghiệp thì ẩn các mục ảnh/hoạt động đang trống.
+    hero.parentElement.querySelectorAll('section:not(#businessHero)').forEach(section => { section.hidden = true; });
+  });
 })();

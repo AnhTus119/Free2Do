@@ -77,8 +77,18 @@
     });
     return me;
   }
+  // Trạng thái theo phiên đăng nhập, dùng chung giữa các trang customer (tick GPS, vị trí ở home, chat AI).
+  const SESSION_KEYS = ['f2d:use-gps', 'f2d:home-location', 'f2d:ai-chat'];
+  function stored(key, value) {
+    try {
+      if (value === undefined) return JSON.parse(localStorage.getItem(key) || 'null');
+      if (value === null) localStorage.removeItem(key);
+      else localStorage.setItem(key, JSON.stringify(value));
+    } catch (error) { return null; } // chế độ riêng tư/chặn storage: chạy như chưa lưu gì
+    return value;
+  }
   function logout() {
-    ['token', 'access_token', 'user_token', 'operator_token'].forEach(key => {
+    ['token', 'access_token', 'user_token', 'operator_token', ...SESSION_KEYS].forEach(key => {
       localStorage.removeItem(key);
       sessionStorage.removeItem(key);
     });
@@ -110,5 +120,5 @@
       ? value.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
       : value.toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' })).join(' – ');
   };
-  window.CustomerAPI = { request, requireUser, logout, escapeHTML, price, priceLabel, hours };
+  window.CustomerAPI = { request, requireUser, logout, escapeHTML, price, priceLabel, hours, stored };
 })();

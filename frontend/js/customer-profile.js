@@ -32,6 +32,7 @@
   function render() {
     customer = data.customers.find(item => item.id === id);
     if (!customer) { showNotFound(); return; }
+    data.renderActionLogs(document.getElementById('actionLogs'), 'customer', customer.id);
 
     document.title = `FREE2DO Admin | ${customer.name}`;
     document.querySelector('.profile-logo').textContent = customer.name.trim().charAt(0).toUpperCase();

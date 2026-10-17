@@ -7,6 +7,7 @@ from app.database import get_db
 from app import models, schemas
 from app.auth import get_current_operator
 from app.utils.identity import normalize_person_name
+from app.routers.action_logs import log_action, log_user_action, status_change
 
 router = APIRouter(prefix="/operator", tags=["operator-users"])
 
@@ -136,7 +137,7 @@ def update_user(
     user_id: str,
     payload: schemas.UserAdminUpdate,
     db: Session = Depends(get_db),
-    _operator: models.Operator = Depends(get_current_operator),
+    operator: models.Operator = Depends(get_current_operator),
 ):
     user = db.query(models.User).filter(models.User.user_id == user_id).first()
     if not user:
@@ -149,6 +150,8 @@ def update_user(
             raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from exc
     if payload.phone is not None:
         user.phone = payload.phone
+    changed = [label for label, value in (("tên", payload.name), ("số điện thoại", payload.phone)) if value is not None]
+    log_user_action(db, operator, user, "Sửa thông tin tài khoản", ("Thay đổi: " + ", ".join(changed)) if changed else None)
     db.commit()
     db.refresh(user)
     return _to_user_admin_out(db, user)
@@ -159,13 +162,16 @@ def update_user_status(
     user_id: str,
     payload: schemas.AccountStatusUpdate,
     db: Session = Depends(get_db),
-    _operator: models.Operator = Depends(get_current_operator),
+    operator: models.Operator = Depends(get_current_operator),
 ):
     """Khóa/mở khóa tài khoản Customer hoặc Business (sửa accounts.status)."""
     user = db.query(models.User).filter(models.User.user_id == user_id).first()
     if not user:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Không tìm thấy người dùng")
 
+    if user.account.status != payload.status:
+        log_user_action(db, operator, user, "Mở khóa tài khoản" if payload.status == "active" else "Khóa tài khoản",
+                        status_change(user.account.status, payload.status))
     user.account.status = payload.status
     db.commit()
     db.refresh(user)
@@ -207,15 +213,19 @@ def update_business_profile(
     user_id: str,
     payload: schemas.BusinessProfileAdminUpdate,
     db: Session = Depends(get_db),
-    _operator: models.Operator = Depends(get_current_operator),
+    operator: models.Operator = Depends(get_current_operator),
 ):
     profile = db.query(models.BusinessProfile).filter(models.BusinessProfile.user_id == user_id).first()
     if not profile:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Không tìm thấy hồ sơ Doanh nghiệp")
 
     data = payload.model_dump(exclude_unset=True)
+    labels = {"business_name": "tên", "phone": "số điện thoại", "description": "mô tả", "business_address": "địa chỉ"}
+    changed = [labels.get(field, field) for field, value in data.items() if getattr(profile, field) != value]
     for field, value in data.items():
         setattr(profile, field, value)
+    log_action(db, operator, "Sửa hồ sơ doanh nghiệp", "business", user_id, user_id,
+               ("Thay đổi: " + ", ".join(changed)) if changed else None)
     db.commit()
     db.refresh(profile)
     return profile

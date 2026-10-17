@@ -14,6 +14,7 @@ from app.services.supabase_storage import (
     upload_asset,
     upload_proof_asset,
 )
+from app.routers.action_logs import log_action
 
 
 router = APIRouter(tags=["media"])
@@ -50,7 +51,7 @@ async def upload_operator_business_proofs(
     business_id: str,
     files: list[UploadFile] = File(...),
     db: Session = Depends(get_db),
-    _operator: models.Operator = Depends(get_current_operator),
+    operator: models.Operator = Depends(get_current_operator),
 ):
     business = db.query(models.BusinessProfile).filter(models.BusinessProfile.user_id == business_id).first()
     if not business:
@@ -86,6 +87,7 @@ async def upload_operator_business_proofs(
         )
         db.add(media)
         uploaded.append(media)
+    log_action(db, operator, "Tải minh chứng doanh nghiệp", "business", business_id, business_id, f"{len(uploaded)} file")
     db.commit()
     for media in uploaded:
         db.refresh(media)

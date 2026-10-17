@@ -16,6 +16,7 @@ from app.routers import (
     auth,
     operator,
     operator_users,
+    action_logs,
     categories,
     users,
     business_requests,
@@ -115,6 +116,7 @@ app.include_router(activities.operator_router)
 app.include_router(reports.operator_router)
 app.include_router(complaints.operator_router)
 app.include_router(operator_users.router)
+app.include_router(action_logs.router)
 
 
 @app.get("/")

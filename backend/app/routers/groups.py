@@ -5,6 +5,7 @@ import secrets
 from collections import defaultdict
 from datetime import UTC, datetime
 from typing import Optional
+from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect, status
 from sqlalchemy import and_, func, or_
@@ -14,7 +15,9 @@ from sqlalchemy.orm import Session
 from app import models, schemas
 from app.auth import decode_token, get_current_user
 from app.database import SessionLocal, get_db
+from app.utils.distance import haversine_km
 from app.utils.email import send_notification_email
+from app.utils.geocoding import resolve_location
 
 
 REMIND_COOLDOWN_SECONDS = 30 * 60
@@ -110,6 +113,22 @@ def _category_ids(member: models.GroupMember) -> list[str]:
     except (TypeError, json.JSONDecodeError):
         return []
     return [str(item) for item in value if item]
+
+
+def _resolve_member_location(address: str, latitude: Optional[float], longitude: Optional[float]) -> tuple[float, float]:
+    """Tọa độ thành viên: GPS/điểm frontend đã tra, không có thì tra địa chỉ trên bản đồ (không đoán)."""
+    if latitude is not None and longitude is not None:
+        return latitude, longitude
+    try:
+        result = resolve_location(address)
+    except Exception as exc:
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, "Không thể kết nối dịch vụ bản đồ để tra địa chỉ") from exc
+    if not result:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            f"Không tìm thấy địa chỉ “{address}” trên bản đồ. Hãy nhập rõ hơn (phường, quận) hoặc dùng vị trí hiện tại.",
+        )
+    return result[0], result[1]
 
 
 def _validate_categories(db: Session, category_ids: list[str]) -> None:
@@ -230,6 +249,8 @@ def _group_out(
                 name=member.name,
                 free_hours=member.free_hours,
                 address=member.address,
+                latitude=member.latitude,
+                longitude=member.longitude,
                 budget=member.budget,
                 category_ids=category_ids,
                 category_names=[category_map[value] for value in category_ids if value in category_map],
@@ -326,6 +347,7 @@ async def create_group(
     user: models.User = Depends(get_current_user),
 ):
     _validate_categories(db, payload.host.category_ids)
+    host_lat, host_lon = _resolve_member_location(payload.host.address, payload.host.latitude, payload.host.longitude)
     now = _now()
     group = models.Group(
         invite_code=secrets.token_urlsafe(9).replace("-", "").replace("_", "")[:12],
@@ -344,6 +366,8 @@ async def create_group(
         name=item.name,
         free_hours=item.free_hours,
         address=item.address,
+        latitude=host_lat,
+        longitude=host_lon,
         budget=item.budget,
         category_ids_json=json.dumps(item.category_ids),
         is_host=True,
@@ -392,6 +416,7 @@ async def join_group(
     user: models.User = Depends(get_current_user),
 ):
     _validate_categories(db, payload.category_ids)
+    member_lat, member_lon = _resolve_member_location(payload.address, payload.latitude, payload.longitude)
     group = (
         db.query(models.Group)
         .filter(models.Group.invite_code == invite_code, models.Group.status == "active")
@@ -434,6 +459,7 @@ async def join_group(
     member.name = payload.name
     member.free_hours = payload.free_hours
     member.address = payload.address
+    member.latitude, member.longitude = member_lat, member_lon
     member.budget = payload.budget
     member.category_ids_json = json.dumps(payload.category_ids)
     member.is_ready = False
@@ -514,6 +540,9 @@ async def update_member(
     if category_ids is not None:
         _validate_categories(db, category_ids)
         member.category_ids_json = json.dumps(category_ids)
+    latitude, longitude = data.pop("latitude", None), data.pop("longitude", None)
+    if "address" in data or latitude is not None:
+        member.latitude, member.longitude = _resolve_member_location(data.get("address", member.address), latitude, longitude)
     for field, value in data.items():
         setattr(member, field, value)
     member.is_ready = False
@@ -627,13 +656,20 @@ async def resolve_group_leave(
     return _group_out(db, group, user.user_id, await group_connections.online_users(group_id))
 
 
-def _duration_hours(activity: models.Activity) -> float:
+_GROUP_RADII_KM = (5.0, 10.0, 20.0)   # bắt đầu 5 km quanh điểm giữa, ít kết quả thì nới dần
+_MIN_GROUP_RESULTS = 3
+_VN_TZ = ZoneInfo("Asia/Ho_Chi_Minh")
+
+
+def _open_long_enough(activity: models.Activity, now_minutes: int, need_minutes: int) -> bool:
+    """Đang mở cửa lúc tìm và còn mở ít nhất need_minutes (hỗ trợ khung giờ qua đêm)."""
     if not activity.time_open or not activity.time_close:
-        return 24.0
-    seconds = (activity.time_close - activity.time_open).total_seconds()
-    if seconds <= 0:
-        seconds += 24 * 3600
-    return max(seconds / 3600, 0)
+        return True  # không khai giờ = mở cả ngày
+    start = activity.time_open.hour * 60 + activity.time_open.minute
+    end = activity.time_close.hour * 60 + activity.time_close.minute
+    if end <= start:
+        end += 24 * 60
+    return any(start <= current and current + need_minutes <= end for current in (now_minutes, now_minutes + 24 * 60))
 
 
 @router.get("/{group_id}/recommendations", response_model=list[schemas.GroupRecommendationOut])
@@ -642,56 +678,83 @@ async def group_recommendations(
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_user),
 ):
+    """Tìm quanh điểm giữa (trung bình tọa độ) của mọi thành viên.
+    Ngân sách = người thấp nhất, thời gian rảnh = người ít nhất, tag = gộp của cả nhóm (càng nhiều người khớp càng cao)."""
     group, _ = _require_group_member(db, group_id, user.user_id)
     if not group.search_started:
         raise HTTPException(status.HTTP_409_CONFLICT, "Host cần bắt đầu tìm hoạt động sau khi mọi người sẵn sàng")
+    members = list(group.members)
+    missing = [member for member in members if member.latitude is None or member.longitude is None]
+    for member in missing:  # nhóm tạo trước khi lưu tọa độ: tra địa chỉ 1 lần rồi lưu lại
+        try:
+            member.latitude, member.longitude = _resolve_member_location(member.address, None, None)
+        except HTTPException as exc:
+            raise HTTPException(
+                status.HTTP_409_CONFLICT, f"Chưa xác định được vị trí của {member.name}. Thành viên này cần cập nhật địa chỉ.",
+            ) from exc
+    if missing:
+        db.commit()
+    center_lat = sum(member.latitude for member in members) / len(members)
+    center_lon = sum(member.longitude for member in members) / len(members)
+    min_budget = min(member.budget for member in members)
+    need_minutes = round(min(member.free_hours for member in members) * 60)
+    now_vn = datetime.now(_VN_TZ)
+    now_minutes = now_vn.hour * 60 + now_vn.minute
+    member_tags = {member.member_id: set(_category_ids(member)) for member in members}
+    group_tags = set().union(*member_tags.values())
+
     activities = (
         db.query(models.Activity)
         .filter(
             models.Activity.status == "active",
+            models.Activity.latitude.is_not(None),
+            models.Activity.longitude.is_not(None),
+            or_(models.Activity.price.is_(None), models.Activity.price <= min_budget),
             or_(
                 models.Activity.always_available.is_(True),
                 and_(
-                    or_(models.Activity.available_from.is_(None), func.date(models.Activity.available_from) <= _now().date()),
-                    or_(models.Activity.available_until.is_(None), func.date(models.Activity.available_until) >= _now().date()),
+                    or_(models.Activity.available_from.is_(None), func.date(models.Activity.available_from) <= now_vn.date()),
+                    or_(models.Activity.available_until.is_(None), func.date(models.Activity.available_until) >= now_vn.date()),
                 ),
             ),
         )
-        .order_by(models.Activity.created_at.desc())
         .all()
     )
-    results = []
+    candidates = []
     for activity in activities:
-        activity_categories = {item.category_id for item in activity.categories}
-        duration = _duration_hours(activity)
-        if activity.price is not None and any(float(activity.price) > member.budget for member in group.members):
+        if not _open_long_enough(activity, now_minutes, need_minutes):
             continue
-        if any(
-            _category_ids(member) and not (set(_category_ids(member)) & activity_categories)
-            for member in group.members
-        ):
+        tags = {item.category_id for item in activity.categories}
+        matched = {member_id for member_id, wanted in member_tags.items() if wanted & tags}
+        if group_tags and not matched:
             continue
+        distance = haversine_km(center_lat, center_lon, activity.latitude, activity.longitude)
+        candidates.append((activity, distance, matched))
+
+    radius, chosen = _GROUP_RADII_KM[-1], []
+    for radius in _GROUP_RADII_KM:
+        chosen = [item for item in candidates if item[1] <= radius]
+        if len(chosen) >= _MIN_GROUP_RESULTS:
+            break
+
+    results = []
+    for activity, distance, matched in chosen:
         member_scores: dict[str, int] = {}
-        for member in group.members:
-            interests = set(_category_ids(member))
-            interest_score = 35 if interests & activity_categories else 10
-            budget_score = 30 if activity.price is None or float(activity.price) <= member.budget else 0
-            time_score = 25 if duration >= member.free_hours else 0
-            member_address = member.address.strip().casefold()
-            activity_address = activity.address.strip().casefold()
-            address_score = 10 if member_address and (
-                member_address in activity_address or activity_address in member_address
-            ) else 4
-            member_scores[member.member_id] = interest_score + budget_score + time_score + address_score
-        if not member_scores:
-            continue
+        for member in members:
+            interest = 50 if member.member_id in matched else 0
+            member_distance = haversine_km(member.latitude, member.longitude, activity.latitude, activity.longitude)
+            proximity = 30 * max(0.0, 1 - member_distance / (radius * 2))
+            price = float(activity.price or 0)
+            budget = 20 * (1 - price / member.budget) if member.budget > 0 else (20 if price == 0 else 0)
+            member_scores[member.member_id] = round(interest + proximity + max(0.0, budget))
         base = _activity_out(db, activity)
         results.append(schemas.GroupRecommendationOut(
             **base.model_dump(),
             match_score=round(sum(member_scores.values()) / len(member_scores)),
             member_scores=member_scores,
+            distance_km=round(distance, 2),
         ))
-    return sorted(results, key=lambda item: (-item.match_score, item.price or 0))[:11]
+    return sorted(results, key=lambda item: (-item.match_score, item.distance_km))[:11]
 
 
 @router.post("/{group_id}/members/{member_id}/vote", response_model=schemas.GroupOut)

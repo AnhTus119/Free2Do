@@ -43,6 +43,15 @@ class NewFeatureTests(unittest.TestCase):
     def ids(self, account_id):
         return {i.id for i in notifications.list_notifications(db=self.db, account=self.db.get(models.Account, account_id))}
 
+    def test_my_reviews_lists_only_own_with_activity_info(self):
+        from app.routers import reviews
+        self.db.add(models.ActivityMedia(media_id="M1", activity_id="A1", media_url="https://x/c.jpg", media_type="image", media_kind="cover"))
+        self.db.add(models.Review(review_id="V1", user_id="UC", activity_id="A1", rating=4, content="Ổn", created_at=self.now))
+        self.db.add(models.Review(review_id="V2", user_id="B900", activity_id="A1", rating=2, created_at=self.now))
+        self.db.commit()
+        rows = reviews.list_my_reviews(self.db, self.db.get(models.User, "UC"))
+        self.assertEqual([("V1", "Cà phê thử", "https://x/c.jpg")], [(r.review_id, r.activity_name, r.activity_image) for r in rows])
+
     # --- thông báo
     def test_notifications_by_role(self):
         self.assertIn("new-activity:A1", self.ids("AC"))
@@ -75,7 +84,7 @@ class NewFeatureTests(unittest.TestCase):
 
     # --- operator tạo hoạt động
     def payload(self, **extra):
-        data = dict(name="Quán Thử Nghiệm - Cà phê", address="1 Đường Thử, Hai Bà Trưng, Hà Nội",
+        data = dict(name="Quán Thử Nghiệm - Cà phê", description="Mô tả thử", address="1 Đường Thử, Hai Bà Trưng, Hà Nội",
                     google_maps_url="https://maps.app.goo.gl/abc", business_id="B900")
         data.update(extra)
         return schemas.OperatorActivityCreate(**data)

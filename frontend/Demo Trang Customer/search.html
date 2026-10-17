@@ -8,7 +8,7 @@
         <title>FREE2DO | Tìm hoạt động</title>
         <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-        <link rel="stylesheet" href="app-style.css?v=20260930-location-fix">
+        <link rel="stylesheet" href="app-style.css?v=20261018">
 <style>html,body,input,button,select,textarea{font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif}
 .search-layout{display:grid;grid-template-columns:280px 1fr;gap:24px;padding:28px 0}.filters,.result{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px}.filters{display:grid;gap:14px;align-self:start}.field label{display:block;font-weight:700;margin-bottom:6px}.field input,.field select{width:100%;padding:10px;border:1px solid var(--line);border-radius:10px}.category-list{display:grid;gap:7px}.result{margin-bottom:12px}.result h3{margin:0 0 7px}.meta{color:var(--muted);font-size:13px}.score{color:var(--rose);font-weight:800}.message{padding:18px;background:#fff;border:1px solid var(--line);border-radius:14px}@media(max-width:760px){.search-layout{grid-template-columns:1fr}}
 /* Giữ khối cũ trong DOM (để customer-search.js không lỗi) nhưng ẩn đi */
@@ -161,6 +161,7 @@ html,body,input,button,select,textarea{font-family:'Inter',system-ui,-apple-syst
       <svg class="icon icon-sm"><use href="#icon-chevron-down"></use></svg>
       <div class="nav-dropdown" id="user-dropdown">
         <a href="account.html#hoso"><svg class="icon"><use href="#icon-user"></use></svg>Hồ sơ cá nhân</a>
+        <a href="account.html#danhgia"><span class="icon" aria-hidden="true" style="display:inline-flex;justify-content:center;">★</span>Đánh giá của tôi</a>
         <a href="../log-in.html" class="logout"><svg class="icon"><use href="#icon-log-out"></use></svg>Đăng xuất</a>
       </div>
     </div>
@@ -234,22 +235,6 @@ html,body,input,button,select,textarea{font-family:'Inter',system-ui,-apple-syst
         <h4>Loại hoạt động</h4>
         <div class="chip-row" id="interestFilters"></div>
       </div>
-      <div class="filter-group">
-        <h4>Hình thức</h4>
-        <div class="radio-row">
-          <label><input type="radio" name="mode" value="all" id="modeAll" checked> Tất cả</label>
-          <label><input type="radio" name="mode" value="offline"> Offline</label>
-          <label><input type="radio" name="mode" value="online"> Online</label>
-        </div>
-      </div>
-      <div class="filter-group">
-        <h4>Đối tượng tham gia</h4>
-        <div class="radio-row">
-          <label><input type="checkbox" name="audience" value="individual" checked> Cá nhân</label>
-          <label><input type="checkbox" name="audience" value="group"> Nhóm bạn</label>
-          <label><input type="checkbox" name="audience" value="family"> Gia đình</label>
-        </div>
-      </div>
     </div>
 
     <!-- RESULTS -->
@@ -303,8 +288,9 @@ function toggleMobileMenu(){
   });
 })();
 </script>
-<script src="../js/config.js"></script><script src="../js/main.js"></script><script src="../js/customer-api.js?v=20261003-speed"></script><script src="../js/customer-activity-icons.js?v=20260930-location-fix"></script><script src="../js/customer-map.js?v=20261001-tile-loader-fix"></script><script src="../js/customer-business-media.js?v=20261014"></script><script src="../js/customer-search.js?v=20261014-logo"></script>
+<script src="../js/config.js"></script><script src="../js/main.js"></script><script src="../js/customer-api.js?v=20261018"></script><script src="../js/customer-activity-icons.js?v=20260930-location-fix"></script><script src="../js/customer-map.js?v=20261001-tile-loader-fix"></script><script src="../js/customer-business-media.js?v=20261014"></script><script src="../js/customer-search.js?v=20261018"></script>
 
 <script src="../js/notifications.js?v=20261015"></script>
+<script src="../js/customer-ai-chat.js?v=20261018-ai-local"></script>
 </body>
 </html>

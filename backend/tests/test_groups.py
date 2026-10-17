@@ -83,7 +83,7 @@ class GroupFeatureTests(unittest.TestCase):
             description="Làm gốm cùng nhóm",
             price=120000,
             price_text="120.000 ₫",
-            address="Cầu Giấy, Hà Nội",
+            address="Cầu Giấy, Hà Nội", latitude=21.03, longitude=105.79,
             status="active",
             created_at=now,
         )
@@ -125,6 +125,8 @@ class GroupFeatureTests(unittest.TestCase):
             name=name,
             free_hours=2,
             address="Cầu Giấy",
+            latitude=21.031,
+            longitude=105.791,
             budget=200000,
             category_ids=[self.category.category_id],
         )
@@ -276,7 +278,7 @@ class GroupFeatureTests(unittest.TestCase):
             name="Lớp vẽ",
             description="Vẽ tranh cùng nhóm",
             price=150000,
-            address="Cầu Giấy, Hà Nội",
+            address="Cầu Giấy, Hà Nội", latitude=21.03, longitude=105.79,
             status="active",
             created_at=now,
         )
@@ -361,7 +363,7 @@ class GroupFeatureTests(unittest.TestCase):
         now = datetime.now(UTC).replace(tzinfo=None)
         business = self.db.query(models.BusinessProfile).first()
         other = models.Activity(business_id=business.user_id, name="Lớp vẽ", price=150000,
-                                address="Cầu Giấy, Hà Nội", status="active", created_at=now)
+                                address="Cầu Giấy, Hà Nội", latitude=21.03, longitude=105.79, status="active", created_at=now)
         self.db.add(other)
         self.db.flush()
         self.db.add(models.ActivityCategory(activity_id=other.activity_id, category_id=self.category.category_id))
@@ -431,6 +433,51 @@ class GroupFeatureTests(unittest.TestCase):
             await asyncio.wait_for(manager.broadcast_presence("group"), timeout=2)
             self.assertEqual(await manager.online_users("group"), set())
         asyncio.run(scenario())
+
+
+    def test_recommendations_use_midpoint_min_budget_and_any_member_tag(self):
+        from unittest.mock import patch
+        business = self.db.query(models.BusinessProfile).first()
+        other_tag = models.Category(name="Cà phê")
+        self.db.add(other_tag)
+        self.db.flush()
+        now = datetime.now(UTC).replace(tzinfo=None)
+
+        def add(name, lat, lon, price, tag):
+            activity = models.Activity(business_id=business.user_id, name=name, price=price, address="Hà Nội",
+                                       latitude=lat, longitude=lon, status="active", created_at=now)
+            self.db.add(activity)
+            self.db.flush()
+            self.db.add(models.ActivityCategory(activity_id=activity.activity_id, category_id=tag.category_id))
+            return activity.activity_id
+
+        middle = add("Cà phê giữa", 21.0, 105.85, 50000, other_tag)          # chỉ Member thích, ngay điểm giữa
+        expensive = add("Cà phê đắt", 21.0, 105.85, 150000, other_tag)       # vượt ngân sách thấp nhất (100k)
+        host_side = add("Gốm gần Host", 21.0, 105.75, 80000, self.category)  # cách điểm giữa ~10 km
+        host = schemas.GroupMemberInput(name="Host", free_hours=2, address="A", latitude=21.0, longitude=105.75,
+                                        budget=300000, category_ids=[self.category.category_id])
+        group = asyncio.run(create_group(schemas.GroupCreateRequest(host=host), db=self.db, user=self.host))
+        member = schemas.GroupJoinRequest(name="Member", free_hours=3, address="B", latitude=21.0, longitude=105.95,
+                                          budget=100000, category_ids=[other_tag.category_id])
+        asyncio.run(join_group(group.invite_code, member, db=self.db, user=self.member))
+        self.db.query(models.Group).filter_by(group_id=group.group_id).update({"search_started": True})
+        self.db.commit()
+
+        with patch("app.routers.groups.resolve_location", side_effect=AssertionError("không được tra lại")):
+            rows = asyncio.run(group_recommendations(group.group_id, db=self.db, user=self.host))
+        ids = [row.activity_id for row in rows]
+        self.assertEqual(middle, ids[0])                  # gần điểm giữa nhất
+        self.assertIn(host_side, ids)                     # khớp tag của 1 người là đủ (radius tự nới lên 10/20 km)
+        self.assertNotIn(expensive, ids)                  # ngân sách lấy người thấp nhất
+        self.assertNotIn(self.activity.activity_id, ids)  # 120k > 100k
+
+    def test_open_long_enough_handles_overnight(self):
+        from app.routers.groups import _open_long_enough
+        activity = models.Activity(time_open=datetime(2000, 1, 1, 19), time_close=datetime(2000, 1, 1, 2))
+        self.assertTrue(_open_long_enough(activity, 20 * 60, 120))       # 20h, rảnh 2h -> tới 22h
+        self.assertTrue(_open_long_enough(activity, 60, 60))             # 1h sáng còn mở tới 2h
+        self.assertFalse(_open_long_enough(activity, 60, 120))           # không đủ 2h
+        self.assertFalse(_open_long_enough(activity, 15 * 60, 60))       # chưa mở cửa
 
 
 if __name__ == "__main__":

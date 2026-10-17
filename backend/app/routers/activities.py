@@ -16,6 +16,7 @@ from app.utils.email import (
     send_activity_rejected_email,
 )
 import requests
+from app.routers.action_logs import log_action, status_change
 
 from app.utils.geocoding import address_matches_place, address_shape_ok, geocode_address, resolve_location
 from app.utils.google_maps import is_google_maps_url
@@ -425,6 +426,16 @@ def delete_activity_media(
 # ---------------------------------------------------------------------------
 operator_router = APIRouter(prefix="/operator/activities", tags=["operator-activities"])
 
+_FIELD_LABELS = {
+    "name": "tên", "description": "mô tả", "price": "giá", "address": "địa chỉ", "time_open": "giờ mở",
+    "time_close": "giờ đóng", "available_from": "ngày bắt đầu", "available_until": "ngày kết thúc",
+    "always_available": "mở vĩnh viễn", "google_maps_url": "link Google Maps",
+}
+_STATUS_ACTIONS = {
+    "active": "Hiện / duyệt hoạt động", "hidden": "Ẩn hoạt động", "pending": "Chuyển về chờ duyệt",
+    "rejected": "Từ chối hoạt động", "cancelled": "Xóa hoạt động",
+}
+
 
 @operator_router.post("", response_model=schemas.ActivityDetail, status_code=status.HTTP_201_CREATED)
 def operator_create_activity(
@@ -440,6 +451,8 @@ def operator_create_activity(
             "Không tìm thấy doanh nghiệp. Operator chỉ tạo hoạt động cho doanh nghiệp đã có tài khoản.",
         )
     activity = _create_activity_record(db, business, payload, operator=operator)
+    log_action(db, operator, "Tạo hoạt động", "activity", activity.activity_id, activity.business_id)
+    db.commit()
     return _to_detail(db, activity)
 
 
@@ -458,15 +471,26 @@ def list_activities_for_review(
         query = query.filter(models.Activity.business_id == business_id)
     activities = query.order_by(models.Activity.created_at.desc()).all()
     stats = _review_stats(db, [activity.activity_id for activity in activities])
+    names = _operator_names(db, {activity.verified_by for activity in activities if activity.verified_by})
 
     return [
         schemas.ActivityAdminOut(
             **_to_detail(db, activity, stats=stats).model_dump(),
             verified_by=activity.verified_by,
+            verified_by_name=names.get(activity.verified_by),
             verified_at=activity.verified_at,
         )
         for activity in activities
     ]
+
+
+def _operator_names(db: Session, operator_ids: set[str]) -> dict[str, str]:
+    if not operator_ids:
+        return {}
+    return dict(
+        db.query(models.Operator.operator_id, models.Operator.name)
+        .filter(models.Operator.operator_id.in_(operator_ids)).all()
+    )
 
 
 @operator_router.get("/summary/counts", response_model=schemas.ActivitySummaryOut)
@@ -510,6 +534,7 @@ def get_activity_for_review(
     return schemas.ActivityAdminOut(
         **_to_detail(db, activity).model_dump(),
         verified_by=activity.verified_by,
+        verified_by_name=_operator_names(db, {activity.verified_by} if activity.verified_by else set()).get(activity.verified_by),
         verified_at=activity.verified_at,
     )
 
@@ -519,7 +544,7 @@ def update_activity_as_operator(
     activity_id: str,
     payload: schemas.ActivityUpdate,
     db: Session = Depends(get_db),
-    _operator: models.Operator = Depends(get_current_operator),
+    operator: models.Operator = Depends(get_current_operator),
 ):
     """Operator sửa trực tiếp thông tin hoạt động (không cần đổi trạng thái)."""
     activity = db.query(models.Activity).filter(models.Activity.activity_id == activity_id).first()
@@ -558,12 +583,19 @@ def update_activity_as_operator(
             data.get("latitude", activity.latitude), data.get("longitude", activity.longitude),
             exclude_id=activity.activity_id,
         )
+    changed = [
+        _FIELD_LABELS.get(field, field) for field, value in data.items()
+        if field in _FIELD_LABELS and getattr(activity, field) != value
+    ]
     for field, value in data.items():
         setattr(activity, field, value)
     if payload.category_ids is not None:
         _set_categories(db, activity.activity_id, payload.category_ids)
+        changed.append("tag")
 
     activity.updated_at = datetime.utcnow()
+    log_action(db, operator, "Sửa thông tin hoạt động", "activity", activity.activity_id, activity.business_id,
+               ("Thay đổi: " + ", ".join(changed)) if changed else None)
     db.commit()
     db.refresh(activity)
     return _to_detail(db, activity)
@@ -585,7 +617,10 @@ def set_activity_status(
     if activity.status == "expired" and payload.status == "active":
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Hoạt động đã hết hạn chờ duyệt nên không thể duyệt nữa")
 
+    previous = activity.status
     activity.status = payload.status
+    log_action(db, operator, _STATUS_ACTIONS.get(payload.status, "Đổi trạng thái hoạt động"), "activity",
+               activity.activity_id, activity.business_id, status_change(previous, payload.status))
     if payload.status == "active":
         activity.verified_by = operator.operator_id
         activity.verified_at = datetime.utcnow()
@@ -616,6 +651,7 @@ def approve_activity(
     activity.verified_by = operator.operator_id
     activity.verified_at = datetime.utcnow()
     activity.expire_at = None
+    log_action(db, operator, "Duyệt hoạt động", "activity", activity.activity_id, activity.business_id)
     db.commit()
     db.refresh(activity)
 
@@ -639,6 +675,7 @@ def hide_activity(
     activity.status = "hidden"
     activity.verified_by = operator.operator_id
     activity.verified_at = datetime.utcnow()
+    log_action(db, operator, "Ẩn hoạt động", "activity", activity.activity_id, activity.business_id)
     db.commit()
     db.refresh(activity)
 
@@ -667,6 +704,8 @@ def reject_activity(
     activity.verified_at = datetime.utcnow()
     activity.expire_at = None
     activity.updated_at = activity.verified_at
+    log_action(db, operator, "Từ chối hoạt động", "activity", activity.activity_id, activity.business_id,
+               f"Lý do: {activity.rejection_reason}")
     db.commit()
     db.refresh(activity)
 
@@ -678,7 +717,7 @@ def reject_activity(
 def delete_activity_as_operator(
     activity_id: str,
     db: Session = Depends(get_db),
-    _operator: models.Operator = Depends(get_current_operator),
+    operator: models.Operator = Depends(get_current_operator),
 ):
     """Gỡ hoạt động đang hiển thị khỏi nền tảng. Xóa mềm (trạng thái "cancelled") để giữ
     lịch sử đánh giá, nhóm và báo cáo đang trỏ tới hoạt động."""
@@ -690,5 +729,6 @@ def delete_activity_as_operator(
 
     activity.status = "cancelled"
     activity.updated_at = datetime.utcnow()
+    log_action(db, operator, "Xóa hoạt động", "activity", activity.activity_id, activity.business_id)
     db.commit()
     return {"message": "Đã xóa hoạt động"}

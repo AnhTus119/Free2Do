@@ -62,8 +62,9 @@
         ? '' : `${activity.latitude}, ${activity.longitude}`, latitude: activity.latitude,
       longitude: activity.longitude, status: activity.status,
       description: activity.description || 'Chưa có mô tả.', verifiedBy: activity.verified_by || '',
+      verifiedByName: activity.verified_by_name || '', verifiedAt: activity.verified_at || null,
       expireAt: viDate(activity.expire_at), views: null, participants: source.review_count || 0,
-      rating: source.avg_rating, createdAt: window.F2D.dateTime(activity.created_at), media: source.media || [], icon: '✨',
+      rating: source.avg_rating, createdAt: window.F2D.dateTime(activity.created_at), createdRaw: activity.created_at || '', media: source.media || [], icon: '✨',
     };
   }
 
@@ -201,6 +202,20 @@
     await refreshSummaries();
   }
 
+  // Nhật ký thao tác operator cho trang hồ sơ đang xem (customer | business | activity).
+  async function renderActionLogs(container, targetType, targetId) {
+    if (!container || !targetId) return;
+    const esc = auth.escapeHTML;
+    const row = html => `<div class="alert-row"><div class="alert-text">${html}</div></div>`;
+    try {
+      const logs = await auth.authFetch(`/operator/action-logs?target_type=${targetType}&target_id=${encodeURIComponent(targetId)}`);
+      container.innerHTML = logs.length ? logs.map(log => row(`<b>${esc(log.action)}</b>${log.target_name ? ` · ${esc(log.target_name)}` : ''}`
+        + `${log.detail ? `<div class="cell-sub">${esc(log.detail)}</div>` : ''}`
+        + `<div class="cell-sub">${esc(log.operator_name)} · ${esc(window.F2D.dateTime(log.created_at))}</div>`)).join('')
+        : row('Chưa có thao tác nào.');
+    } catch (error) { container.innerHTML = row(esc(error.message)); }
+  }
+
   const data = {
     get customers() { return state.customers; },
     get businesses() { return state.businesses; },
@@ -211,7 +226,7 @@
     get customerSummary() { return state.customerSummary; },
     get businessSummary() { return state.businessSummary; },
     get activitySummary() { return state.activitySummary; },
-    statusLabels, setStatus, rejectActivity, deleteActivity, refreshActivity, parseViDate, normalize, escapeHTML: auth.escapeHTML, refresh,
+    statusLabels, setStatus, renderActionLogs, rejectActivity, deleteActivity, refreshActivity, parseViDate, normalize, escapeHTML: auth.escapeHTML, refresh,
     businessName(activity) {
       return state.businesses.find(item => item.id === activity.businessId)?.name
         || activity.businessName || 'Chưa xác định';

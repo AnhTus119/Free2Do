@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>FREE2DO Admin | Hồ sơ Hoạt động</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style1.css">
+<link rel="stylesheet" href="style1.css?v=20261018">
 <link rel="stylesheet" href="admin-responsive.css">
 </head>
 <body>
@@ -47,19 +47,20 @@
     <div class="content">
       <a href="activities.html" class="back-link">← Quay lại danh sách Hoạt động</a>
 
-      <div class="profile-head">
-        <div class="profile-logo">…</div>
-        <div style="flex:1;">
-          <div class="profile-name">Đang tải...</div>
-          <div class="profile-meta"></div>
+      <div class="ap-hero">
+        <div class="ap-cover" id="activityCover"><span>Đang tải ảnh bìa...</span></div>
+        <div class="ap-head">
+          <div class="ap-title">
+            <div class="profile-name">Đang tải...</div>
+            <div class="ap-chips" id="activityChips"></div>
+          </div>
+          <span class="badge ap-status" id="activityStatus"></span>
+          <button class="qa-btn ap-edit" type="button" id="editActivityProfile">✏️ Chỉnh sửa</button>
         </div>
-        <span class="badge active">Hoạt động</span>
-        <button class="qa-btn" type="button" id="editActivityProfile" style="margin-left:12px;">✏️ Chỉnh sửa</button>
       </div>
 
       <div class="quick-row" style="margin-bottom:24px;">
         <button class="qa-btn" id="toggleActivityVisibility">🙈 Ẩn Hoạt động</button>
-        <button class="qa-btn">🔁 Đổi trạng thái</button>
         <button class="qa-btn" id="approveActivity">✅ Duyệt Hoạt động</button>
       </div>
 
@@ -73,7 +74,7 @@
           <div class="info-row"><span class="info-label">Địa chỉ</span><span class="info-value">Đang tải...</span></div>
           <div class="info-row"><span class="info-label">Vị trí (lat, long)</span><span class="info-value">Đang tải...</span></div>
           <div class="info-row"><span class="info-label">Giờ hoạt động</span><span class="info-value">Đang tải...</span></div>
-          <div class="info-row"><span class="info-label">Admin xác minh (verified_by)</span><span class="info-value" style="color:var(--warn);">Đang tải...</span></div>
+          <div class="info-row"><span class="info-label">Người duyệt / xử lý</span><span class="info-value" style="color:var(--warn);">Đang tải...</span></div>
           <div class="info-row"><span class="info-label">Hạn chờ duyệt</span><span class="info-value" style="color:var(--muted);">Đang tải...</span></div><div class="info-row" id="rejectionReasonRow" hidden><span class="info-label">Lý do từ chối</span><span class="info-value">Không có</span></div>
         </div>
 
@@ -105,8 +106,8 @@
 
       <div class="section">
         <div class="section-head"><h3>Lịch sử thao tác Admin</h3></div>
-        <div class="card">
-          <div class="alert-row"><div class="alert-text">Backend chưa cung cấp API nhật ký thao tác.</div></div>
+        <div class="card" id="actionLogs">
+          <div class="alert-row"><div class="alert-text">Đang tải...</div></div>
         </div>
       </div>
 
@@ -117,7 +118,7 @@
 <script src="js/admin-auth.js"></script>
 <script src="js/admin-shell.js"></script>
 <script src="js/notifications.js"></script>
-<script src="js/admin-data.js"></script>
-<script src="js/activity-profile.js"></script>
+<script src="js/admin-data.js?v=20261018"></script>
+<script src="js/activity-profile.js?v=20261018"></script>
 </body>
 </html>

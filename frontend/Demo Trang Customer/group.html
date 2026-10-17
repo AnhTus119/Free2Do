@@ -13,7 +13,7 @@ if (!/Demo(%20| )Trang(%20| )Customer/.test(location.pathname) && !/\.html?$/i.t
   document.head.appendChild(pageBase);
 }</script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="app-style.css">
+<link rel="stylesheet" href="app-style.css?v=20261018">
 <style>
   .member-card{display:flex;align-items:center;gap:14px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:12px;}
   .member-avatar{width:42px;height:42px;border-radius:50%;background:var(--cream);color:var(--brown);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex:0 0 auto;}
@@ -275,7 +275,8 @@ html,body,input,button,select,textarea{font-family:'Inter',system-ui,-apple-syst
   <div class="nav-right">
     
     <div class="nav-icon"><svg class="icon"><use href="#icon-bell"></use></svg><span class="dot-badge"></span></div>
-    <div class="nav-who" role="button" tabindex="0" aria-haspopup="menu" aria-label="Menu tài khoản" onclick="toggleUserMenu(event)"><div class="nav-avatar">M</div><div class="nav-name">Minh</div><svg class="icon icon-sm"><use href="#icon-chevron-down"></use></svg><div class="nav-dropdown" id="user-dropdown"><a href="account.html#hoso"><svg class="icon"><use href="#icon-user"></use></svg>Hồ sơ cá nhân</a><a href="../log-in.html" class="logout"><svg class="icon"><use href="#icon-log-out"></use></svg>Đăng xuất</a></div></div>
+    <div class="nav-who" role="button" tabindex="0" aria-haspopup="menu" aria-label="Menu tài khoản" onclick="toggleUserMenu(event)"><div class="nav-avatar">M</div><div class="nav-name">Minh</div><svg class="icon icon-sm"><use href="#icon-chevron-down"></use></svg><div class="nav-dropdown" id="user-dropdown"><a href="account.html#hoso"><svg class="icon"><use href="#icon-user"></use></svg>Hồ sơ cá nhân</a>
+        <a href="account.html#danhgia"><span class="icon" aria-hidden="true" style="display:inline-flex;justify-content:center;">★</span>Đánh giá của tôi</a><a href="../log-in.html" class="logout"><svg class="icon"><use href="#icon-log-out"></use></svg>Đăng xuất</a></div></div>
   </div>
 </div>
 
@@ -447,9 +448,10 @@ function toggleMobileMenu(){
 })();
 </script>
 <script src="../js/config.js"></script><script src="../js/main.js"></script>
-<script src="../js/customer-api.js"></script>
-<script src="../js/group.js?v=20261015-group-merge"></script>
+<script src="../js/customer-api.js?v=20261018"></script>
+<script src="../js/group.js?v=20261018-group-location"></script>
 
 <script src="../js/notifications.js?v=20261015"></script>
+<script src="../js/customer-ai-chat.js?v=20261018-ai-local"></script>
 </body>
 </html>

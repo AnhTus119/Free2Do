@@ -285,5 +285,17 @@
     setView(matchMedia('(max-width:900px)').matches ? 'details' : 'list');
   }
   window.toggleMapView = () => setView('list');
+  // Trợ lý AI (customer-ai-chat.js) ghim kết quả lên bản đồ trang tìm kiếm, căn theo khu vực AI đã tìm.
+  window.Free2DoCustomerSearch = {
+    showAIRecommendations(items, center) {
+      if (center && window.Free2DoMap.validCoordinate(center.latitude, center.longitude)) {
+        position = { latitude: center.latitude, longitude: center.longitude };
+        locationLabel = center.label || locationLabel;
+        mapLocation.textContent = locationLabel;
+      }
+      render(items || []);
+      if (items?.[0]) mapController?.highlight(items[0].activity_id, true);
+    },
+  };
   load().catch(error => renderSearchError(error.message));
 })();

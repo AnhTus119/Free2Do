@@ -353,3 +353,24 @@ body{overflow-x:clip;}
 
 @media (max-width:600px){.hero h1{font-size:28px;}.section-title{font-size:19px;}}
 @media (prefers-reduced-motion:reduce){@view-transition{navigation:none;}}
+.loc-btn input{accent-color:var(--rose);width:16px;height:16px;margin:0;cursor:pointer;}
+/* Đánh giá của tôi (trang tài khoản) */
+.my-review-list{display:grid;gap:14px;max-width:760px;}
+.my-review{display:grid;grid-template-columns:84px minmax(0,1fr);gap:16px;padding:16px 18px;border:1px solid var(--line);border-radius:16px;background:#fff;}
+.my-review-thumb{width:84px;height:84px;border-radius:12px;overflow:hidden;background:var(--cream);display:flex;align-items:center;justify-content:center;font-size:26px;}
+.my-review-thumb img{width:100%;height:100%;object-fit:cover;}
+.my-review h3{margin:0 0 2px;font-size:16px;font-weight:800;}
+.my-review h3 a{color:var(--ink);text-decoration:none;}
+.my-review h3 a:hover{color:var(--rose-dark);}
+.my-review-meta{font-size:13px;color:var(--muted);}
+.my-review-stars{color:#E3A008;letter-spacing:1px;}
+.my-review-content{margin:8px 0 0;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere;}
+.my-review-reply{margin-top:10px;padding:10px 12px;border-radius:10px;background:var(--paper,#FBF7F0);font-size:13.5px;}
+.my-review-actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
+.my-review-edit{display:grid;gap:8px;margin-top:10px;}
+.my-review-edit select,.my-review-edit textarea{border:1.5px solid var(--line);border-radius:10px;padding:8px 10px;font:inherit;}
+@media(max-width:600px){.my-review{grid-template-columns:60px minmax(0,1fr);gap:12px;}.my-review-thumb{width:60px;height:60px;}}
+/* Nhóm: nút GPS + gợi ý địa chỉ đã tra được trên bản đồ */
+.g-loc-gps{display:inline-flex;align-items:center;gap:4px;margin-top:6px;padding:0;border:0;background:none;font:600 12.5px Inter,sans-serif;color:var(--rose-dark);cursor:pointer;}
+.g-loc-gps:hover{text-decoration:underline;}
+.g-loc-hint{display:block;margin-top:4px;font-size:12px;color:var(--success,#5C7A42);overflow-wrap:anywhere;}

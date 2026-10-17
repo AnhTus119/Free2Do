@@ -82,6 +82,8 @@ if (registerForm) {
         return;
       }
 
+      // Phiên mới: tick "Sử dụng vị trí hiện tại" về mặc định, xóa vị trí/chat AI của phiên trước.
+      ["f2d:use-gps", "f2d:home-location", "f2d:ai-chat"].forEach(key => localStorage.removeItem(key));
       localStorage.setItem("token", data.access_token);
       // Tài khoản mới: lần đầu vào home sẽ hiện popup chọn sở thích (customer-home.js).
       localStorage.setItem("f2d:onboard-interests", window.F2D.accountId() || "");

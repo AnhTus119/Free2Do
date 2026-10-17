@@ -44,6 +44,39 @@ def list_activity_reviews(activity_id: str, db: Session = Depends(get_db)):
     return [_to_review_out(review) for review in reviews]
 
 
+@router.get("/users/me/reviews", response_model=list[schemas.MyReviewOut])
+def list_my_reviews(
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    """Lịch sử đánh giá cá nhân (mới nhất trước), kể cả hoạt động đã ẩn/hủy."""
+    reviews = (
+        db.query(models.Review)
+        .options(
+            joinedload(models.Review.user),
+            joinedload(models.Review.activity).selectinload(models.Activity.media),
+            selectinload(models.Review.media),
+            selectinload(models.Review.reply).selectinload(models.ReviewReply.media),
+        )
+        .filter(models.Review.user_id == user.user_id)
+        .order_by(models.Review.created_at.desc())
+        .all()
+    )
+    result = []
+    for review in reviews:
+        images = sorted(
+            (item for item in review.activity.media if item.media_type == "image"),
+            key=lambda item: item.media_kind != "cover",
+        )
+        result.append(schemas.MyReviewOut(
+            **_to_review_out(review).model_dump(),
+            activity_name=review.activity.name,
+            activity_status=review.activity.status,
+            activity_image=images[0].media_url if images else None,
+        ))
+    return result
+
+
 @router.post("/reviews", response_model=schemas.Review, status_code=status.HTTP_201_CREATED)
 def create_review(
     payload: schemas.ReviewCreate,

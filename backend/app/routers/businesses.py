@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app import models, schemas
 from app.auth import get_current_business_user
 from app.database import get_db
-from app.routers.activities import DETAIL_LOAD_OPTIONS, _is_approved, _to_details
+from app.routers.activities import DETAIL_LOAD_OPTIONS, _is_approved, _to_details, expire_overdue_activities
 from app.services.supabase_storage import delete_asset
 
 
@@ -325,6 +325,7 @@ def list_business_activities(
     db: Session = Depends(get_db),
     business: models.BusinessProfile = Depends(get_current_business_user),
 ):
+    expire_overdue_activities(db)
     activities = (
         db.query(models.Activity)
         .options(*DETAIL_LOAD_OPTIONS)

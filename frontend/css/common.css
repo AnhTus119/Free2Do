@@ -1,6 +1,9 @@
 /* Thành phần dùng chung (js/main.js tự nạp file này). Màu lấy từ biến palette của từng khu,
    giá trị dự phòng trùng với :root trong style1.css / app-style.css. */
 
+/* Thuộc tính hidden luôn thắng các class đặt display (vd .qa-btn, .info-row dùng flex). */
+[hidden]{display:none !important;}
+
 /* ---------- Toast ---------- */
 .f2d-toast{
   position:fixed;left:50%;bottom:28px;z-index:10000;max-width:min(92vw,420px);
@@ -105,6 +108,23 @@
 @keyframes f2d-fade-in{from{opacity:0;}to{opacity:1;}}
 @media (max-width:520px){.f2d-modal-card{padding:20px 18px 18px;border-radius:16px;}.f2d-modal-actions .btn{flex:1;}}
 @media (prefers-reduced-motion:reduce){.f2d-modal[open],.f2d-modal[open]::backdrop{animation:none;}}
+
+/* ---------- Popup xác nhận (F2D.ask) ---------- */
+.f2d-ask{max-width:min(460px,calc(100vw - 32px));}
+.f2d-ask .f2d-modal-card{padding:24px 24px 20px;}
+.f2d-ask .f2d-modal-body{margin-bottom:6px;}
+.f2d-ask-field{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:700;color:var(--ink,#2B2420);}
+.f2d-ask-field input,.f2d-ask-field textarea{width:100%;box-sizing:border-box;padding:10px 12px;border:1.5px solid var(--line,#EADFCB);border-radius:10px;font:14px/1.5 Inter,Arial,sans-serif;color:var(--ink,#2B2420);background:#fff;resize:vertical;transition:border-color .2s ease;}
+.f2d-ask-field input:focus,.f2d-ask-field textarea:focus{outline:none;border-color:var(--rose,#DB6680);box-shadow:0 0 0 3px rgba(219,102,128,.14);}
+.f2d-ask-error{min-height:18px;margin:6px 0 0;color:var(--danger,#C1483E);font-size:12.5px;font-weight:600;}
+.f2d-ask-btn{min-height:40px;padding:0 18px;border:1.5px solid var(--line,#EADFCB);border-radius:12px;background:#fff;color:var(--ink,#2B2420);font:600 13.5px Inter,Arial,sans-serif;cursor:pointer;transition:background-color .18s ease,border-color .18s ease,transform .18s ease;}
+.f2d-ask-btn:hover{border-color:var(--rose,#DB6680);background:var(--paper,#FBF7F0);}
+.f2d-ask-btn.primary{border-color:var(--rose,#DB6680);background:var(--rose,#DB6680);color:#fff;}
+.f2d-ask-btn.primary:hover{background:var(--rose-dark,#BE4F68);border-color:var(--rose-dark,#BE4F68);}
+.f2d-ask-btn.danger{border-color:#C1483E;background:#C1483E;}
+.f2d-ask-btn.danger:hover{background:#A63A31;border-color:#A63A31;}
+.f2d-ask-btn:active{transform:scale(.97);}
+@media (max-width:520px){.f2d-ask .f2d-modal-actions .f2d-ask-btn{flex:1;}}
 
 /* ---------- Chọn ảnh (F2D.imagePicker) ---------- */
 .f2d-picker{display:flex;flex-direction:column;gap:12px;}

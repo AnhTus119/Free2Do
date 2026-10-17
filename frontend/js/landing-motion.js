@@ -1,9 +1,9 @@
 /*
  * Chuyển động cho trang giới thiệu (index.html). Dùng GSAP + ScrollTrigger nạp từ CDN.
- *  - Mở màn hero: ảnh lùi về, tiêu đề trồi lên từng từ, thẻ "thời gian rảnh" vẽ vòng đồng hồ.
+ *  - Mở màn hero: ảnh lùi về, tiêu đề trồi lên từng từ.
  *  - Cuộn: ảnh hero trôi chậm hơn nội dung (parallax), đường thời gian nối 3 bước vẽ dần,
  *    mặt đồng hồ ở dải cuối trang xoay theo cuộn.
- *  - Chuột (chỉ màn hình lớn, con trỏ chính xác): thẻ nổi nghiêng nhẹ theo con trỏ.
+ *  - Chuột (chỉ màn hình lớn, con trỏ chính xác): ảnh hero trôi nhẹ theo con trỏ.
  * Không có GSAP hoặc người dùng chọn giảm chuyển động: nội dung hiển thị tĩnh, đầy đủ.
  */
 (function () {
@@ -55,11 +55,6 @@
   const hero = document.querySelector('.landing-hero');
   const heroImage = hero?.querySelector('.hero-image');
   const heroTitle = hero?.querySelector('h1');
-  const card = hero?.querySelector('.hero-card');
-  const cardWrap = hero?.querySelector('.hero-card-wrap');
-  const arc = hero?.querySelector('.ring-arc');
-  const ARC_LENGTH = 175.93;
-  const ARC_FILLED = ARC_LENGTH * (1 - 0.62);
 
   const mm = gsap.matchMedia();
 
@@ -73,40 +68,28 @@
       .from(split.get(heroTitle) || heroTitle, { yPercent: 120, duration: 0.85, stagger: 0.06, ease: 'power4.out' }, 0.2)
       .from('.hero-content p', { y: 16, autoAlpha: 0, duration: 0.6 }, 0.5)
       .from('.hero-actions > *', { y: 14, autoAlpha: 0, duration: 0.5, stagger: 0.08 }, 0.62);
-    if (card && wide) {
-      tl.from(card, { y: 32, scale: 0.94, autoAlpha: 0, duration: 0.8 }, 0.55)
-        .fromTo(arc, { strokeDashoffset: ARC_LENGTH }, { strokeDashoffset: ARC_FILLED, duration: 1.1, ease: 'power2.inOut' }, 0.85)
-        .from(card.querySelectorAll('.hc-list li'), { x: -10, autoAlpha: 0, duration: 0.45, stagger: 0.1 }, 1.05);
-    }
     // Các trạng thái "from" đã được áp dụng ngay khi tạo timeline nên có thể bỏ lớp ẩn.
     releaseIntro();
   });
 
-  // ---------- Parallax hero: ảnh trôi chậm, thẻ nổi trôi nhanh (chỉ bố cục ảnh nền, >1100px) ----------
+  // ---------- Parallax hero: ảnh trôi chậm hơn chữ (chỉ bố cục ảnh nền, >1100px) ----------
   mm.add('(prefers-reduced-motion: no-preference) and (min-width: 1101px)', () => {
     if (!hero) return;
     const scrub = { trigger: hero, start: 'top top', end: 'bottom top', scrub: true };
     gsap.to(heroImage, { yPercent: 5, ease: 'none', scrollTrigger: scrub });
     gsap.to('.hero-content', { y: -36, ease: 'none', scrollTrigger: { ...scrub } });
-    if (cardWrap) gsap.to(cardWrap, { y: -90, ease: 'none', scrollTrigger: { ...scrub } });
   });
 
-  // ---------- Nghiêng thẻ theo con trỏ ----------
+  // ---------- Ảnh hero trôi nhẹ theo con trỏ ----------
   mm.add('(prefers-reduced-motion: no-preference) and (min-width: 1101px) and (hover: hover) and (pointer: fine)', () => {
-    if (!hero || !card) return;
-    gsap.set(card, { transformPerspective: 900 });
-    const rotX = gsap.quickTo(card, 'rotationX', { duration: 0.6, ease: 'power3' });
-    const rotY = gsap.quickTo(card, 'rotationY', { duration: 0.6, ease: 'power3' });
+    if (!hero) return;
     const imgX = gsap.quickTo(heroImage, 'x', { duration: 1, ease: 'power3' });
     const move = event => {
       const rect = hero.getBoundingClientRect();
       const nx = (event.clientX - rect.left) / rect.width - 0.5;
-      const ny = (event.clientY - rect.top) / rect.height - 0.5;
-      rotY(nx * 10);
-      rotX(-ny * 8);
       imgX(nx * -14);
     };
-    const leave = () => { rotX(0); rotY(0); imgX(0); };
+    const leave = () => imgX(0);
     hero.addEventListener('pointermove', move);
     hero.addEventListener('pointerleave', leave);
     return () => {

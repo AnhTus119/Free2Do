@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 
@@ -8,7 +9,7 @@ from fastapi.middleware.gzip import GZipMiddleware
 from sqlalchemy import text
 from app.config import settings
 from app.utils.email import get_email_provider
-from app.database import engine
+from app.database import SessionLocal, engine
 from app.schema_sync import find_schema_gaps, sync_schema_safely
 from app.routers import (
     search,
@@ -38,7 +39,28 @@ logger = logging.getLogger("free2do.api")
 async def lifespan(_app: FastAPI):
     # Tự bổ sung bảng/cột còn thiếu để không phụ thuộc vào việc đã chạy migrate hay chưa.
     sync_schema_safely(engine)
+    sweeper = asyncio.create_task(_expire_activities_periodically())
     yield
+    sweeper.cancel()
+
+
+def _expire_activities_once() -> None:
+    db = SessionLocal()
+    try:
+        activities.expire_overdue_activities(db)
+    finally:
+        db.close()
+
+
+async def _expire_activities_periodically() -> None:
+    """Mỗi giờ chuyển hoạt động chờ duyệt quá 30 ngày sang "expired" (kèm email) kể cả khi
+    không ai mở trang quản lý. Các API danh sách cũng tự quét nên trễ tối đa ~1 giờ."""
+    while True:
+        try:
+            await asyncio.to_thread(_expire_activities_once)
+        except Exception:  # noqa: BLE001
+            logger.exception("Không quét được hoạt động hết hạn")
+        await asyncio.sleep(3600)
 
 
 app = FastAPI(title="Free2Do API", version="1.1.0", lifespan=lifespan)

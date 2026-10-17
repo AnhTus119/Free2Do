@@ -15,9 +15,12 @@
   window.toggleEdit = () => { document.getElementById('edit-mode').style.display = document.getElementById('edit-mode').style.display === 'none' ? 'block' : 'none'; };
   window.saveProfile = () => F2D.busy(document.getElementById('profileSaveButton'), async () => {
     try {
-      const name = document.getElementById('profileName').value.trim();
+      const name = document.getElementById('profileName').value.trim().replace(/\s+/g, ' ');
       const phone = document.getElementById('profilePhone').value.trim();
       if (!name) throw new Error('Họ và tên không được để trống.');
+      if (name.length < 2 || name.length > 50 || !/^\p{L}+(?: \p{L}+)*$/u.test(name)) {
+        throw new Error('Họ và tên chỉ gồm chữ cái tiếng Việt hoặc tiếng Anh và khoảng trắng (2-50 ký tự), không chứa số hay ký tự đặc biệt.');
+      }
       const [profile] = await Promise.all([
         api.request('/users/me', { method: 'PATCH', body: { name, phone: phone || null }, toast: false }),
         interests.save(),

@@ -6,6 +6,7 @@ from sqlalchemy import func, or_
 from app.database import get_db
 from app import models, schemas
 from app.auth import get_current_operator
+from app.utils.identity import normalize_person_name
 
 router = APIRouter(prefix="/operator", tags=["operator-users"])
 
@@ -44,6 +45,7 @@ def _to_user_admin_out(db: Session, user: models.User) -> schemas.UserAdminOut:
         )
     return schemas.UserAdminOut(
         user_id=user.user_id,
+        code=user.code,
         account_id=user.account_id,
         email=user.account.email,
         role_name=user.role.role_name,
@@ -141,7 +143,10 @@ def update_user(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Không tìm thấy người dùng")
 
     if payload.name is not None:
-        user.name = payload.name
+        try:
+            user.name = normalize_person_name(payload.name)
+        except ValueError as exc:
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from exc
     if payload.phone is not None:
         user.phone = payload.phone
     db.commit()

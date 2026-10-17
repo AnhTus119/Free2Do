@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app import models, schemas
 from app.auth import get_current_user
+from app.utils.identity import normalize_person_name
 
 router = APIRouter(prefix="/users/me", tags=["users"])
 
@@ -18,10 +19,10 @@ def update_my_profile(
 ):
     data = payload.model_dump(exclude_unset=True)
     if "name" in data:
-        name = data["name"].strip()
-        if not name:
-            raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Họ tên không được để trống")
-        user.name = name
+        try:
+            user.name = normalize_person_name(data["name"])
+        except ValueError as exc:
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from exc
     if "phone" in data:
         raw_phone = data["phone"]
         user.phone = raw_phone.strip() or None if raw_phone is not None else None

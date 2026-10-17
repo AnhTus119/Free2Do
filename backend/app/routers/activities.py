@@ -1,3 +1,5 @@
+import logging
+import unicodedata
 from datetime import datetime, timedelta
 from typing import Literal, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query
@@ -7,7 +9,12 @@ from sqlalchemy import func
 from app.database import get_db
 from app import models, schemas
 from app.auth import get_current_business_user, get_current_operator
-from app.utils.email import send_activity_approved_email, send_activity_hidden_email
+from app.utils.email import (
+    send_activity_approved_email,
+    send_activity_expired_email,
+    send_activity_hidden_email,
+    send_activity_rejected_email,
+)
 import requests
 
 from app.utils.geocoding import address_matches_place, address_shape_ok, geocode_address, resolve_location
@@ -16,7 +23,80 @@ from app.utils.distance import haversine_km
 from app.services.supabase_storage import delete_asset
 
 router = APIRouter(prefix="/activities", tags=["activities"])
+logger = logging.getLogger("free2do.activities")
 DUPLICATE_WINDOW_SECONDS = 10
+PENDING_REVIEW_DAYS = 30  # chờ duyệt quá số ngày này thì hoạt động hết hạn
+# Hoạt động ở các trạng thái này không còn "chiếm chỗ": được phép gửi hoạt động mới giống hệt.
+RELEASED_STATUSES = ("expired", "rejected", "cancelled")
+SAME_PLACE_KM = 0.05  # hai toạ độ cách nhau dưới 50 m coi là cùng vị trí
+
+
+def _review_deadline(now: datetime | None = None) -> datetime:
+    return (now or datetime.utcnow()) + timedelta(days=PENDING_REVIEW_DAYS)
+
+
+def expire_overdue_activities(db: Session) -> int:
+    """Chuyển hoạt động chờ duyệt quá hạn sang "expired" và gửi email cho doanh nghiệp.
+
+    Gọi ở các API đọc danh sách và chạy định kỳ trong app/main.py, nên không cần cron riêng."""
+    now = datetime.utcnow()
+    overdue = (
+        db.query(models.Activity)
+        .filter(
+            models.Activity.status == "pending",
+            models.Activity.expire_at.isnot(None),
+            models.Activity.expire_at <= now,
+        )
+        .all()
+    )
+    if not overdue:
+        return 0
+    for activity in overdue:
+        activity.status = "expired"
+        activity.updated_at = now
+    db.commit()
+    for activity in overdue:
+        send_activity_expired_email(activity)  # best-effort, lỗi email đã được log bên trong
+    logger.info("Đã chuyển %s hoạt động sang hết hạn", len(overdue))
+    return len(overdue)
+
+
+def _normalized(text: str | None) -> str:
+    return " ".join(unicodedata.normalize("NFC", text or "").casefold().split())
+
+
+def _ensure_not_duplicate(
+    db: Session,
+    name: str,
+    address: str | None,
+    latitude: float | None,
+    longitude: float | None,
+    exclude_id: str | None = None,
+) -> None:
+    """Toàn hệ thống không có 2 hoạt động trùng nhau: phải khác tên hoặc khác vị trí."""
+    target_name, target_address = _normalized(name), _normalized(address)
+    # ponytail: quét mọi hoạt động còn hiệu lực trong Python (vài trăm dòng), đủ nhanh;
+    # nếu dữ liệu lên hàng chục nghìn thì thêm cột tên đã chuẩn hoá + index.
+    query = db.query(
+        models.Activity.activity_id, models.Activity.code, models.Activity.name,
+        models.Activity.address, models.Activity.latitude, models.Activity.longitude,
+    ).filter(models.Activity.status.notin_(RELEASED_STATUSES))
+    if exclude_id:
+        query = query.filter(models.Activity.activity_id != exclude_id)
+    for other in query.all():
+        if _normalized(other.name) != target_name:
+            continue
+        same_address = bool(target_address) and _normalized(other.address) == target_address
+        near = (
+            None not in (latitude, longitude, other.latitude, other.longitude)
+            and haversine_km(latitude, longitude, other.latitude, other.longitude) < SAME_PLACE_KM
+        )
+        if same_address or near:
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                f"Đã có hoạt động trùng tên và vị trí ({other.code or other.name}). "
+                "Hãy đổi tên cơ sở hoặc vị trí, hoặc chờ hoạt động cũ hết hạn.",
+            )
 
 
 def _coordinates(latitude, longitude, google_maps_url, address=None):
@@ -201,6 +281,7 @@ def _create_activity_record(
     )
     if recent:
         return recent
+    _ensure_not_duplicate(db, payload.name, payload.address, latitude, longitude)
     activity = models.Activity(
         business_id=business.user_id,
         name=payload.name,
@@ -218,6 +299,7 @@ def _create_activity_record(
         status="active" if operator else "pending",
         verified_by=operator.operator_id if operator else None,
         verified_at=now if operator else None,
+        expire_at=None if operator else _review_deadline(now),
         created_at=now,
         source_url=payload.source_url,
         google_maps_url=payload.google_maps_url,
@@ -278,14 +360,23 @@ def update_activity(
         if coordinates != (None, None):
             data["latitude"], data["longitude"] = coordinates
         data["google_maps_url"] = maps_url
+    resubmit = activity.status in ("active", "expired")
+    if resubmit or {"name", "address", "latitude", "longitude"} & data.keys():
+        _ensure_not_duplicate(
+            db, data.get("name", activity.name), data.get("address", activity.address),
+            data.get("latitude", activity.latitude), data.get("longitude", activity.longitude),
+            exclude_id=activity.activity_id,
+        )
     for field, value in data.items():
         setattr(activity, field, value)
     if payload.category_ids is not None:
         _set_categories(db, activity.activity_id, payload.category_ids)
 
+    # Sửa hoạt động đang hiển thị hoặc gửi lại hoạt động đã hết hạn -> chờ duyệt lại 30 ngày.
     # Giữ dấu xác nhận cũ để các trang Business vẫn nhận ra hoạt động từng được duyệt.
-    if activity.status == "active":
+    if resubmit:
         activity.status = "pending"
+        activity.expire_at = _review_deadline()
 
     activity.updated_at = datetime.utcnow()
     db.commit()
@@ -359,6 +450,7 @@ def list_activities_for_review(
     db: Session = Depends(get_db),
     _operator: models.Operator = Depends(get_current_operator),
 ):
+    expire_overdue_activities(db)
     query = db.query(models.Activity).options(*DETAIL_LOAD_OPTIONS)
     if status_filter:
         query = query.filter(models.Activity.status == status_filter)
@@ -372,7 +464,6 @@ def list_activities_for_review(
             **_to_detail(db, activity, stats=stats).model_dump(),
             verified_by=activity.verified_by,
             verified_at=activity.verified_at,
-            expire_at=activity.expire_at,
         )
         for activity in activities
     ]
@@ -384,6 +475,7 @@ def get_activity_summary(
     _operator: models.Operator = Depends(get_current_operator),
 ):
     """Các bộ đếm của trang Hoạt động được tính trực tiếp trong database."""
+    expire_overdue_activities(db)
     grouped = dict(
         db.query(models.Activity.status, func.count(models.Activity.activity_id))
         .group_by(models.Activity.status)
@@ -419,7 +511,6 @@ def get_activity_for_review(
         **_to_detail(db, activity).model_dump(),
         verified_by=activity.verified_by,
         verified_at=activity.verified_at,
-        expire_at=activity.expire_at,
     )
 
 
@@ -461,6 +552,12 @@ def update_activity_as_operator(
         if coordinates != (None, None):
             data["latitude"], data["longitude"] = coordinates
         data["google_maps_url"] = maps_url
+    if {"name", "address", "latitude", "longitude"} & data.keys():
+        _ensure_not_duplicate(
+            db, data.get("name", activity.name), data.get("address", activity.address),
+            data.get("latitude", activity.latitude), data.get("longitude", activity.longitude),
+            exclude_id=activity.activity_id,
+        )
     for field, value in data.items():
         setattr(activity, field, value)
     if payload.category_ids is not None:
@@ -481,14 +578,20 @@ def set_activity_status(
 ):
     """Đổi trạng thái hoạt động sang bất kỳ giá trị hợp lệ nào -- linh hoạt hơn approve/hide
     (vd trả 1 activity đã hidden về active mà không cần đi qua lại luồng duyệt)."""
+    expire_overdue_activities(db)
     activity = db.query(models.Activity).filter(models.Activity.activity_id == activity_id).first()
     if not activity:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Không tìm thấy hoạt động")
+    if activity.status == "expired" and payload.status == "active":
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Hoạt động đã hết hạn chờ duyệt nên không thể duyệt nữa")
 
     activity.status = payload.status
     if payload.status == "active":
         activity.verified_by = operator.operator_id
         activity.verified_at = datetime.utcnow()
+        activity.expire_at = None
+    elif payload.status == "pending":
+        activity.expire_at = _review_deadline()
     db.commit()
     db.refresh(activity)
     return activity
@@ -500,15 +603,19 @@ def approve_activity(
     db: Session = Depends(get_db),
     operator: models.Operator = Depends(get_current_operator),
 ):
+    expire_overdue_activities(db)
     activity = db.query(models.Activity).filter(models.Activity.activity_id == activity_id).first()
     if not activity:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Không tìm thấy hoạt động")
+    if activity.status == "expired":
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Hoạt động đã hết hạn chờ duyệt nên không thể duyệt nữa")
     if activity.status != "pending":
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Hoạt động không ở trạng thái chờ duyệt")
 
     activity.status = "active"
     activity.verified_by = operator.operator_id
     activity.verified_at = datetime.utcnow()
+    activity.expire_at = None
     db.commit()
     db.refresh(activity)
 
@@ -537,3 +644,51 @@ def hide_activity(
 
     send_activity_hidden_email(activity)
     return activity
+
+
+@operator_router.patch("/{activity_id}/reject", response_model=schemas.Activity)
+def reject_activity(
+    activity_id: str,
+    payload: schemas.ActivityRejectRequest,
+    db: Session = Depends(get_db),
+    operator: models.Operator = Depends(get_current_operator),
+):
+    """Từ chối hoạt động đang chờ duyệt, lưu lý do và gửi email cho doanh nghiệp."""
+    expire_overdue_activities(db)
+    activity = db.query(models.Activity).filter(models.Activity.activity_id == activity_id).first()
+    if not activity:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Không tìm thấy hoạt động")
+    if activity.status != "pending":
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Chỉ từ chối được hoạt động đang chờ duyệt")
+
+    activity.status = "rejected"
+    activity.rejection_reason = payload.reason.strip()
+    activity.verified_by = operator.operator_id
+    activity.verified_at = datetime.utcnow()
+    activity.expire_at = None
+    activity.updated_at = activity.verified_at
+    db.commit()
+    db.refresh(activity)
+
+    send_activity_rejected_email(activity)
+    return activity
+
+
+@operator_router.delete("/{activity_id}", response_model=schemas.MessageResponse)
+def delete_activity_as_operator(
+    activity_id: str,
+    db: Session = Depends(get_db),
+    _operator: models.Operator = Depends(get_current_operator),
+):
+    """Gỡ hoạt động đang hiển thị khỏi nền tảng. Xóa mềm (trạng thái "cancelled") để giữ
+    lịch sử đánh giá, nhóm và báo cáo đang trỏ tới hoạt động."""
+    activity = db.query(models.Activity).filter(models.Activity.activity_id == activity_id).first()
+    if not activity:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Không tìm thấy hoạt động")
+    if activity.status != "active":
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Chỉ xóa được hoạt động đang hiển thị")
+
+    activity.status = "cancelled"
+    activity.updated_at = datetime.utcnow()
+    db.commit()
+    return {"message": "Đã xóa hoạt động"}

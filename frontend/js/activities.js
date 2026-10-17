@@ -26,24 +26,39 @@
     const counts = {
       all: summary.total_count, active: summary.active_count, pending: summary.pending_count,
       hidden: summary.hidden_count, rejected: summary.rejected_count, expired: summary.expired_count,
+      cancelled: summary.cancelled_count,
     };
-    ['all', 'active', 'pending', 'hidden', 'rejected', 'expired'].forEach(status => {
+    ['all', 'active', 'pending', 'hidden', 'rejected', 'expired', 'cancelled'].forEach(status => {
       const element = document.querySelector(`[data-count="${status}"]`);
       if (element) element.textContent = counts[status];
     });
+  }
+
+  // Tab "Tất cả": hoạt động đang hiển thị/chờ duyệt lên đầu, rồi bị từ chối, hết hạn, đã ẩn, cuối cùng là đã hủy.
+  const STATUS_ORDER = { active: 0, pending: 0, rejected: 1, expired: 2, hidden: 3, cancelled: 4 };
+  const statusRank = activity => STATUS_ORDER[activity.status] ?? 0;
+
+  // Bộ lọc loại hình lấy đủ các tag hiện có trong database (tag mới operator thêm sẽ tự xuất hiện).
+  function renderTypeFilter() {
+    const selected = typeFilter.value || 'all';
+    const categories = [...data.categories].sort((a, b) => a.name.localeCompare(b.name, 'vi'));
+    typeFilter.innerHTML = '<option value="all">Tất cả loại hình</option>'
+      + categories.map(item => `<option value="${data.escapeHTML(item.category_id)}">${data.escapeHTML(item.name)}</option>`).join('');
+    typeFilter.value = categories.some(item => item.category_id === selected) ? selected : 'all';
   }
 
   function filteredActivities() {
     const query = data.normalize(searchInput.value);
     const activities = data.activities.filter(activity => {
       const matchesStatus = selectedStatus === 'all' || activity.status === selectedStatus;
-      const matchesType = typeFilter.value === 'all' || activity.type === typeFilter.value;
+      const matchesType = typeFilter.value === 'all' || activity.categoryIds.includes(typeFilter.value);
       const matchesBusiness = selectedBusiness === 'all' || activity.businessId === selectedBusiness;
       const matchesSearch = !query || data.normalize(`${activity.code} ${activity.name} ${data.businessName(activity)}`).includes(query);
       return matchesStatus && matchesType && matchesBusiness && matchesSearch;
     });
     if (priceFilter.value === 'priceAsc') activities.sort((a, b) => startingPrice(a) - startingPrice(b));
     if (priceFilter.value === 'priceDesc') activities.sort((a, b) => startingPrice(b) - startingPrice(a));
+    if (selectedStatus === 'all') activities.sort((a, b) => statusRank(a) - statusRank(b)); // sort ổn định: giữ thứ tự giá/mới nhất trong từng nhóm
     return activities;
   }
 
@@ -53,7 +68,9 @@
       return;
     }
     tableBody.innerHTML = activities.map(activity => {
-      const approve = activity.status === 'pending' ? '<button class="row-btn approve" data-action="approve">Duyệt</button>' : '';
+      const approve = activity.status === 'pending'
+        ? '<button type="button" class="row-btn approve" data-action="approve">Duyệt</button><button type="button" class="row-btn reject" data-action="reject">Từ chối</button>'
+        : activity.status === 'active' ? '<button type="button" class="row-btn danger" data-action="delete">Xóa</button>' : '';
       return `<tr data-id="${data.escapeHTML(activity.id)}" data-type="${data.escapeHTML(activity.type)}">
         <td class="cell-code">${data.escapeHTML(activity.code)}</td><td class="cell-title">${data.escapeHTML(activity.name)}</td>
         <td>${data.escapeHTML(data.businessName(activity))}</td><td>${data.escapeHTML(activity.price)}</td><td>${data.escapeHTML(activity.hours)}</td>
@@ -102,6 +119,7 @@
 
   function render() {
     renderBusinessFilter();
+    renderTypeFilter();
     const activities = filteredActivities();
     const totalPages = Math.max(1, Math.ceil(activities.length / pageSize));
     currentPage = Math.min(currentPage, totalPages);
@@ -313,16 +331,42 @@
       await openActivityEditor(button.closest('tr').dataset.id);
       return;
     }
+    const id = button.closest('tr').dataset.id;
+    const activity = data.activities.find(item => item.id === id);
+    const label = activity ? `${activity.code} · ${activity.name}` : 'hoạt động này';
+    if (button.dataset.action === 'reject') {
+      const reason = await F2D.ask({
+        title: 'Từ chối hoạt động', text: `Doanh nghiệp sẽ nhận email kèm lý do từ chối "${label}".`,
+        ok: 'Từ chối', danger: true,
+        input: { label: 'Lý do từ chối', placeholder: 'Ví dụ: Ảnh không đúng địa điểm, thiếu giờ mở cửa...', multiline: true, minLength: 3, requiredMessage: 'Hãy nhập lý do từ chối (ít nhất 3 ký tự).' },
+      });
+      if (!reason) return;
+      await runRowAction(button, () => data.rejectActivity(id, reason));
+      return;
+    }
+    if (button.dataset.action === 'delete') {
+      const confirmed = await F2D.ask({
+        title: 'Xóa hoạt động?', text: `"${label}" sẽ bị gỡ khỏi FREE2DO và chuyển sang mục Đã hủy. Khách hàng sẽ không còn thấy hoạt động này.`,
+        ok: 'Xóa hoạt động', danger: true,
+      });
+      if (!confirmed) return;
+      await runRowAction(button, () => data.deleteActivity(id));
+      return;
+    }
     if (button.dataset.action !== 'approve') return;
+    await runRowAction(button, () => data.setStatus('activity', id, 'active'));
+  });
+
+  async function runRowAction(button, action) {
     button.disabled = true;
     try {
-      await data.setStatus('activity', button.closest('tr').dataset.id, 'active');
+      await action();
       render();
     } catch (error) {
       F2D.toast(error.message, 'error');
       button.disabled = false;
     }
-  });
+  }
 
   data.ready.then(async () => {
     render();

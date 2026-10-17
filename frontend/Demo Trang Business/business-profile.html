@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="vi">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>FREE2DO Business | Hồ sơ</title><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"><link rel="stylesheet" href="app-style.css"><style>
+<head><meta charset="UTF-8"><meta name="description" content="Hồ sơ doanh nghiệp trên Free2Do Business."><link rel="icon" type="image/svg+xml" href="../img/logo.svg"><meta name="viewport" content="width=device-width,initial-scale=1"><title>FREE2DO Business | Hồ sơ</title><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"><link rel="stylesheet" href="app-style.css"><style>
 .bp-wrap{max-width:960px;padding-top:32px;padding-bottom:64px;display:grid;gap:20px}
 .bp-card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:24px}
 .bp-card-title{margin:0 0 14px;font-size:16px;font-weight:800}
@@ -35,7 +35,7 @@
 @media(max-width:760px){.bp-media-row{grid-template-columns:1fr}.bp-contact>div{grid-template-columns:1fr;gap:4px}.bp-edit-btn{width:100%}}
 </style></head>
 <body>
-  <header class="navbar"><div class="nav-left"><button class="mobile-menu-btn" onclick="toggleMobileMenu()">☰</button><a href="business-home.html" class="nav-logo"><img src="Logo.svg" alt="FREE2DO" style="width:38px">FREE2DO <span style="color:var(--muted)">Business</span></a></div><nav class="nav-center"><a href="business-home.html" class="nav-link">Tổng quan</a><a href="my-activities.html" class="nav-link">Hoạt động của tôi</a><a href="reviews.html" class="nav-link">Đánh giá</a><a href="upgrade-plan.html" class="nav-link">Gói dịch vụ</a></nav><div class="nav-right"><div class="nav-who dropdown-wrap" role="button" tabindex="0" aria-haspopup="menu" aria-label="Menu tài khoản" onclick="toggleMenu(event)"><div class="nav-avatar" data-business-avatar>B</div><div class="nav-name" data-business-name>Đang tải...</div><div class="dropdown-menu" id="nav-user-menu"><a href="business-profile.html">Hồ sơ Doanh nghiệp</a><a href="upgrade-plan.html">Gói dịch vụ</a><a href="../log-in.html" data-logout>Đăng xuất</a></div></div></div></header>
+  <header class="navbar"><div class="nav-left"><button class="mobile-menu-btn" type="button" aria-label="Mở menu" onclick="toggleMobileMenu()">☰</button><a href="business-home.html" class="nav-logo"><img src="Logo.svg" alt="FREE2DO" style="width:38px">FREE2DO <span style="color:var(--muted)">Business</span></a></div><nav class="nav-center"><a href="business-home.html" class="nav-link">Tổng quan</a><a href="my-activities.html" class="nav-link">Hoạt động của tôi</a><a href="reviews.html" class="nav-link">Đánh giá</a><a href="upgrade-plan.html" class="nav-link">Gói dịch vụ</a></nav><div class="nav-right"><div class="nav-who dropdown-wrap" role="button" tabindex="0" aria-haspopup="menu" aria-label="Menu tài khoản" onclick="toggleMenu(event)"><div class="nav-avatar" data-business-avatar>B</div><div class="nav-name" data-business-name>Đang tải...</div><div class="dropdown-menu" id="nav-user-menu"><a href="business-profile.html">Hồ sơ Doanh nghiệp</a><a href="upgrade-plan.html">Gói dịch vụ</a><a href="../log-in.html" data-logout>Đăng xuất</a></div></div></div></header>
   <main class="wrap bp-wrap">
     <section class="bp-card bp-hero">
       <div class="bp-logo" data-business-avatar>B</div>
@@ -88,7 +88,7 @@
       <div class="f2d-modal-actions"><button type="button" class="btn btn-secondary" id="cancel-edit">Hủy</button><button type="submit" class="btn btn-primary" id="save-profile">Lưu</button></div>
     </form>
   </dialog>
-  <div class="mobile-nav-panel" id="mobile-nav"><div class="mobile-nav-content"><button class="mobile-nav-close" onclick="toggleMobileMenu()">&times;</button><a href="business-home.html" class="mobile-nav-link">Tổng quan</a><a href="my-activities.html" class="mobile-nav-link">Hoạt động của tôi</a><a href="reviews.html" class="mobile-nav-link">Đánh giá</a><a href="upgrade-plan.html" class="mobile-nav-link">Gói dịch vụ</a></div></div>
+  <div class="mobile-nav-panel" id="mobile-nav"><div class="mobile-nav-content"><button class="mobile-nav-close" type="button" aria-label="Đóng menu" onclick="toggleMobileMenu()">&times;</button><a href="business-home.html" class="mobile-nav-link">Tổng quan</a><a href="my-activities.html" class="mobile-nav-link">Hoạt động của tôi</a><a href="reviews.html" class="mobile-nav-link">Đánh giá</a><a href="upgrade-plan.html" class="mobile-nav-link">Gói dịch vụ</a></div></div>
   <script src="../js/config.js"></script><script src="../js/main.js"></script><script src="business-api.js"></script><script src="business-profile.js"></script>
 <script src="../js/notifications.js?v=20261015"></script>
 </body>

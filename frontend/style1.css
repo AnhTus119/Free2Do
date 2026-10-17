@@ -19,7 +19,7 @@ body{margin:0;font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,Aria
   display:flex;flex-direction:column;padding:24px 16px;
   position:sticky;top:0;height:100vh;
 }
-.side-logo{display:flex;align-items:center;gap:9px;padding:6px 8px 28px;}
+.side-logo{display:flex;align-items:center;gap:9px;padding:6px 8px 28px;text-decoration:none;color:inherit;}
 .side-logo img{width:30px;height:30px;}
 .side-logo span{color:var(--cream);font-weight:800;font-size:16px;letter-spacing:0.01em;}
 
@@ -109,11 +109,12 @@ table{width:100%;border-collapse:collapse;}
 .business-table .row-btn{flex-shrink:0;white-space:nowrap;}
 .customer-table{table-layout:fixed;}
 .customer-table th,.customer-table td{overflow:hidden;text-overflow:ellipsis;overflow-wrap:anywhere;}
-.customer-table th:nth-child(1),.customer-table td:nth-child(1){width:20%;}
-.customer-table th:nth-child(2),.customer-table td:nth-child(2){width:27%;}
-.customer-table th:nth-child(3),.customer-table td:nth-child(3){width:18%;}
-.customer-table th:nth-child(4),.customer-table td:nth-child(4){width:17%;}
-.customer-table th:nth-child(5),.customer-table td:nth-child(5){width:18%;}
+.customer-table th:nth-child(1),.customer-table td:nth-child(1){width:84px;}
+.customer-table th:nth-child(2),.customer-table td:nth-child(2){width:20%;}
+.customer-table th:nth-child(3),.customer-table td:nth-child(3){width:26%;}
+.customer-table th:nth-child(4),.customer-table td:nth-child(4){width:16%;}
+.customer-table th:nth-child(5),.customer-table td:nth-child(5){width:15%;}
+.customer-table th:nth-child(6),.customer-table td:nth-child(6){width:170px;}
 .customer-table .row-actions{min-width:112px;flex-wrap:nowrap;}
 .activity-table{width:100%;margin:0;table-layout:fixed;}
 .activity-table th,.activity-table td{padding-left:10px;padding-right:10px;overflow:hidden;text-overflow:ellipsis;overflow-wrap:anywhere;}
@@ -407,6 +408,16 @@ tbody tr:hover{background:#FCFAF6;}
 .activity-table td:nth-child(4),.activity-table td:nth-child(5),.activity-table td:nth-child(6){white-space:nowrap;}
 .activity-table .row-actions{flex-wrap:nowrap;}
 .badge{white-space:nowrap;}
+/* Cột Hành động đủ chỗ cho tối đa 4 nút (Xem · Sửa · Duyệt · Từ chối) trên một dòng, không rơi chữ */
+.activity-table{min-width:1040px;}
+.activity-table th:nth-child(2),.activity-table td:nth-child(2){width:19%;}
+.activity-table th:nth-child(3),.activity-table td:nth-child(3){width:15%;}
+.activity-table th:nth-child(4),.activity-table td:nth-child(4){width:11%;}
+.activity-table th:nth-child(5),.activity-table td:nth-child(5){width:12%;}
+.activity-table th:nth-child(6),.activity-table td:nth-child(6){width:11%;}
+.activity-table th:nth-child(7),.activity-table td:nth-child(7){width:236px;overflow:visible;}
+.activity-table .row-btn{flex-shrink:0;white-space:nowrap;overflow-wrap:normal;word-break:keep-all;}
+.badge.cancelled{background:#F1ECE6;color:var(--muted);}
 /* Sidebar có nhóm + icon SVG; thẻ số liệu dùng icon SVG thay emoji */
 .nav-item .ic{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;}
 .nav-item .ic svg,.stat-icon svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;}

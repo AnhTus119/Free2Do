@@ -215,6 +215,8 @@ img,svg{max-width:100%;}
 .b-badge.active{background:var(--success-bg);color:var(--success);}
 .b-badge.pending{background:var(--warn-bg);color:var(--warn);}
 .b-badge.hidden{background:#EFE9DF;color:var(--muted);}
+.b-badge.rejected{background:var(--danger-bg,#FBEAE8);color:var(--danger,#C1483E);}
+.b-badge.expired{background:#EFE9DF;color:var(--muted);}
 .b-badge.expired{background:#EFE9DF;color:var(--muted);}
 
 /* ===== BUSINESS: PRICING CARD ===== */

@@ -13,8 +13,18 @@
   const emptyRow = text => `<p class="op-case-empty">${esc(text)}</p>`;
 
   async function loadCategories() {
-    const rows = await auth.authFetch('/categories');
-    document.getElementById('categories').innerHTML = rows.map(item => `<div class="item" data-category="${esc(item.category_id)}"><b>${esc(item.name)}</b> <button data-action="rename">Đổi tên</button> <button class="danger" data-action="delete">Xóa</button></div>`).join('') || '<p>Chưa có danh mục.</p>';
+    const rows = await auth.authFetch('/operator/categories');
+    document.getElementById('categoryCount').textContent = rows.length;
+    document.getElementById('categories').innerHTML = rows.map(item => {
+      const used = item.activity_count > 0;
+      return `<div class="item category-item" data-category="${esc(item.category_id)}" data-name="${esc(item.name)}" data-count="${item.activity_count}">
+        <div class="category-main"><b>${esc(item.name)}</b><span class="category-usage${used ? '' : ' is-empty'}">${used ? `${item.activity_count} hoạt động` : 'Chưa dùng'}</span></div>
+        <div class="category-actions">
+          <button type="button" data-action="rename">Đổi tên</button>
+          <button type="button" class="danger" data-action="delete" ${used ? `title="Đang gắn với ${item.activity_count} hoạt động"` : ''}>Xóa</button>
+        </div>
+      </div>`;
+    }).join('') || '<p class="op-case-empty">Chưa có danh mục.</p>';
   }
 
   // ---------- Báo cáo / khiếu nại: danh sách gọn, click để mở khung chi tiết ----------
@@ -140,16 +150,28 @@
     } catch (error) { /* toast lỗi đã hiện ở F2D.mutate */ }
   };
   document.getElementById('categories').onclick = async event => {
+    const button = event.target.closest('[data-action]');
     const row = event.target.closest('[data-category]');
-    if (!row) return;
+    if (!button || !row) return;
+    const { category, name, count } = row.dataset;
+    const url = `/operator/categories/${encodeURIComponent(category)}`;
     try {
-      if (event.target.dataset.action === 'delete' && confirm('Xóa danh mục này?')) {
-        await auth.authFetch(`/operator/categories/${encodeURIComponent(row.dataset.category)}`, { method: 'DELETE', toast: 'Đã xóa danh mục.' });
+      if (button.dataset.action === 'delete') {
+        if (Number(count) > 0) {
+          F2D.toast(`Danh mục "${name}" đang gắn với ${count} hoạt động. Hãy bỏ danh mục khỏi các hoạt động đó trước khi xóa.`, 'error');
+          return;
+        }
+        const confirmed = await F2D.ask({ title: 'Xóa danh mục?', text: `Danh mục "${name}" sẽ bị xóa khỏi bộ lọc và sở thích của khách hàng.`, ok: 'Xóa danh mục', danger: true });
+        if (!confirmed) return;
+        await auth.authFetch(url, { method: 'DELETE', toast: 'Đã xóa danh mục.' });
       }
-      if (event.target.dataset.action === 'rename') {
-        const name = prompt('Tên mới:');
-        if (!name?.trim()) return;
-        await auth.authFetch(`/operator/categories/${encodeURIComponent(row.dataset.category)}`, { method: 'PATCH', body: JSON.stringify({ name: name.trim() }), toast: 'Đã đổi tên danh mục.' });
+      if (button.dataset.action === 'rename') {
+        const next = await F2D.ask({
+          title: 'Đổi tên danh mục', ok: 'Lưu tên mới',
+          input: { label: 'Tên danh mục', value: name, maxLength: 40, minLength: 2, requiredMessage: 'Tên danh mục cần từ 2 đến 40 ký tự.' },
+        });
+        if (!next || next === name) return;
+        await auth.authFetch(url, { method: 'PATCH', body: JSON.stringify({ name: next }), toast: 'Đã đổi tên danh mục.' });
       }
       await loadCategories();
     } catch (error) { /* toast lỗi đã hiện ở F2D.mutate */ }

@@ -2,6 +2,8 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
+<meta name="description" content="Các gói dịch vụ dành cho doanh nghiệp trên Free2Do Business.">
+<link rel="icon" type="image/svg+xml" href="../img/logo.svg">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>FREE2DO Business | Nâng cấp gói</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -11,7 +13,7 @@
 
 <div class="navbar">
   <div class="nav-left" style="display:flex;align-items:center;gap:12px;">
-    <button class="mobile-menu-btn" onclick="toggleMobileMenu()"><svg class="icon icon-lg" viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+    <button class="mobile-menu-btn" type="button" aria-label="Mở menu" onclick="toggleMobileMenu()"><svg class="icon icon-lg" viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
     <a href="business-home.html" class="nav-logo"><img src="Logo.svg" alt="Logo" style="width:38px;">FREE2DO <span style="color:var(--muted);font-weight:600;">Business</span></a>
   </div>
   <div class="nav-center">
@@ -88,7 +90,7 @@
 
 <div class="mobile-nav-panel" id="mobile-nav">
   <div class="mobile-nav-content">
-    <button class="mobile-nav-close" onclick="toggleMobileMenu()">&times;</button>
+    <button class="mobile-nav-close" type="button" aria-label="Đóng menu" onclick="toggleMobileMenu()">&times;</button>
     <a href="business-home.html" class="mobile-nav-link">Tổng quan</a>
     <a href="my-activities.html" class="mobile-nav-link">Hoạt động của tôi</a>
     <a href="reviews.html" class="mobile-nav-link">Đánh giá</a>

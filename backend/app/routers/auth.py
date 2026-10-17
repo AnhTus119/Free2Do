@@ -19,7 +19,7 @@ from app.auth import (
 )
 from app.utils.otp import generate_and_save_otp, verify_otp
 from app.utils.email import EmailDeliveryError, send_otp_email
-from app.utils.identity import find_account, normalize_email, normalize_phone, split_identifier
+from app.utils.identity import find_account, normalize_email, normalize_person_name, normalize_phone, split_identifier
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -42,6 +42,7 @@ def register(payload: schemas.RegisterRequest, db: Session = Depends(get_db)):
     if not raw_identifier:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Vui lòng nhập email hoặc số điện thoại")
     try:
+        name = normalize_person_name(payload.name)
         email, login_phone = split_identifier(raw_identifier)
         phone = login_phone or (normalize_phone(payload.phone) if payload.phone else None)
     except ValueError as exc:
@@ -88,7 +89,7 @@ def register(payload: schemas.RegisterRequest, db: Session = Depends(get_db)):
     user = models.User(
         account_id=account.account_id,
         role_id=role.role_id,
-        name=payload.name,
+        name=name,
         phone=phone,
     )
     db.add(user)

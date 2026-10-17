@@ -28,6 +28,27 @@ def next_activity_code(context) -> str:
     _sqlite_activity_code = max([_sqlite_activity_code, *numbers]) + 1
     return f"A{_sqlite_activity_code}"
 
+
+_sqlite_user_code = 0
+
+
+def next_user_code(context) -> str:
+    """Mã khách hàng C1, C2... (khóa chính vẫn là user_id). Cùng cách với next_activity_code;
+    PostgreSQL dùng SEQUENCE user_code_seq (tạo trong migrations/2026-10-17_operator_round.sql)."""
+    connection = context.connection
+    if connection.dialect.name == "postgresql":
+        # IF NOT EXISTS: deploy trước khi chạy migration vẫn đăng ký được (migration sẽ setval lại).
+        connection.execute(text("CREATE SEQUENCE IF NOT EXISTS user_code_seq"))
+        return "C" + str(connection.execute(text("SELECT nextval('user_code_seq')")).scalar())
+    global _sqlite_user_code
+    numbers = [
+        int(code[1:])
+        for code in connection.execute(text("SELECT code FROM users WHERE code LIKE 'C%'")).scalars()
+        if code and code[1:].isdigit()
+    ]
+    _sqlite_user_code = max([_sqlite_user_code, *numbers]) + 1
+    return f"C{_sqlite_user_code}"
+
 class Account(Base):
     __tablename__ = "accounts"
 
@@ -57,6 +78,7 @@ class User(Base):
     __tablename__ = "users"
 
     user_id = Column(String, primary_key=True, default=gen_id)
+    code = Column(String, unique=True, index=True, default=next_user_code)  # mã hiển thị C{n}
     account_id = Column(String, ForeignKey("accounts.account_id"), nullable=False)
     role_id = Column(String, ForeignKey("roles.role_id"), nullable=False)
     name = Column(String, nullable=False)
@@ -181,7 +203,8 @@ class Activity(Base):
     status = Column(String, nullable=False)
     verified_by = Column(String, ForeignKey("operators.operator_id"))
     verified_at = Column(DateTime)
-    expire_at = Column(DateTime)
+    expire_at = Column(DateTime)  # hạn chờ duyệt: quá hạn mà vẫn "pending" thì chuyển "expired"
+    rejection_reason = Column(Text)
     created_at = Column(DateTime, nullable=False)
     updated_at = Column(DateTime)
     source_url = Column(String)

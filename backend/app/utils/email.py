@@ -224,3 +224,22 @@ def send_activity_hidden_email(activity) -> None:
         f'Hoạt động "{activity.name}" của bạn trên Free2Do đã bị ẩn khỏi kết quả tìm kiếm. '
         f"Vui lòng liên hệ Free2Do để biết thêm chi tiết.",
     )
+
+
+def send_activity_rejected_email(activity) -> None:
+    _email_activity_owner(
+        activity,
+        "Hoạt động bị từ chối",
+        f'Hoạt động "{activity.name}" của bạn trên Free2Do chưa được duyệt.\n\n'
+        f"Lý do: {activity.rejection_reason}\n\n"
+        f"Bạn có thể chỉnh sửa thông tin và tạo lại hoạt động để gửi duyệt.",
+    )
+
+
+def send_activity_expired_email(activity) -> None:
+    _email_activity_owner(
+        activity,
+        "Hoạt động đã hết hạn chờ duyệt",
+        f'Hoạt động "{activity.name}" của bạn đã chờ duyệt quá 30 ngày nên đã hết hạn. '
+        f"Bạn có thể mở lại hoạt động trong trang quản lý để chỉnh sửa và gửi duyệt lại.",
+    )

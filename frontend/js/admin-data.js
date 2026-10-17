@@ -41,7 +41,7 @@
 
   function mapCustomer(user, categories = []) {
     return {
-      id: user.user_id, name: user.name, email: user.email, phone: user.phone || '',
+      id: user.user_id, code: user.code || '', name: user.name, email: user.email, phone: user.phone || '',
       area: 'Chưa có dữ liệu', registeredAt: viDate(user.created_at), lastLogin: 'Chưa có dữ liệu',
       status: mapStatus(user.status), interests: categories.map(item => item.name),
       participationCount: user.participation_count, reviewCount: user.review_count,
@@ -55,6 +55,7 @@
     return {
       id: activity.activity_id, code: activity.code || 'Chưa có mã', name: activity.name, businessId: activity.business_id,
       businessName: activity.business_name, type: activityType(category), category,
+      categoryIds: source.category_ids || [], rejectionReason: activity.rejection_reason || '',
       price: activity.price_text || auth.formatPrice(activity.price), rawPrice: activity.price,
       hours: auth.formatHours(activity.time_open, activity.time_close), address: activity.address,
       location: activity.latitude == null || activity.longitude == null
@@ -151,6 +152,22 @@
     }
   }
 
+  // Từ chối (kèm lý do, backend gửi email cho doanh nghiệp) và xóa hoạt động đang hiển thị.
+  async function rejectActivity(id, reason) {
+    await auth.authFetch(`/operator/activities/${encodeURIComponent(id)}/reject`, {
+      method: 'PATCH', body: JSON.stringify({ reason }), toast: 'Đã từ chối hoạt động và gửi email cho doanh nghiệp.',
+    });
+    const item = state.activities.find(entry => entry.id === id);
+    if (item) { item.status = 'rejected'; item.rejectionReason = reason; }
+    await refreshSummaries();
+  }
+  async function deleteActivity(id) {
+    await auth.authFetch(`/operator/activities/${encodeURIComponent(id)}`, { method: 'DELETE', toast: 'Đã xóa hoạt động.' });
+    const item = state.activities.find(entry => entry.id === id);
+    if (item) item.status = 'cancelled';
+    await refreshSummaries();
+  }
+
   async function setStatus(kind, id, status) {
     if (kind === 'activity') {
       const next = status === 'rejected' ? 'hidden' : status;
@@ -194,7 +211,7 @@
     get customerSummary() { return state.customerSummary; },
     get businessSummary() { return state.businessSummary; },
     get activitySummary() { return state.activitySummary; },
-    statusLabels, setStatus, refreshActivity, parseViDate, normalize, escapeHTML: auth.escapeHTML, refresh,
+    statusLabels, setStatus, rejectActivity, deleteActivity, refreshActivity, parseViDate, normalize, escapeHTML: auth.escapeHTML, refresh,
     businessName(activity) {
       return state.businesses.find(item => item.id === activity.businessId)?.name
         || activity.businessName || 'Chưa xác định';

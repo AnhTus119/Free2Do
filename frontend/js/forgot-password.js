@@ -92,8 +92,8 @@ if (checkEmailForm) {
     const code = document.getElementById("check-email-code").value.trim();
 
     if (!identifier) {
-      alert("Không tìm thấy tài khoản cần đặt lại mật khẩu. Vui lòng thử lại.");
-      window.location.href = "forgot-password.html";
+      F2D.toast("Không tìm thấy tài khoản cần đặt lại mật khẩu. Vui lòng thử lại.", "error");
+      setTimeout(() => { window.location.href = "forgot-password.html"; }, 1800);
       return;
     }
 
@@ -132,29 +132,32 @@ if (resetForm) {
     const confirmPassword = document.getElementById("reset-password-confirm").value;
 
     if (!resetToken) {
-      alert("Phiên đặt lại mật khẩu không hợp lệ. Vui lòng yêu cầu mã mới.");
-      window.location.href = "forgot-password.html";
+      F2D.toast("Phiên đặt lại mật khẩu không hợp lệ. Vui lòng yêu cầu mã mới.", "error");
+      setTimeout(() => { window.location.href = "forgot-password.html"; }, 1800);
       return;
     }
-    if (password.length < 8) return alert("Mật khẩu phải có ít nhất 8 ký tự.");
-    if (password !== confirmPassword) return alert("Mật khẩu xác nhận không khớp.");
+    if (password.length < 8) return F2D.toast("Mật khẩu phải có ít nhất 8 ký tự.", "error");
+    if (password !== confirmPassword) return F2D.toast("Mật khẩu xác nhận không khớp.", "error");
 
-    try {
-      const response = await fetch(`${AUTH_API_BASE_URL}/auth/reset-password`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reset_token: resetToken, new_password: password }),
-      });
-      const data = await readJson(response);
-      if (!response.ok) return alert(data.detail || "Đổi mật khẩu thất bại.");
+    await F2D.busy(resetForm.querySelector("button[type=submit], button:not([type])"), async () => {
+      try {
+        const response = await fetch(`${AUTH_API_BASE_URL}/auth/reset-password`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ reset_token: resetToken, new_password: password }),
+        });
+        const data = await readJson(response);
+        if (!response.ok) return F2D.toast(data.detail || "Đổi mật khẩu thất bại.", "error");
 
-      sessionStorage.removeItem("reset_identifier");
-      sessionStorage.removeItem("reset_token");
-      alert("Đổi mật khẩu thành công. Hãy đăng nhập bằng mật khẩu mới.");
-      window.location.href = "log-in.html";
-    } catch (error) {
-      console.error(error);
-      alert(`Không kết nối được backend tại ${AUTH_API_BASE_URL}.`);
-    }
+        sessionStorage.removeItem("reset_identifier");
+        sessionStorage.removeItem("reset_token");
+        F2D.toast("Đổi mật khẩu thành công. Đang chuyển tới trang đăng nhập...");
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        window.location.href = "log-in.html";
+      } catch (error) {
+        console.error(error);
+        F2D.toast(`Không kết nối được máy chủ. Vui lòng thử lại sau.`, "error");
+      }
+    });
   });
 }

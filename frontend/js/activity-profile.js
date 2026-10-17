@@ -61,7 +61,8 @@
       'Địa chỉ': data.escapeHTML(activity.address), 'Vị trí (lat, long)': data.escapeHTML(activity.location || 'Chưa cung cấp'),
       'Giờ hoạt động': data.escapeHTML(activity.hours),
       'Admin xác minh (verified_by)': data.escapeHTML(activity.verifiedBy || 'Chưa xác minh'),
-      'Hạn hoạt động (expire_at)': data.escapeHTML(activity.expireAt || 'Chưa thiết lập')
+      'Hạn chờ duyệt': activity.status === 'pending' ? data.escapeHTML(activity.expireAt || 'Không giới hạn') : 'Không áp dụng',
+      'Lý do từ chối': data.escapeHTML(activity.rejectionReason || 'Không có'),
     });
     setInfoRows(cards[1], {
       'Lượt xem': activity.views == null ? 'Chưa có dữ liệu' : String(activity.views),
@@ -78,7 +79,9 @@
       : '<p class="f2d-empty">Hoạt động chưa có ảnh/video.</p>';
     renderParticipants();
     document.getElementById('toggleActivityVisibility').textContent = activity.status === 'hidden' ? '👁️ Hiện Hoạt động' : '🙈 Ẩn Hoạt động';
-    document.getElementById('approveActivity').hidden = activity.status === 'active';
+    document.getElementById('rejectionReasonRow').hidden = activity.status !== 'rejected';
+    // Chỉ hoạt động đang chờ duyệt mới duyệt được; hết hạn/bị từ chối/đã hủy thì không.
+    document.getElementById('approveActivity').hidden = activity.status !== 'pending';
   }
 
   document.getElementById('toggleActivityVisibility').addEventListener('click', async () => {

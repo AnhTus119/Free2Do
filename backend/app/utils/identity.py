@@ -1,18 +1,43 @@
 import re
+import unicodedata
 
 from sqlalchemy.orm import Session
 
 from app import models
 
 
-EMAIL_PATTERN = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
+# Phần trước @: chữ, số và . _ % + - (không bắt đầu/kết thúc bằng dấu chấm, không có ".." liền nhau);
+# tên miền: các nhãn chữ/số/gạch nối, đuôi ít nhất 2 chữ cái. Chặn các chuỗi như "<script>@x.com".
+EMAIL_PATTERN = re.compile(
+    r"^(?!\.)(?!.*\.\.)[a-z0-9._%+-]{1,64}(?<!\.)@(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,24}$"
+)
+
+# Tên người dùng: chữ cái tiếng Anh hoặc tiếng Việt (có dấu), có thể có khoảng trắng, 2-50 ký tự.
+# Không cho số và ký tự đặc biệt (*&^%$#@!()-_+= ...), nên chặn luôn HTML/script.
+VIETNAMESE_LETTERS = (
+    "àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ"
+)
+NAME_PATTERN = re.compile(
+    rf"^[A-Za-z{VIETNAMESE_LETTERS}{VIETNAMESE_LETTERS.upper()}]+(?: [A-Za-z{VIETNAMESE_LETTERS}{VIETNAMESE_LETTERS.upper()}]+)*$"
+)
+NAME_MIN_LENGTH, NAME_MAX_LENGTH = 2, 50
 
 
 def normalize_email(value: str) -> str:
     email = value.strip().lower()
-    if not EMAIL_PATTERN.fullmatch(email):
+    if len(email) > 254 or not EMAIL_PATTERN.fullmatch(email):
         raise ValueError("Email không hợp lệ")
     return email
+
+
+def normalize_person_name(value: str | None) -> str:
+    """Chuẩn hoá và kiểm tra họ tên / tên người dùng. Lỗi trả ValueError với câu hiển thị cho người dùng."""
+    name = " ".join(unicodedata.normalize("NFC", value or "").split())
+    if not NAME_MIN_LENGTH <= len(name) <= NAME_MAX_LENGTH:
+        raise ValueError(f"Tên cần dài từ {NAME_MIN_LENGTH} đến {NAME_MAX_LENGTH} ký tự")
+    if not NAME_PATTERN.fullmatch(name):
+        raise ValueError("Tên chỉ được gồm chữ cái tiếng Việt hoặc tiếng Anh và khoảng trắng, không chứa số hay ký tự đặc biệt")
+    return name
 
 
 def normalize_phone(value: str) -> str:

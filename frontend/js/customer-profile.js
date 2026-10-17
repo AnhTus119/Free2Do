@@ -36,7 +36,7 @@
     document.title = `FREE2DO Admin | ${customer.name}`;
     document.querySelector('.profile-logo').textContent = customer.name.trim().charAt(0).toUpperCase();
     document.querySelector('.profile-name').textContent = customer.name;
-    document.querySelector('.profile-meta').textContent = [customer.email, `Đăng ký ngày ${customer.registeredAt}`].filter(Boolean).join(' · ');
+    document.querySelector('.profile-meta').textContent = [customer.code && `Mã KH: ${customer.code}`, customer.email, `Đăng ký ngày ${customer.registeredAt}`].filter(Boolean).join(' · ');
     document.querySelector('.profile-head > .badge').outerHTML = badge(customer.status);
 
     const cards = document.querySelectorAll('.profile-grid .card');

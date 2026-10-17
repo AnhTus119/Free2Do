@@ -60,6 +60,18 @@ button, a, select, .status-tab { -webkit-tap-highlight-color: transparent; }
 .management-page .danger { color: var(--danger); }
 .management-page .muted { color: var(--muted); }
 .management-page #operatorMe { margin-top: 6px; font-size: 13px; }
+/* Danh mục loại hình: mỗi dòng gồm tên + số hoạt động đang dùng + thao tác */
+.management-page .category-item { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 0; }
+.management-page .category-main { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; min-width: 0; }
+.management-page .category-main b { font-size: 14px; font-weight: 700; }
+.management-page .category-usage { padding: 2px 9px; border-radius: 100px; background: var(--success-bg, #EAF1E1); color: var(--success, #5C7A42); font-size: 11.5px; font-weight: 700; white-space: nowrap; }
+.management-page .category-usage.is-empty { background: #F1ECE6; color: var(--muted); }
+.management-page .category-actions { display: flex; flex: 0 0 auto; gap: 6px; }
+.management-page .category-actions button { margin: 0; padding: 6px 12px; border: 1.5px solid var(--line); border-radius: 8px; font-size: 12px; font-weight: 600; white-space: nowrap; transition: background-color .18s ease, border-color .18s ease; }
+.management-page .category-actions button:hover { border-color: var(--rose); background: var(--paper); }
+.management-page .category-actions button.danger { border-color: #F0C9C4; }
+.management-page .category-actions button.danger:hover { border-color: var(--danger); background: var(--danger-bg, #FBEAE8); }
+#categories { max-height: 460px; overflow-y: auto; padding-right: 4px; }
 
 @media (max-width: 1199px) {
   .stats-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }

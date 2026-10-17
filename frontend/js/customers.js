@@ -28,7 +28,7 @@
     return getCustomers()
       .filter(customer => {
         const matchesStatus = statusFilter.value === 'all' || customer.status === statusFilter.value;
-        const matchesSearch = !query || normalize(`${customer.name} ${customer.email}`).includes(query);
+        const matchesSearch = !query || normalize(`${customer.code} ${customer.name} ${customer.email}`).includes(query);
         return matchesStatus && matchesSearch;
       })
       .sort((first, second) => {
@@ -39,7 +39,7 @@
 
   function renderRows(customers) {
     if (!customers.length) {
-      tableBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Không có khách hàng phù hợp.</td></tr>';
+      tableBody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Không có khách hàng phù hợp.</td></tr>';
       return;
     }
 
@@ -47,6 +47,7 @@
       const isLocked = customer.status === 'locked';
       return `
         <tr data-id="${escapeHTML(customer.id)}">
+          <td class="cell-code">${escapeHTML(customer.code || '—')}</td>
           <td><div class="cell-title">${escapeHTML(customer.name)}</div></td>
           <td>${escapeHTML(customer.email)}</td>
           <td>${escapeHTML(customer.registeredAt)}</td>
@@ -119,6 +120,6 @@
     }
   });
 
-  window.AdminData.ready.then(render).catch(error => { tableBody.innerHTML = `<tr><td colspan="5">${escapeHTML(error.message)}</td></tr>`; });
+  window.AdminData.ready.then(render).catch(error => { tableBody.innerHTML = `<tr><td colspan="6">${escapeHTML(error.message)}</td></tr>`; });
   window.addEventListener('free2do:admin-data-updated', render);
 })();

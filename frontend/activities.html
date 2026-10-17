@@ -2,6 +2,8 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
+<meta name="description" content="Kiểm duyệt và quản lý toàn bộ hoạt động trên nền tảng FREE2DO.">
+<link rel="icon" type="image/svg+xml" href="img/logo.svg">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>FREE2DO Admin | Hoạt động</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -13,7 +15,7 @@
   <input class="nav-toggle" type="checkbox" id="nav-toggle" aria-label="Mở hoặc đóng menu điều hướng">
 
     <div class="sidebar">
-    <div class="side-logo"><img src="Vecto/Group.svg" alt="Customer"><span>FREE2DO</span></div>
+    <a class="side-logo" href="dashboard.html" aria-label="FREE2DO - Tổng quan"><img src="Vecto/Group.svg" alt="Customer"><span>FREE2DO</span></a>
     <div class="nav-group">
       <a href="dashboard.html" class="nav-item"><span class="ic"></span>Tổng quan</a>
       <a href="customers.html" class="nav-item"><span class="ic"></span>Khách hàng</a>
@@ -55,6 +57,7 @@
         <div class="status-tab" data-status="hidden">Đã ẩn (<span data-count="hidden">…</span>)</div>
         <div class="status-tab" data-status="rejected">Từ chối (<span data-count="rejected">…</span>)</div>
         <div class="status-tab" data-status="expired">Hết hạn (<span data-count="expired">…</span>)</div>
+        <div class="status-tab" data-status="cancelled">Đã hủy (<span data-count="cancelled">…</span>)</div>
       </div>
 
       <div class="filter-bar">
@@ -62,12 +65,8 @@
         <select class="filter-select" id="businessFilter" aria-label="Lọc theo doanh nghiệp">
           <option value="all">Tất cả doanh nghiệp</option>
         </select>
-        <select class="filter-select" id="typeFilter">
+        <select class="filter-select" id="typeFilter" aria-label="Lọc theo loại hình">
           <option value="all">Tất cả loại hình</option>
-          <option value="food">Ăn uống</option>
-          <option value="entertainment">Giải trí</option>
-          <option value="workshop">Workshop</option>
-          <option value="beauty">Làm đẹp</option>
         </select>
         <select class="filter-select" id="priceFilter">
           <option value="newest">Mới nhất</option>

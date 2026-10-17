@@ -12,6 +12,9 @@
  *                                      click nền hoặc ESC, mũi tên trái/phải để chuyển ảnh.
  *    Không cần gọi tay: mọi phần tử có [data-zoom] (giá trị = URL, bỏ trống thì lấy src) tự mở lightbox;
  *    các ảnh nằm chung một [data-zoom-group] được xem lần lượt.
+ *  - F2D.ask({ title, text, ok, danger, input }) : popup xác nhận cùng tông giao diện, thay confirm()/prompt().
+ *                                      Trả về true (hoặc nội dung ô nhập nếu có input) khi đồng ý, null khi hủy.
+ *                                      input: { label, placeholder, value, required, multiline, maxLength }.
  */
 (function () {
   'use strict';
@@ -117,6 +120,52 @@
       if (!quiet) toast(error?.message || 'Thao tác thất bại. Vui lòng thử lại.', 'error');
       throw error;
     }
+  }
+
+  // ---------- Popup xác nhận / nhập liệu ----------
+  function ask({ title, text = '', ok = 'Xác nhận', cancel = 'Hủy', danger = false, input = null } = {}) {
+    return new Promise(resolve => {
+      const dialog = document.createElement('dialog');
+      dialog.className = 'f2d-modal f2d-ask';
+      dialog.setAttribute('aria-labelledby', 'f2dAskTitle');
+      const field = input
+        ? `<label class="f2d-ask-field"><span>${escapeHTML(input.label || '')}</span>${input.multiline
+          ? `<textarea rows="4" maxlength="${input.maxLength || 1000}" placeholder="${escapeHTML(input.placeholder || '')}">${escapeHTML(input.value || '')}</textarea>`
+          : `<input type="text" maxlength="${input.maxLength || 200}" placeholder="${escapeHTML(input.placeholder || '')}" value="${escapeHTML(input.value || '')}">`}</label>
+          <p class="f2d-ask-error" role="alert"></p>`
+        : '';
+      dialog.innerHTML = `<form method="dialog" class="f2d-modal-card">
+          <h2 class="f2d-modal-title" id="f2dAskTitle">${escapeHTML(title)}</h2>
+          ${text ? `<p class="f2d-modal-sub">${escapeHTML(text)}</p>` : ''}
+          ${field ? `<div class="f2d-modal-body">${field}</div>` : ''}
+          <div class="f2d-modal-actions">
+            <button type="button" class="f2d-ask-btn" data-cancel>${escapeHTML(cancel)}</button>
+            <button type="submit" class="f2d-ask-btn primary${danger ? ' danger' : ''}">${escapeHTML(ok)}</button>
+          </div>
+        </form>`;
+      document.body.append(dialog);
+      const control = dialog.querySelector('input, textarea');
+      let result = null;
+      dialog.querySelector('form').addEventListener('submit', event => {
+        if (control) {
+          const value = control.value.trim();
+          if (input.required !== false && value.length < (input.minLength || 1)) {
+            event.preventDefault();
+            dialog.querySelector('.f2d-ask-error').textContent = input.requiredMessage || 'Vui lòng nhập nội dung.';
+            control.focus();
+            return;
+          }
+          result = value;
+        } else {
+          result = true;
+        }
+      });
+      dialog.querySelector('[data-cancel]').addEventListener('click', () => dialog.close());
+      dialog.addEventListener('click', event => { if (event.target === dialog) dialog.close(); });
+      dialog.addEventListener('close', () => { dialog.remove(); resolve(result); });
+      dialog.showModal();
+      (control || dialog.querySelector('[type=submit]')).focus();
+    });
   }
 
   // ---------- Lightbox ----------
@@ -474,5 +523,9 @@
     try { return JSON.parse(atob(localStorage.getItem('token').split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).sub || null; } catch (error) { return null; }
   }
 
-  window.F2D = Object.freeze({ toast, busy, mutate, lightbox, closeLightbox, date, dateTime, toDate, escapeHTML, interestsEditor, imagePicker, accountId, confetti });
+  // Năm bản quyền luôn là năm hiện tại: <span data-current-year>2026</span>.
+  const fillYear = () => document.querySelectorAll('[data-current-year]').forEach(el => { el.textContent = new Date().getFullYear(); });
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fillYear); else fillYear();
+
+  window.F2D = Object.freeze({ toast, busy, mutate, ask, lightbox, closeLightbox, date, dateTime, toDate, escapeHTML, interestsEditor, imagePicker, accountId, confetti });
 })();

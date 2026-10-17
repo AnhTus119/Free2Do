@@ -317,14 +317,17 @@
     if (action === 'leave' && (!currentGroup || currentGroup.is_host)) return;
     if (action === 'deleteActivity' && (!currentGroup?.is_host || !currentGroup.selected_activity)) return;
     if (action === 'deleteGroup' && (!currentGroup?.is_host || currentGroup.status !== 'active')) return;
+    if (action === 'closeVoting' && (!currentGroup?.is_host || currentGroup.voting_closed)) return;
     pendingGroupAction = action;
-    document.getElementById('groupActionConfirmTitle').textContent = action === 'rejectActivity' ? 'Bạn chắc chắn KHÔNG tham gia hoạt động?' : action === 'deleteGroup' ? 'Xác nhận xóa nhóm' : 'Xác nhận';
+    document.getElementById('groupActionConfirmTitle').textContent = action === 'rejectActivity' ? 'Bạn chắc chắn KHÔNG tham gia hoạt động?' : action === 'deleteGroup' ? 'Xác nhận xóa nhóm' : action === 'closeVoting' ? 'Đóng bình chọn?' : 'Xác nhận';
     document.getElementById('groupActionConfirmText').textContent = action === 'rejectActivity'
       ? 'Nếu không tham gia, bạn sẽ tự động bị thoát khỏi nhóm.'
       : action === 'deleteGroup'
         ? 'Bạn có chắc chắn muốn xóa nhóm này?'
+      : action === 'closeVoting'
+        ? 'Sau khi đóng, thành viên không thể đổi phiếu nữa và nhóm sẽ chốt kết quả bình chọn.'
       : `Bạn có chắc chắn muốn "${action === 'leave' ? 'Từ chối tham gia' : 'Xóa hoạt động'}"?`;
-    document.getElementById('confirmGroupActionButton').textContent = action === 'rejectActivity' ? 'Xác nhận' : 'Chắc chắn';
+    document.getElementById('confirmGroupActionButton').textContent = action === 'rejectActivity' ? 'Xác nhận' : action === 'closeVoting' ? 'Đóng bình chọn' : 'Chắc chắn';
     document.getElementById('groupActionConfirm').classList.add('open');
     document.body.style.overflow = 'hidden';
   };
@@ -345,6 +348,14 @@
     if (action === 'leave') {
       const index = groupMembers.findIndex(member => member.user_id === currentUser?.user_id);
       if (index >= 0) await requestGroupLeave(index);
+      return;
+    }
+    if (action === 'closeVoting') {
+      try {
+        applyGroup(await api.request(`/groups/${currentGroup.group_id}/voting/close`, { method: 'POST' }));
+      } catch (error) {
+        F2D.toast(error.message, 'error');
+      }
       return;
     }
     if (action === 'deleteActivity') {
@@ -597,14 +608,8 @@
     container.innerHTML = `<div class="group-vote-summary g-fade"><h3>${currentGroup.voting_closed ? 'Kết quả bình chọn' : 'Bình chọn hoạt động'}</h3>${rows}<p class="section-sub" style="margin:10px 0 0">${status}</p>${action ? `<div class="group-actions">${action}</div>` : ''}</div>`;
   }
 
-  window.closeGroupVoting = async function () {
-    if (!currentGroup?.is_host) return;
-    if (!confirm('Đóng bình chọn? Sau khi đóng, thành viên không thể đổi phiếu nữa.')) return;
-    try {
-      applyGroup(await api.request(`/groups/${currentGroup.group_id}/voting/close`, { method: 'POST' }));
-    } catch (error) {
-      F2D.toast(error.message, 'error');
-    }
+  window.closeGroupVoting = function () {
+    openGroupActionConfirm('closeVoting');
   };
 
   async function loadGroupRecommendations() {
@@ -676,9 +681,21 @@
     }
     renderBestMatch(best, false);
     document.getElementById('suggestionCards').innerHTML = orderedRecommendations.slice(1).map(suggestionCard).join('');
-    document.getElementById('suggestions').style.display = 'none';
-    document.getElementById('suggestionsToggle').style.display = orderedRecommendations.length > 1 ? 'block' : 'none';
-    document.getElementById('suggestionsToggle').textContent = 'Xem gợi ý khác';
+    // Danh sách gợi ý giữ nguyên trạng thái mở/ẩn qua các lần bình chọn và tải lại trang,
+    // chỉ đóng khi người dùng bấm "Ẩn gợi ý" hoặc host đã đóng bình chọn.
+    const canShow = orderedRecommendations.length > 1 && !currentGroup?.voting_closed;
+    const open = canShow && suggestionsOpen();
+    document.getElementById('suggestions').style.display = open ? 'block' : 'none';
+    document.getElementById('suggestionsToggle').style.display = canShow ? 'block' : 'none';
+    document.getElementById('suggestionsToggle').textContent = open ? 'Ẩn gợi ý' : 'Xem gợi ý khác';
+  }
+
+  function suggestionsKey() {
+    return `f2d-group-suggestions-open:${currentGroup?.group_id}`;
+  }
+
+  function suggestionsOpen() {
+    try { return localStorage.getItem(suggestionsKey()) === '1'; } catch { return false; }
   }
 
   function recommendationCard(activity, best = false) {
@@ -730,6 +747,10 @@
     const isHidden = suggestions.style.display === 'none' || !suggestions.style.display;
     suggestions.style.display = isHidden ? 'block' : 'none';
     button.textContent = isHidden ? 'Ẩn gợi ý' : 'Xem gợi ý khác';
+    try {
+      if (isHidden) localStorage.setItem(suggestionsKey(), '1');
+      else localStorage.removeItem(suggestionsKey());
+    } catch { /* trình duyệt chặn bộ nhớ: chỉ không nhớ được trạng thái */ }
   };
 
   function getOrderedRecommendations() {

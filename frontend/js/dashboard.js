@@ -462,11 +462,21 @@
   }
 
   async function decideActivity(id, status) {
-    await data.setStatus(
-      'activity',
-      id,
-      status
-    );
+    if (status === 'rejected') {
+      const reason = await F2D.ask({
+        title: 'Từ chối hoạt động', text: 'Doanh nghiệp sẽ nhận email kèm lý do từ chối.',
+        ok: 'Từ chối', danger: true,
+        input: { label: 'Lý do từ chối', placeholder: 'Ví dụ: Ảnh không đúng địa điểm, thiếu giờ mở cửa...', multiline: true, minLength: 3, requiredMessage: 'Hãy nhập lý do từ chối (ít nhất 3 ký tự).' },
+      });
+      if (!reason) return;
+      await data.rejectActivity(id, reason);
+    } else {
+      await data.setStatus(
+        'activity',
+        id,
+        status
+      );
+    }
 
     activityModal.classList.remove('open');
 

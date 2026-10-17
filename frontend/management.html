@@ -2,6 +2,8 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
+  <meta name="description" content="Quản lý danh mục loại hình, báo cáo vi phạm và tài khoản operator của FREE2DO.">
+  <link rel="icon" type="image/svg+xml" href="img/logo.svg">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>FREE2DO Admin | Quản lý hệ thống</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -12,7 +14,7 @@
 <div class="app">
   <input class="nav-toggle" type="checkbox" id="nav-toggle" aria-label="Mở hoặc đóng menu điều hướng">
   <aside class="sidebar">
-    <div class="side-logo"><img src="Vecto/Group.svg" alt=""><span>FREE2DO</span></div>
+    <a class="side-logo" href="dashboard.html" aria-label="FREE2DO - Tổng quan"><img src="Vecto/Group.svg" alt=""><span>FREE2DO</span></a>
     <nav class="nav-group" aria-label="Điều hướng quản trị">
       <a href="dashboard.html" class="nav-item"><span class="ic"></span>Tổng quan</a>
       <a href="customers.html" class="nav-item"><span class="ic"></span>Khách hàng</a>
@@ -59,10 +61,10 @@
 
       <div class="management-grid">
         <section class="management-panel" aria-labelledby="categoriesHeading">
-          <h3 id="categoriesHeading">Danh mục</h3>
-          <p>Tạo và quản lý loại hình hoạt động hiển thị trên nền tảng.</p>
+          <div class="op-case-panel-head"><h3 id="categoriesHeading">Danh mục loại hình</h3><span class="op-count" id="categoryCount">0</span></div>
+          <p>Tạo và quản lý loại hình (tag) hoạt động. Tag mới sẽ tự xuất hiện ở bộ lọc "Tất cả loại hình" và khi tạo hoạt động.</p>
           <form id="categoryForm" class="management-form row">
-            <input id="categoryName" required aria-label="Tên danh mục" placeholder="Tên danh mục">
+            <input id="categoryName" required minlength="2" maxlength="40" aria-label="Tên danh mục" placeholder="Ví dụ: Thể thao, Workshop...">
             <button type="submit">＋ Thêm danh mục</button>
           </form>
           <div id="categories" class="management-list"></div>

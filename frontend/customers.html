@@ -2,6 +2,8 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
+<meta name="description" content="Quản lý danh sách khách hàng trên nền tảng FREE2DO.">
+<link rel="icon" type="image/svg+xml" href="img/logo.svg">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>FREE2DO Admin | Khách hàng</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -13,7 +15,7 @@
   <input class="nav-toggle" type="checkbox" id="nav-toggle" aria-label="Mở hoặc đóng menu điều hướng">
 
     <div class="sidebar">
-    <div class="side-logo"><img src="Vecto/Group.svg" alt="Customer"><span>FREE2DO</span></div>
+    <a class="side-logo" href="dashboard.html" aria-label="FREE2DO - Tổng quan"><img src="Vecto/Group.svg" alt="Customer"><span>FREE2DO</span></a>
     <div class="nav-group">
       <a href="dashboard.html" class="nav-item "><span class="ic"></span>Tổng quan</a>
       <a href="customers.html" class="nav-item active"><span class="ic"></span>Khách hàng</a>
@@ -54,7 +56,7 @@
       </div>
 
       <div class="filter-bar">
-        <div class="search-box">🔍<input id="customerSearch" type="search" placeholder="Tìm theo tên hoặc email..."></div>
+        <div class="search-box">🔍<input id="customerSearch" type="search" placeholder="Tìm theo mã KH, tên hoặc email..."></div>
         <select class="filter-select" id="statusFilter">
           <option value="all">Tất cả trạng thái</option>
           <option value="active">Đang hoạt động</option>
@@ -69,7 +71,7 @@
       <div class="card">
         <div class="table-scroll" role="region" aria-label="Bảng dữ liệu, cuộn ngang để xem thêm" tabindex="0">
           <table class="customer-table">
-          <thead><tr><th>Khách hàng</th><th>Email</th><th>Ngày đăng ký</th><th>Trạng thái</th><th>Hành động</th></tr></thead>
+          <thead><tr><th>Mã KH</th><th>Khách hàng</th><th>Email</th><th>Ngày đăng ký</th><th>Trạng thái</th><th>Hành động</th></tr></thead>
           <tbody id="customerRows"></tbody>
         </table>
         </div>

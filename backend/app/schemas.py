@@ -46,6 +46,7 @@ class UserCreate(BaseModel):
 class User(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     user_id: str
+    code: Optional[str] = None  # mã hiển thị C{n}
     account_id: str
     role_id: str
     name: str
@@ -106,12 +107,22 @@ class NotificationOut(BaseModel):
 
 # Category 
 class CategoryCreate(BaseModel):
-    name: str
+    name: str = Field(..., min_length=2, max_length=40)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _strip_name(cls, data):
+        if isinstance(data, dict) and isinstance(data.get("name"), str):
+            data = {**data, "name": " ".join(data["name"].split())}
+        return data
 
 class Category(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     category_id: str
     name: str
+
+class CategoryAdminOut(Category):
+    activity_count: int = 0  # số hoạt động đang gắn tag này
 
 # BusinessProfile
 class BusinessProfileCreate(BaseModel):
@@ -216,6 +227,8 @@ class Activity(BaseModel):
     available_until: Optional[datetime] = None
     always_available: bool = True
     status: str
+    rejection_reason: Optional[str] = None
+    expire_at: Optional[datetime] = None  # hạn chờ duyệt
     created_at: datetime
     source_url: Optional[str] = None
     google_maps_url: Optional[str] = None
@@ -668,6 +681,7 @@ class ComplaintResolveRequest(BaseModel):
 # ---------------------------------------------------------------------------
 class UserAdminOut(BaseModel):
     user_id: str
+    code: Optional[str] = None  # mã khách hàng C{n}
     account_id: str
     email: Optional[str] = None
     role_name: str
@@ -845,6 +859,9 @@ class MediaUploadOut(BaseModel):
 
 class ActivityStatusUpdate(BaseModel):
     status: Literal["pending", "active", "cancelled", "hidden"]
+
+class ActivityRejectRequest(BaseModel):
+    reason: str = Field(..., min_length=3, max_length=1000)
 
 class DashboardOut(BaseModel):
     user_count: int

@@ -4,7 +4,7 @@ let performance = new Map();
 let editingId = null;
 
 function statusClass(status) {
-  return ['active', 'pending', 'hidden'].includes(status) ? status : 'hidden';
+  return ['active', 'pending', 'hidden', 'rejected', 'expired'].includes(status) ? status : 'hidden';
 }
 
 function renderRows() {
@@ -194,6 +194,9 @@ async function openDetail(id) {
     ['Thời gian áp dụng', period],
     ['Địa chỉ', item.address || 'Chưa cập nhật'],
     ['Mô tả', item.description || 'Chưa có mô tả'],
+    ...(item.status === 'pending' && item.expire_at ? [['Hạn chờ duyệt', BusinessAPI.formatDate(item.expire_at)]] : []),
+    ...(item.status === 'rejected' ? [['Lý do từ chối', item.rejection_reason || 'Không có']] : []),
+    ...(item.status === 'expired' ? [['Hết hạn', 'Hoạt động chờ duyệt quá 30 ngày. Bấm "Chỉnh sửa" và lưu để gửi duyệt lại.']] : []),
   ].map(([label, value]) => `<dt>${esc(label)}</dt><dd>${esc(value)}</dd>`).join('');
   document.getElementById('detail-media').innerHTML = item.media?.length ? item.media.map(media => `
     <div class="ad-media-item">

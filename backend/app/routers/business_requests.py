@@ -10,6 +10,7 @@ from app import models, schemas
 from app.auth import get_current_user, get_current_operator
 from app.services.supabase_storage import InvalidMedia, StorageNotConfigured, sniff_image_type, upload_asset
 from app.utils.email import send_business_request_approved_email, send_business_request_rejected_email
+from app.routers.action_logs import log_action
 
 router = APIRouter(tags=["business-requests"])
 
@@ -227,6 +228,8 @@ def approve_business_request(
     business_role = db.query(models.Role).filter(models.Role.role_name == "business").first()
     if business_role:
         request.user.role_id = business_role.role_id
+    log_action(db, operator, "Duyệt đăng ký doanh nghiệp", "business", request.user_id, request.user_id,
+               request.business_name)
 
     db.commit()
     db.refresh(request)
@@ -256,6 +259,8 @@ def reject_business_request(
     request.status = "rejected"
     request.reviewed_by = operator.operator_id
     request.reviewed_at = datetime.utcnow()
+    # User vẫn là khách hàng sau khi bị từ chối nên log nằm ở hồ sơ khách hàng.
+    log_action(db, operator, "Từ chối đăng ký doanh nghiệp", "customer", request.user_id, None, request.business_name)
     db.commit()
     db.refresh(request)
 

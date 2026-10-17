@@ -60,6 +60,44 @@
     };
   }
 
+  // Vị trí thành viên: nút GPS hoặc địa chỉ gõ tay được tra trên bản đồ (cùng API trang tìm kiếm) trước khi lưu.
+  // Tọa độ đã có nằm ở data-lat/data-lng của ô; sửa chữ trong ô thì xóa để tra lại.
+  const GPS_LABEL = 'Vị trí hiện tại (GPS)';
+  function addressField(attrs, member = null) {
+    const coords = member?.latitude != null && member?.longitude != null ? ` data-lat="${member.latitude}" data-lng="${member.longitude}"` : '';
+    return `<input ${attrs} data-address value="${escapeValue(member?.address || '')}"${coords} required placeholder="Ví dụ: Dương Nội, Hà Đông"><button type="button" class="g-loc-gps" data-gps>📍 Dùng vị trí hiện tại</button><small class="g-loc-hint" aria-live="polite"></small>`;
+  }
+  const locationHint = (input, text) => { const hint = input.parentElement.querySelector('.g-loc-hint'); if (hint) hint.textContent = text; };
+  document.addEventListener('input', event => {
+    if (!event.target.matches('[data-address]')) return;
+    delete event.target.dataset.lat; delete event.target.dataset.lng;
+    locationHint(event.target, '');
+  });
+  document.addEventListener('click', event => {
+    const button = event.target.closest('[data-gps]');
+    if (!button) return;
+    const input = button.parentElement.querySelector('[data-address]');
+    if (!navigator.geolocation) { F2D.toast('Trình duyệt không hỗ trợ định vị.', 'error'); return; }
+    locationHint(input, 'Đang lấy vị trí...');
+    navigator.geolocation.getCurrentPosition(position => {
+      input.value = GPS_LABEL;
+      input.dataset.lat = position.coords.latitude; input.dataset.lng = position.coords.longitude;
+      locationHint(input, '✓ Đã lấy vị trí GPS của bạn');
+    }, () => { locationHint(input, ''); F2D.toast('Không lấy được vị trí. Hãy cho phép truy cập vị trí hoặc nhập địa chỉ.', 'error'); },
+    { enableHighAccuracy: true, timeout: 10000 });
+  });
+  async function resolveAddress(input) {
+    const address = input.value.trim();
+    if (input.dataset.lat && input.dataset.lng) return { address, latitude: Number(input.dataset.lat), longitude: Number(input.dataset.lng) };
+    if (address.length < 3) throw new Error('Địa chỉ quá ngắn. Hãy nhập rõ phường/quận hoặc dùng vị trí hiện tại.');
+    let result;
+    try { result = await api.request(`/search/location?query=${encodeURIComponent(address)}`); }
+    catch (error) { throw new Error(`Không tìm thấy “${address}” trên bản đồ. Hãy nhập rõ hơn (phường, quận) hoặc dùng vị trí hiện tại.`); }
+    input.dataset.lat = result.latitude; input.dataset.lng = result.longitude;
+    locationHint(input, `✓ ${result.display_name}`);
+    return { address, latitude: result.latitude, longitude: result.longitude };
+  }
+
   function validMember(member) {
     return member.name && member.free_hours > 0 && member.address && member.budget >= 0 && member.category_ids.length;
   }
@@ -104,7 +142,7 @@
     form.innerHTML = `<button class="remove-member-btn" type="button" onclick="removeMemberForm(this)" aria-label="Xóa thành viên">×</button><h3>${joinMode ? 'Thông tin của bạn' : 'Thông tin của bạn (Host)'}</h3><div class="member-form-grid">
       <label>Tên<input name="member-name" required placeholder="Nhập tên" value="${isFirst ? escapeValue(currentUser?.name || '') : ''}"></label>
       <label>Rảnh mấy giờ<input name="member-hours" type="number" min="0.5" max="24" step="0.5" required placeholder="Ví dụ: 2"></label>
-      <label>Địa chỉ<input name="member-address" required placeholder="Nhập khu vực hoặc địa chỉ"></label>
+      <label>Địa chỉ${addressField('name="member-address"')}</label>
       <label>Ngân sách tối đa<input name="member-budget" type="number" min="0" step="1000" required placeholder="Ví dụ: 200000"></label>
       <div class="interest-input"><label>Sở thích</label><div class="interest-chips">${interestOptions('member-interests')}</div></div>
     </div>`;
@@ -195,6 +233,9 @@
       if (!joining && !groupName) {
         F2D.toast('Vui lòng nhập tên nhóm.', 'error');
         return;
+      }
+      for (const [index, form] of forms.entries()) {
+        Object.assign(members[index], await resolveAddress(form.querySelector('[name="member-address"]')));
       }
       currentGroup = joining
         ? await api.request(`/groups/invite/${encodeURIComponent(inviteCode)}/join`, { method: 'POST', body: members[0] })
@@ -459,7 +500,7 @@
     editingMemberIndex = index;
     document.getElementById('memberEditTitle').textContent = member.name;
     document.getElementById('memberEditAvatar').textContent = member.name.charAt(0).toUpperCase();
-    document.getElementById('memberEditFields').innerHTML = `<label class="member-edit-field">Tên<input id="edit-name" value="${escapeValue(member.name)}"></label><label class="member-edit-field">Rảnh mấy giờ<input id="edit-hours" type="number" min="0.5" max="24" step="0.5" value="${escapeValue(member.free_hours)}"></label><label class="member-edit-field">Địa chỉ<input id="edit-address" value="${escapeValue(member.address)}"></label><label class="member-edit-field">Ngân sách tối đa<input id="edit-budget" type="number" min="0" step="1000" value="${escapeValue(member.budget)}"></label><div class="member-edit-interests"><label>Sở thích</label><div class="interest-chips">${interestOptions('edit-interests', member.category_ids)}</div></div>`;
+    document.getElementById('memberEditFields').innerHTML = `<label class="member-edit-field">Tên<input id="edit-name" value="${escapeValue(member.name)}"></label><label class="member-edit-field">Rảnh mấy giờ<input id="edit-hours" type="number" min="0.5" max="24" step="0.5" value="${escapeValue(member.free_hours)}"></label><label class="member-edit-field">Địa chỉ${addressField('id="edit-address"', member)}</label><label class="member-edit-field">Ngân sách tối đa<input id="edit-budget" type="number" min="0" step="1000" value="${escapeValue(member.budget)}"></label><div class="member-edit-interests"><label>Sở thích</label><div class="interest-chips">${interestOptions('edit-interests', member.category_ids)}</div></div>`;
     document.getElementById('memberEditOverlay').classList.add('open');
     document.body.style.overflow = 'hidden';
   };
@@ -483,6 +524,7 @@
       return;
     }
     try {
+      Object.assign(payload, await resolveAddress(document.getElementById('edit-address')));
       applyGroup(await api.request(`/groups/${currentGroup.group_id}/members/${member.member_id}`, { method: 'PATCH', body: payload }));
       closeMemberEdit();
       if (document.getElementById('group-result').style.display === 'block') await showGroupResult();
@@ -512,6 +554,7 @@
       media_url: activity.media_url,
       logo_url: activity.business_logo_url,
       score: activity.match_score,
+      distance: activity.distance_km,
     };
   }
 
@@ -707,7 +750,7 @@
       ? `<button class="btn ${voted ? 'btn-secondary g-voted' : 'btn-primary'} suggestion-card-action" type="button" onclick="voteActivity('${escapeValue(view.id)}')">${voted ? '✓ Đã bình chọn · Bỏ chọn' : 'Bình chọn'}</button>`
       : '';
     const badge = votes ? `<span class="g-vote-badge">${votes} phiếu</span>` : '';
-    return `<div class="suggestion-card ${voted ? 'is-voted' : ''}"><button class="suggestion-details g-row-card" type="button" onclick="openActivityPopup('${escapeValue(view.id)}')">${thumbHTML(view, 52)}<div style="min-width:0"><div class="activity-title">${best ? '✨ ' : ''}${escapeValue(view.name)} ${badge}</div><div class="activity-biz">${escapeValue(view.address)} · ${escapeValue(view.price)}</div><div class="member-crit">★ ${view.rating ?? 'Chưa có'} · ${escapeValue(view.hours)} · ${escapeValue(view.categories)} · ${view.score}% phù hợp</div></div></button>${action}</div>`;
+    return `<div class="suggestion-card ${voted ? 'is-voted' : ''}"><button class="suggestion-details g-row-card" type="button" onclick="openActivityPopup('${escapeValue(view.id)}')">${thumbHTML(view, 52)}<div style="min-width:0"><div class="activity-title">${best ? '✨ ' : ''}${escapeValue(view.name)} ${badge}</div><div class="activity-biz">${escapeValue(view.address)} · ${escapeValue(view.price)}</div><div class="member-crit">★ ${view.rating ?? 'Chưa có'} · ${escapeValue(view.hours)} · ${escapeValue(view.categories)} · ${view.score}% phù hợp${view.distance != null ? ` · cách điểm hẹn ${view.distance} km` : ''}</div></div></button>${action}</div>`;
   }
 
   function suggestionCard(activity) {

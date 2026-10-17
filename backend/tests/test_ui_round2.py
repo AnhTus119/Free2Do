@@ -108,7 +108,7 @@ class UiRound2Tests(unittest.TestCase):
         self.assertEqual({row.activity_id for row in rows}, {"X1", "X2"})
 
     def test_double_submit_returns_same_activity(self):
-        payload = schemas.ActivityCreate(name="Mới", address="1 Phố Huế, Hà Nội", google_maps_url="https://maps.google.com/?q=1")
+        payload = schemas.ActivityCreate(name="Mới", description="Mô tả", address="1 Phố Huế, Hà Nội", google_maps_url="https://maps.google.com/?q=1")
         with patch.object(activities_router, "_coordinates", return_value=(21.0, 105.8)):
             first = activities_router._create_activity_record(self.db, self.business, payload)
             second = activities_router._create_activity_record(self.db, self.business, payload)
@@ -168,7 +168,7 @@ class UiRound2Tests(unittest.TestCase):
         )
         with patch.object(media_router, "upload_proof_asset", return_value=asset) as upload_proof:
             result = asyncio.run(media_router.upload_operator_business_proofs(
-                "B1", uploads, db=self.db, _operator=self.operator,
+                "B1", uploads, db=self.db, operator=self.operator,
             ))
         self.assertEqual(len(result), 6)
         self.assertTrue(all(item.media_kind == "proof" for item in result))

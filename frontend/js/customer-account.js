@@ -83,6 +83,7 @@
     const [, presets] = await Promise.all([interests.load(), api.request('/media/avatar-presets')]);
     document.getElementById('avatarPresets').innerHTML = presets.map(item => `<button type="button" class="chip" data-preset-id="${api.escapeHTML(item.preset_id)}"><img src="${api.escapeHTML(item.media_url)}" alt="${api.escapeHTML(item.name)}" style="width:36px;height:36px;border-radius:50%;object-fit:cover"> ${api.escapeHTML(item.name)}</button>`).join('') || '<span>Chưa có ảnh mẫu.</span>';
     renderCategories(); await renderBookmarks();
+    renderMyReviews().catch(error => { reviewBox.innerHTML = `<p class="f2d-empty">${api.escapeHTML(error.message)}</p>`; });
     const historyItems = await api.request('/users/me/search-history');
     const history = document.querySelector('#pane-lichsu');
     history.innerHTML = historyItems.length
@@ -107,6 +108,57 @@
       <a class="search-history-again" href="search.html?${query}">Tìm lại</a>
     </article>`;
   }
-  function updateTab() { selectTab(['hoso', 'lichsu'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'yeuthich'); }
+  // Lịch sử đánh giá cá nhân: xem, sửa (sao + nội dung) và xóa ngay tại tab.
+  const reviewBox = document.getElementById('myReviews');
+  let myReviews = [];
+  const stars = rating => '★'.repeat(rating) + '☆'.repeat(5 - rating);
+  function reviewCard(review) {
+    const esc = api.escapeHTML;
+    const thumb = review.activity_image ? `<img src="${esc(review.activity_image)}" alt="" loading="lazy">` : '✨';
+    const hidden = review.activity_status === 'active' ? '' : ' · <em>Hoạt động không còn hiển thị</em>';
+    return `<article class="my-review" data-review-id="${esc(review.review_id)}">
+      <a class="my-review-thumb" href="activity-detail.html?id=${encodeURIComponent(review.activity_id)}">${thumb}</a>
+      <div>
+        <h3><a href="activity-detail.html?id=${encodeURIComponent(review.activity_id)}">${esc(review.activity_name)}</a></h3>
+        <div class="my-review-meta"><span class="my-review-stars" aria-label="${review.rating} sao">${stars(review.rating)}</span> · ${esc(F2D.dateTime(review.updated_at || review.created_at))}${review.updated_at ? ' (đã sửa)' : ''}${hidden}</div>
+        ${review.content ? `<p class="my-review-content">${esc(review.content)}</p>` : ''}
+        ${review.reply ? `<div class="my-review-reply"><b>Phản hồi của doanh nghiệp:</b> ${esc(review.reply.content)}</div>` : ''}
+        <div class="my-review-actions"><button type="button" class="btn btn-secondary" data-review-edit>Sửa</button><button type="button" class="btn btn-ghost" data-review-delete>Xóa</button></div>
+      </div>
+    </article>`;
+  }
+  async function renderMyReviews() {
+    myReviews = await api.request('/users/me/reviews');
+    reviewBox.innerHTML = myReviews.length ? myReviews.map(reviewCard).join('')
+      : '<div class="search-history-empty">Bạn chưa đánh giá hoạt động nào.</div>';
+  }
+  reviewBox.addEventListener('click', async event => {
+    const card = event.target.closest('[data-review-id]');
+    if (!card) return;
+    const review = myReviews.find(item => item.review_id === card.dataset.reviewId);
+    if (event.target.closest('[data-review-delete]')) {
+      if (!await F2D.ask({ title: 'Xóa đánh giá?', text: `Đánh giá cho "${review.activity_name}" sẽ bị xóa vĩnh viễn.`, ok: 'Xóa', danger: true })) return;
+      try { await api.request(`/reviews/${encodeURIComponent(review.review_id)}`, { method: 'DELETE' }); await renderMyReviews(); F2D.toast('Đã xóa đánh giá.'); }
+      catch (error) { F2D.toast(error.message, 'error'); }
+    } else if (event.target.closest('[data-review-edit]')) {
+      const actions = card.querySelector('.my-review-actions');
+      actions.outerHTML = `<form class="my-review-edit"><select name="rating" aria-label="Số sao">${[5, 4, 3, 2, 1].map(value => `<option value="${value}" ${value === review.rating ? 'selected' : ''}>${stars(value)} (${value})</option>`).join('')}</select><textarea name="content" rows="3" maxlength="2000" placeholder="Nội dung đánh giá">${api.escapeHTML(review.content || '')}</textarea><div class="my-review-actions"><button type="submit" class="btn btn-primary">Lưu</button><button type="button" class="btn btn-ghost" data-review-cancel>Hủy</button></div></form>`;
+    } else if (event.target.closest('[data-review-cancel]')) {
+      card.outerHTML = reviewCard(review);
+    }
+  });
+  reviewBox.addEventListener('submit', event => {
+    event.preventDefault();
+    const form = event.target;
+    const id = form.closest('[data-review-id]').dataset.reviewId;
+    F2D.busy(form.querySelector('[type="submit"]'), async () => {
+      try {
+        await api.request(`/reviews/${encodeURIComponent(id)}`, { method: 'PATCH', body: { rating: Number(form.rating.value), content: form.content.value.trim() } });
+        await renderMyReviews();
+        F2D.toast('Đã cập nhật đánh giá.');
+      } catch (error) { F2D.toast(error.message, 'error'); }
+    });
+  });
+  function updateTab() { selectTab(['hoso', 'lichsu', 'danhgia'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'yeuthich'); }
   window.addEventListener('hashchange', updateTab); updateTab();
 })();

@@ -432,3 +432,24 @@ tbody tr:hover{background:#FCFAF6;}
 ::view-transition-old(root),::view-transition-new(root){animation-duration:.22s;}
 @media (prefers-reduced-motion:reduce){@view-transition{navigation:none;}}
 .sidebar{view-transition-name:op-sidebar;}
+
+/* Căn giữa cột bảng quản trị: Hoạt động (tiêu đề Giờ hoạt động/Trạng thái, cả cột Hành động),
+   Khách hàng (cả cột Ngày đăng ký, tiêu đề Trạng thái/Hành động), Doanh nghiệp (cả 3 cột cuối). */
+.activity-table th:nth-child(n+5),.activity-table td:nth-child(7),
+.customer-table th:nth-child(n+4),.customer-table td:nth-child(4),
+.business-table th:nth-child(n+4),.business-table td:nth-child(n+4):not([colspan]){text-align:center;}
+.activity-table td:nth-child(7) .row-actions,.business-table td:nth-child(6) .row-actions{justify-content:center;}
+
+/* Hồ sơ hoạt động (admin): ảnh bìa + thông tin gọn bên dưới tên */
+.ap-hero{background:#fff;border:1px solid var(--line);border-radius:18px;overflow:hidden;margin:16px 0 20px;}
+.ap-cover{height:220px;background:var(--cream);display:flex;align-items:center;justify-content:center;color:var(--muted);font-weight:600;font-size:13.5px;}
+.ap-cover img{width:100%;height:100%;object-fit:cover;display:block;}
+.ap-head{display:flex;align-items:center;gap:14px;padding:18px 22px;flex-wrap:wrap;}
+.ap-title{flex:1;min-width:220px;}
+.ap-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}
+.ap-chip{display:inline-flex;align-items:center;gap:4px;padding:5px 11px;border-radius:999px;background:var(--paper);border:1px solid var(--line);font-size:12.5px;color:var(--brown);}
+.ap-chip a{color:var(--rose-dark);font-weight:600;text-decoration:none;}
+.badge.ap-status{font-size:13px;padding:7px 14px;border:1.5px solid currentColor;}
+.qa-btn.ap-edit{background:var(--rose);border-color:var(--rose);color:#fff;}
+.qa-btn.ap-edit:hover{background:#fff;border-color:var(--rose);color:var(--rose);}
+@media(max-width:600px){.ap-cover{height:160px;}.ap-head{padding:14px 16px;}}

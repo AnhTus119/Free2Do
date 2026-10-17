@@ -49,10 +49,20 @@
       : data.escapeHTML(data.businessName(activity));
 
     document.title = `FREE2DO Admin | ${activity.name}`;
-    document.querySelector('.profile-logo').textContent = activity.icon || '🗓️';
+    // Ảnh bìa: ưu tiên media_kind "cover", không có thì lấy ảnh đầu tiên.
+    const images = activity.media.filter(item => item.media_type === 'image');
+    const cover = images.find(item => item.media_kind === 'cover') || images[0];
+    document.getElementById('activityCover').innerHTML = cover
+      ? `<img src="${data.escapeHTML(safeMediaUrl(cover.media_url))}" alt="Ảnh bìa ${data.escapeHTML(activity.name)}">`
+      : '<span>Hoạt động chưa có ảnh bìa</span>';
     document.querySelector('.profile-name').textContent = activity.name;
-    document.querySelector('.profile-meta').innerHTML = `Mã Hoạt động: ${data.escapeHTML(activity.code)} · Doanh nghiệp: ${businessDisplay}`;
-    document.querySelector('.profile-head > .badge').outerHTML = badge(activity.status);
+    document.getElementById('activityChips').innerHTML = [
+      `Mã: <b>${data.escapeHTML(activity.code)}</b>`, `🏬 ${businessDisplay}`,
+      `💰 ${data.escapeHTML(activity.price)}`, `🕒 ${data.escapeHTML(activity.hours)}`,
+    ].map(item => `<span class="ap-chip">${item}</span>`).join('');
+    const status = document.getElementById('activityStatus');
+    status.className = `badge ap-status ${activity.status}`;
+    status.textContent = data.statusLabels[activity.status];
 
     const cards = document.querySelectorAll('.profile-grid .card');
     setInfoRows(cards[0], {
@@ -60,7 +70,9 @@
       'Mô tả': data.escapeHTML(activity.description), 'Ngân sách': data.escapeHTML(activity.price),
       'Địa chỉ': data.escapeHTML(activity.address), 'Vị trí (lat, long)': data.escapeHTML(activity.location || 'Chưa cung cấp'),
       'Giờ hoạt động': data.escapeHTML(activity.hours),
-      'Admin xác minh (verified_by)': data.escapeHTML(activity.verifiedBy || 'Chưa xác minh'),
+      'Người duyệt / xử lý': activity.verifiedBy
+        ? `${data.escapeHTML(activity.verifiedByName || 'Operator đã xóa')}${activity.verifiedAt ? ` · ${data.escapeHTML(window.F2D.dateTime(activity.verifiedAt))}` : ''}`
+        : 'Chưa duyệt',
       'Hạn chờ duyệt': activity.status === 'pending' ? data.escapeHTML(activity.expireAt || 'Không giới hạn') : 'Không áp dụng',
       'Lý do từ chối': data.escapeHTML(activity.rejectionReason || 'Không có'),
     });
@@ -78,6 +90,7 @@
         : `<button type="button" class="f2d-thumb" data-zoom="${data.escapeHTML(safeMediaUrl(item.media_url))}" aria-label="Phóng to ảnh ${index + 1}"><img src="${data.escapeHTML(safeMediaUrl(item.media_url))}" alt="Ảnh hoạt động ${index + 1}" loading="lazy"></button>`).join('')}</div>`
       : '<p class="f2d-empty">Hoạt động chưa có ảnh/video.</p>';
     renderParticipants();
+    data.renderActionLogs(document.getElementById('actionLogs'), 'activity', activity.id);
     document.getElementById('toggleActivityVisibility').textContent = activity.status === 'hidden' ? '👁️ Hiện Hoạt động' : '🙈 Ẩn Hoạt động';
     document.getElementById('rejectionReasonRow').hidden = activity.status !== 'rejected';
     // Chỉ hoạt động đang chờ duyệt mới duyệt được; hết hạn/bị từ chối/đã hủy thì không.

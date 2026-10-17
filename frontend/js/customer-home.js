@@ -16,6 +16,13 @@
   let locationResolveTimer;
   let locationLabel = 'Vị trí hiện tại';
   let locationTouched = false; // người dùng đã tự chọn vị trí thì không ghi đè bằng GPS tới muộn
+  // Tick "Sử dụng vị trí hiện tại": chỉ dùng GPS khi đang tick. Mặc định tick mỗi lần đăng nhập
+  // (login/logout xóa 'f2d:use-gps'), lựa chọn của người dùng được nhớ trong phiên.
+  const gpsToggle = document.getElementById('useGpsToggle');
+  function setUseGps(on) {
+    gpsToggle.checked = on;
+    api.stored('f2d:use-gps', on ? 1 : 0);
+  }
 
   const parseMoney = value => {
     const normalized = String(value || '').replace(/[^0-9]/g, '');
@@ -62,24 +69,26 @@
     window.addEventListener('resize', render);
     render();
   }
-  function renderMapResults(items) {
+  function renderMapResults(items, center = position) {
     mapCount.textContent = items.length;
     mapResults.innerHTML = items.length ? items.map(item => { const icon = window.Free2DoBusinessMedia.thumb(item); return `<a class="map-side-item" data-activity-id="${api.escapeHTML(item.activity_id)}" href="${api.escapeHTML(detailHref(item))}"><div class="map-side-img">${icon ? `<img src="${api.escapeHTML(icon)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:8px">` : '✨'}</div><div class="map-side-info"><h4>${api.escapeHTML(item.name)}</h4><p>${item.distance_km ?? 'Chưa có'} km · ${api.escapeHTML(api.priceLabel(item.price_text, item.price))} · ★ ${item.avg_rating ?? 'Chưa có'}</p><span class="map-match-badge">${item.match_score}% phù hợp</span></div></a>`; }).join('') : '<p style="padding:20px;color:var(--muted);">Không có hoạt động phù hợp.</p>';
-    try { mapController?.render(position, Number(radiusSlider.value), items); }
+    try { mapController?.render(center, Number(radiusSlider.value), items); }
     catch (error) { console.warn('Không thể vẽ bản đồ:', error); }
   }
   window.Free2DoCustomerHome = {
     getAIContext: () => ({
       latitude: position?.latitude ?? null,
       longitude: position?.longitude ?? null,
+      location_label: position ? locationLabel : null,
       radius: Number(radiusSlider.value),
       budget: parseMoney(document.getElementById('budgetInput').value),
       free_time: freeMinutes(),
       category_ids: selectedCategoryIds(),
     }),
-    showAIRecommendations: items => {
+    showAIRecommendations: (items, center) => {
       aiRecommendations = items || [];
-      renderMapResults(aiRecommendations);
+      // Khu vực AI tìm (vd "Hai Bà Trưng") chỉ dùng để vẽ bản đồ, không đổi vị trí người dùng đã chọn.
+      renderMapResults(aiRecommendations, center && window.Free2DoMap.validCoordinate(center.latitude, center.longitude) ? center : position);
       if (aiRecommendations[0]) mapController?.highlight(aiRecommendations[0].activity_id, true);
     },
   };
@@ -87,6 +96,8 @@
     if (!window.Free2DoMap.validCoordinate(position?.latitude, position?.longitude)) {
       throw new Error('Chưa xác định được vị trí. Hãy cho phép truy cập GPS hoặc nhập địa chỉ khác.');
     }
+    // AI ở mọi trang customer dùng vị trí đang chọn ở home làm mặc định.
+    api.stored('f2d:home-location', { latitude: position.latitude, longitude: position.longitude, label: locationLabel });
     const items = await api.request('/search', { method: 'POST', body: {
       latitude: position.latitude, longitude: position.longitude, radius: Number(radiusSlider.value),
       budget: parseMoney(document.getElementById('budgetInput').value), free_time: freeMinutes(),
@@ -110,6 +121,7 @@
       if (!query || query === 'Vị trí hiện tại') return;
       const result = await api.request(`/search/location?query=${encodeURIComponent(query)}`);
       locationTouched = true;
+      setUseGps(false);
       position = { latitude: result.latitude, longitude: result.longitude };
       locationLabel = result.display_name || query;
       mapLocation.textContent = locationLabel;
@@ -133,21 +145,31 @@
       chip.classList.toggle('active');
       queueSearch();
     });
-    document.querySelector('.loc-btn')?.addEventListener('click', async () => {
+    gpsToggle.addEventListener('change', async () => {
+      locationTouched = true;
+      if (!gpsToggle.checked) {
+        setUseGps(false);
+        position = null;
+        locationInput.value = '';
+        locationInput.focus();
+        mapLocation.textContent = 'Nhập địa chỉ hoặc chọn trên bản đồ';
+        return;
+      }
       try {
         position = await window.Free2DoMap.getCurrentPosition();
-        locationTouched = true;
-        document.getElementById('locationInput').value = 'Vị trí hiện tại';
+        setUseGps(true);
+        locationInput.value = 'Vị trí hiện tại';
         locationLabel = 'Vị trí hiện tại';
         mapLocation.textContent = 'Vị trí hiện tại';
         await searchNearby(false);
-      } catch (error) { F2D.toast(error.message, 'error'); }
+      } catch (error) { setUseGps(false); F2D.toast(error.message, 'error'); }
     });
     mapResults.addEventListener('pointerover', event => { const item = event.target.closest('[data-activity-id]'); if (item) mapController?.highlight(item.dataset.activityId, true); });
     mapResults.addEventListener('pointerout', event => { const item = event.target.closest('[data-activity-id]'); if (item) mapController?.highlight(item.dataset.activityId, false); });
     mapController?.onSelectPosition(async selected => {
       position = selected;
       locationTouched = true;
+      setUseGps(false);
       locationLabel = 'Vị trí đã chọn trên bản đồ';
       locationInput.value = locationLabel;
       mapLocation.textContent = locationLabel;
@@ -157,8 +179,10 @@
   async function load() {
     // Xin GPS ngay khi mở trang, song song với API. Không dùng tọa độ Hà Nội
     // làm dữ liệu giả trong lúc chờ hoặc khi người dùng từ chối quyền vị trí.
-    const gpsPromise = window.Free2DoMap.getCurrentPosition();
-    gpsPromise.catch(() => {}); // lỗi GPS được xử lý ở dưới; tránh "Uncaught (in promise)" khi bị từ chối sớm
+    const useGps = api.stored('f2d:use-gps') !== 0;
+    gpsToggle.checked = useGps;
+    const gpsPromise = useGps ? window.Free2DoMap.getCurrentPosition() : null;
+    gpsPromise?.catch(() => {}); // lỗi GPS được xử lý ở dưới; tránh "Uncaught (in promise)" khi bị từ chối sớm
     const mapPromise = window.Free2DoMap.create('homeMapBox');
     const [, activities, businesses, categories] = await Promise.all([
       api.requireUser(), api.request('/activities'), api.request('/businesses'), api.request('/categories'),
@@ -169,6 +193,18 @@
     interestBox.innerHTML = categories.map(item => `<div class="chip" data-category-id="${api.escapeHTML(item.category_id)}">${api.escapeHTML(item.name)}</div>`).join('');
     bindFilters();
     if (aiRecommendations) renderMapResults(aiRecommendations);
+    if (!useGps) {
+      // Bỏ tick: không xin GPS, dùng lại địa chỉ đã chọn trong phiên (nếu có).
+      const saved = api.stored('f2d:home-location');
+      if (!locationTouched && saved && window.Free2DoMap.validCoordinate(saved.latitude, saved.longitude)) {
+        position = { latitude: saved.latitude, longitude: saved.longitude };
+        locationLabel = saved.label || 'Vị trí đã chọn';
+        document.getElementById('locationInput').value = locationLabel;
+        mapLocation.textContent = locationLabel;
+        await searchNearby(false).catch(error => F2D.toast(error.message, 'error'));
+      } else if (!locationTouched) mapLocation.textContent = 'Nhập địa chỉ hoặc chọn trên bản đồ';
+      return;
+    }
     mapLocation.textContent = 'Đang lấy vị trí hiện tại…';
     try {
       const gps = await gpsPromise;
@@ -181,6 +217,7 @@
       }
     } catch (error) {
       if (!locationTouched) {
+        setUseGps(false);
         mapLocation.textContent = 'Chưa xác định vị trí';
         mapResults.innerHTML = `<p style="padding:20px;color:var(--muted);">${api.escapeHTML(error.message)} Bạn vẫn có thể nhập địa chỉ ở ô “Bạn đang ở đâu?”.</p>`;
       }

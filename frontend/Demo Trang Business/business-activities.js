@@ -123,9 +123,13 @@ async function saveActivity() {
   }
   const price = numberOrNull('f-price');
   if (price != null && (!Number.isInteger(price) || price < 0)) return BusinessAPI.notify('Giá phải là số nguyên không âm.', 'error');
+  const description = document.getElementById('f-description').value.trim();
+  if (!description) { document.getElementById('f-description').focus(); return BusinessAPI.notify('Mô tả hoạt động là bắt buộc.', 'error'); }
+  // Ảnh bìa bắt buộc khi tạo; hoạt động cũ chưa có ảnh vẫn sửa được.
+  if (!editingId && !document.getElementById('f-cover').files[0]) return BusinessAPI.notify('Hãy chọn ảnh bìa cho hoạt động.', 'error');
   const payload = {
     name,
-    description: document.getElementById('f-description').value.trim() || null,
+    description,
     price,
     address,
     time_open: timeOrNull('f-open'),

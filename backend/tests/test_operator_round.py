@@ -73,7 +73,7 @@ class OperatorRoundTests(unittest.TestCase):
         activities._ensure_not_duplicate(self.db, "Cà phê Thử", "1 Đường Thử, Hà Nội", 21.0, 105.8)
 
     def test_new_business_activity_gets_review_deadline(self):
-        payload = schemas.ActivityCreate(name="Mới tinh", address="5 Đường Thử, Hà Nội", google_maps_url="https://maps.app.goo.gl/x")
+        payload = schemas.ActivityCreate(name="Mới tinh", description="Mô tả", address="5 Đường Thử, Hà Nội", google_maps_url="https://maps.app.goo.gl/x")
         with patch.object(activities, "_coordinates", return_value=(21.2, 105.7)):
             created = activities._create_activity_record(self.db, self.db.get(models.BusinessProfile, "B1"), payload)
         self.assertEqual("pending", created.status)
@@ -115,6 +115,34 @@ class OperatorRoundTests(unittest.TestCase):
         for bad in ("<script>@x.com", "a..b@x.com", ".a@x.com", "a@x", "a@-x.com", "a b@x.com"):
             with self.assertRaises(ValueError, msg=bad):
                 normalize_email(bad)
+
+
+    def test_action_logs_scoped_per_profile(self):
+        """Hồ sơ hoạt động chỉ thấy log của chính nó + log cấp doanh nghiệp; hồ sơ DN thấy tất cả."""
+        from app.routers import action_logs
+        with patch.object(activities, "send_activity_rejected_email"):
+            activities.reject_activity("P2", schemas.ActivityRejectRequest(reason="Thiếu ảnh"), self.db, self.operator)
+        activities.delete_activity_as_operator("X1", self.db, self.operator)
+        action_logs.log_action(self.db, self.operator, "Khóa tài khoản", "business", "B1", "B1")
+        self.db.commit()
+
+        on_p2 = action_logs.list_action_logs("activity", "P2", self.db, self.operator)
+        self.assertEqual({"Từ chối hoạt động", "Khóa tài khoản"}, {row.action for row in on_p2})
+        self.assertIn("Thiếu ảnh", next(row.detail for row in on_p2 if row.action == "Từ chối hoạt động"))
+        on_business = action_logs.list_action_logs("business", "B1", self.db, self.operator)
+        self.assertEqual(3, len(on_business))
+        self.assertEqual("Cà phê Thử", next(row.target_name for row in on_business if row.target_id == "X1"))
+        self.assertEqual([], action_logs.list_action_logs("customer", "B1", self.db, self.operator))
+
+    def test_activity_description_required(self):
+        from pydantic import ValidationError
+        with self.assertRaises(ValidationError):
+            schemas.ActivityCreate(name="A", description="   ", address="1 Phố")
+        with self.assertRaises(ValidationError):
+            schemas.ActivityUpdate(description="")
+        with self.assertRaises(ValidationError):
+            schemas.ActivityUpdate(description=None)
+        self.assertIsNone(schemas.ActivityUpdate(name="B").description)
 
 
 if __name__ == "__main__":

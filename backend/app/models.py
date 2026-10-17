@@ -401,6 +401,8 @@ class GroupMember(Base):
     name = Column(String, nullable=False)
     free_hours = Column(Float, nullable=False)
     address = Column(String, nullable=False)
+    latitude = Column(Float)   # tọa độ đã tra từ address hoặc GPS, dùng tính điểm giữa của nhóm
+    longitude = Column(Float)
     budget = Column(Float, nullable=False)
     category_ids_json = Column(Text, nullable=False, default="[]")
     is_host = Column(Boolean, nullable=False, default=False)
@@ -476,3 +478,19 @@ class GroupActivityBallot(Base):
     member_id = Column(String, ForeignKey("group_members.member_id", ondelete="CASCADE"), nullable=False, index=True)
     activity_id = Column(String, ForeignKey("activities.activity_id", ondelete="CASCADE"), nullable=False)
     created_at = Column(DateTime, nullable=False)
+
+
+class OperatorActionLog(Base):
+    """Nhật ký thao tác của operator. business_id = doanh nghiệp liên quan (chính nó hoặc chủ hoạt động),
+    để hồ sơ doanh nghiệp gom được cả thao tác với các hoạt động của doanh nghiệp."""
+    __tablename__ = "operator_action_logs"
+
+    log_id = Column(String, primary_key=True, default=gen_id)
+    operator_id = Column(String, ForeignKey("operators.operator_id"), nullable=False)
+    target_type = Column(String, nullable=False)  # "customer" | "business" | "activity"
+    target_id = Column(String, nullable=False, index=True)
+    business_id = Column(String, index=True)
+    action = Column(String, nullable=False)        # nhãn tiếng Việt, vd "Duyệt hoạt động"
+    detail = Column(Text)
+    created_at = Column(DateTime, nullable=False)
+    operator = relationship("Operator")

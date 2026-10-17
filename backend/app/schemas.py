@@ -1,6 +1,7 @@
 from datetime import date, datetime
 from typing import Literal, Optional
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
+from typing import Annotated
 
 from app.utils.google_maps import build_google_maps_url
 
@@ -179,9 +180,13 @@ class CustomerProfile(BaseModel):
     avatar_url: Optional[str] = None
 
 # Activity
+# Mô tả bắt buộc khi tạo và không được xóa trống khi sửa (ảnh bìa bắt buộc được kiểm tra ở form tạo).
+RequiredText = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
+
+
 class ActivityCreate(BaseModel):
     name: str
-    description: Optional[str] = None
+    description: RequiredText
     price: Optional[int] = Field(None, ge=0)
     price_text: Optional[str] = None
     address: str
@@ -312,6 +317,13 @@ class ReviewOut(Review):
     reviewer_name: str
     media: list[ReviewMedia] = Field(default_factory=list)
     reply: Optional[ReviewReplyPublicOut] = None
+
+
+class MyReviewOut(ReviewOut):
+    """Lịch sử đánh giá của chính người dùng, kèm thông tin hoạt động để hiển thị thẻ."""
+    activity_name: str
+    activity_status: str
+    activity_image: Optional[str] = None
 
 # Complaint
 class ComplaintCreate(BaseModel):
@@ -466,6 +478,9 @@ class GroupMemberInput(BaseModel):
     name: str = Field(min_length=1, max_length=200)
     free_hours: float = Field(gt=0, le=24)
     address: str = Field(min_length=1, max_length=500)
+    # GPS hoặc kết quả tra địa chỉ ở frontend; thiếu thì backend tự tra address trên bản đồ.
+    latitude: Optional[float] = Field(None, ge=-90, le=90)
+    longitude: Optional[float] = Field(None, ge=-180, le=180)
     budget: float = Field(ge=0)
     category_ids: list[str] = Field(min_length=1)
 
@@ -491,6 +506,8 @@ class GroupMemberUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=200)
     free_hours: Optional[float] = Field(None, gt=0, le=24)
     address: Optional[str] = Field(None, min_length=1, max_length=500)
+    latitude: Optional[float] = Field(None, ge=-90, le=90)
+    longitude: Optional[float] = Field(None, ge=-180, le=180)
     budget: Optional[float] = Field(None, ge=0)
     category_ids: Optional[list[str]] = Field(None, min_length=1)
 
@@ -534,6 +551,8 @@ class GroupMemberOut(BaseModel):
     name: str
     free_hours: float
     address: str
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
     budget: float
     category_ids: list[str]
     category_names: list[str]
@@ -601,13 +620,14 @@ class GroupOut(BaseModel):
 class GroupRecommendationOut(GroupSelectedActivityOut):
     match_score: int
     member_scores: dict[str, int]
+    distance_km: Optional[float] = None  # khoảng cách tới điểm giữa của nhóm
 
 # ---------------------------------------------------------------------------
 # Activity -- mở rộng cho Business (CRUD) và Operator (duyệt)
 # ---------------------------------------------------------------------------
 class ActivityUpdate(BaseModel):
     name: Optional[str] = None
-    description: Optional[str] = None
+    description: Optional[RequiredText] = None
     price: Optional[int] = Field(None, ge=0)
     price_text: Optional[str] = None
     address: Optional[str] = None
@@ -621,6 +641,12 @@ class ActivityUpdate(BaseModel):
     category_ids: Optional[list[str]] = None
     source_url: Optional[str] = None
     google_maps_url: Optional[str] = None
+
+    @model_validator(mode="after")
+    def _description_not_cleared(self):
+        if "description" in self.model_fields_set and self.description is None:
+            raise ValueError("Mô tả hoạt động là bắt buộc")
+        return self
 
 class ActivityDetail(Activity):
     """Chi tiết hoạt động: kèm danh mục, media, rating trung bình -- dùng cho trang chi tiết"""
@@ -657,6 +683,7 @@ class ActivityAdminOut(ActivityPublicOut):
     """Dùng cho danh sách Operator duyệt -- kèm tên doanh nghiệp và thông tin xác minh"""
     business_name: str
     verified_by: Optional[str] = None
+    verified_by_name: Optional[str] = None
     verified_at: Optional[datetime] = None
     expire_at: Optional[datetime] = None
 
@@ -897,3 +924,14 @@ class ActivitySummaryOut(BaseModel):
     cancelled_count: int
     expired_count: int
     rejected_count: int
+
+
+class OperatorActionLogOut(BaseModel):
+    log_id: str
+    action: str
+    detail: Optional[str] = None
+    created_at: datetime
+    target_type: str
+    target_id: str
+    target_name: Optional[str] = None
+    operator_name: str

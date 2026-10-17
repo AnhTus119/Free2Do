@@ -34,9 +34,11 @@
     });
   }
 
-  // Tab "Tất cả": hoạt động đang hiển thị/chờ duyệt lên đầu, rồi bị từ chối, hết hạn, đã ẩn, cuối cùng là đã hủy.
-  const STATUS_ORDER = { active: 0, pending: 0, rejected: 1, expired: 2, hidden: 3, cancelled: 4 };
-  const statusRank = activity => STATUS_ORDER[activity.status] ?? 0;
+  // Tab "Tất cả": chờ duyệt lên đầu (chờ lâu nhất trước, tránh quá hạn), rồi đang hoạt động, từ chối, hết hạn, đã ẩn, đã hủy.
+  const STATUS_ORDER = { pending: 0, active: 1, rejected: 2, expired: 3, hidden: 4, cancelled: 5 };
+  const statusRank = activity => STATUS_ORDER[activity.status] ?? 1;
+  const byStatus = (a, b) => statusRank(a) - statusRank(b)
+    || (a.status === 'pending' && b.status === 'pending' ? String(a.createdRaw).localeCompare(String(b.createdRaw)) : 0);
 
   // Bộ lọc loại hình lấy đủ các tag hiện có trong database (tag mới operator thêm sẽ tự xuất hiện).
   function renderTypeFilter() {
@@ -58,7 +60,7 @@
     });
     if (priceFilter.value === 'priceAsc') activities.sort((a, b) => startingPrice(a) - startingPrice(b));
     if (priceFilter.value === 'priceDesc') activities.sort((a, b) => startingPrice(b) - startingPrice(a));
-    if (selectedStatus === 'all') activities.sort((a, b) => statusRank(a) - statusRank(b)); // sort ổn định: giữ thứ tự giá/mới nhất trong từng nhóm
+    if (selectedStatus === 'all') activities.sort(byStatus); // sort ổn định: giữ thứ tự giá/mới nhất trong từng nhóm
     return activities;
   }
 
@@ -282,7 +284,8 @@
     const name = editInput('editActivityName').value.trim();
     const address = editInput('editActivityAddress').value.trim();
     const mapsUrl = editInput('editActivityMaps').value.trim();
-    if (!name || !address || !mapsUrl) return F2D.toast('Hãy nhập tên, địa chỉ và link Google Maps.', 'error');
+    const description = editInput('editActivityDescription').value.trim();
+    if (!name || !address || !mapsUrl || !description) return F2D.toast('Hãy nhập tên, mô tả, địa chỉ và link Google Maps.', 'error');
     const saveButton = editInput('saveActivityEdit');
     F2D.busy(saveButton, async () => {
       try {
@@ -293,7 +296,7 @@
           toast: false,
           body: JSON.stringify({
             name,
-            description: editInput('editActivityDescription').value.trim() || null,
+            description,
             price: editInput('editActivityPrice').value === '' ? null : Number(editInput('editActivityPrice').value),
             address,
             google_maps_url: mapsUrl,

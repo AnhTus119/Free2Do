@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>FREE2DO Admin | Hoạt động</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style1.css">
+<link rel="stylesheet" href="style1.css?v=20261018">
 <link rel="stylesheet" href="admin-responsive.css">
 </head>
 <body>
@@ -118,7 +118,7 @@
     <fieldset class="op-section op-locked" id="opFormSection" disabled>
       <h3>2. Thông tin hoạt động</h3>
       <div class="op-field"><label for="opName">Tên hoạt động</label><input id="opName" placeholder="[Tên thương hiệu] - [Loại hình/Dịch vụ] (- cs1)"></div>
-      <div class="op-field"><label for="opDesc">Mô tả</label><textarea id="opDesc" rows="3"></textarea></div>
+      <div class="op-field"><label for="opDesc">Mô tả *</label><textarea id="opDesc" rows="3" required></textarea></div>
       <div class="op-field"><label>Danh mục</label><div class="op-chips" id="opCategories"></div></div>
       <div class="op-field"><label for="opPrice">Giá (đ)</label><input id="opPrice" type="number" min="0" step="1" placeholder="VD: 400000"></div>
       <div class="op-field"><label for="opAddress">Địa chỉ hoạt động</label><input id="opAddress" placeholder="Số nhà, đường, phường, quận, thành phố"><div class="op-error" id="opAddressError" role="alert" hidden></div></div>
@@ -126,7 +126,7 @@
       <div class="op-grid"><div class="op-field"><label for="opOpen">Giờ mở cửa</label><input id="opOpen" type="time"></div><div class="op-field"><label for="opClosed">Giờ đóng cửa</label><input id="opClosed" type="time"></div></div>
       <div class="op-grid"><div class="op-field"><label for="opFrom">Ngày áp dụng</label><input id="opFrom" type="date"></div><div class="op-field" id="opUntilWrap"><label for="opUntil">Ngày kết thúc</label><input id="opUntil" type="date" disabled></div></div>
       <label class="op-check"><input id="opAlways" type="checkbox" checked> Mở vĩnh viễn, không đặt ngày kết thúc</label>
-      <div class="op-field"><label for="opCover">Ảnh bìa hoạt động</label><input id="opCover" type="file" accept="image/*"></div>
+      <div class="op-field"><label for="opCover">Ảnh bìa hoạt động *</label><input id="opCover" type="file" accept="image/*" required></div>
       <div class="op-field"><label for="opGallery">Ảnh/video mô tả hoạt động (có thể chọn nhiều)</label><input id="opGallery" type="file" accept="image/*,video/*" multiple></div>
     </fieldset>
 
@@ -223,8 +223,8 @@
 <script src="js/admin-auth.js"></script>
 <script src="js/admin-shell.js"></script>
 <script src="js/notifications.js"></script>
-<script src="js/admin-data.js"></script>
-<script src="js/activities.js"></script>
-<script src="js/operator-activity-create.js"></script>
+<script src="js/admin-data.js?v=20261018"></script>
+<script src="js/activities.js?v=20261018"></script>
+<script src="js/operator-activity-create.js?v=20261018"></script>
 </body>
 </html>

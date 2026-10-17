@@ -2,7 +2,7 @@
 <!-- [SỬA FONT] nạp font Inter (có hỗ trợ tiếng Việt) -->
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="app-style.css?v=20260930-location-fix"><style>
+<link rel="stylesheet" href="app-style.css?v=20261018"><style>
 /* [SỬA FONT] ép input/button dùng cùng font với trang */
 html,body,input,button,select,textarea{font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif}
 .hero{padding:54px 0 30px;text-align:center}.hero h1{font-size:42px;margin:0 0 12px}.search-box{display:flex;max-width:650px;margin:24px auto;gap:8px}.search-box input{flex:1;padding:14px;border:1px solid var(--line);border-radius:12px}.activity-grid{margin:20px 0 60px}.activity-image{height:160px;background:#f3efe4;display:grid;place-items:center;overflow:hidden}.activity-image img{width:100%;height:100%;object-fit:cover}.activity-body{padding:16px}.activity-card{overflow:hidden}.activity-title{font-weight:800;font-size:17px}.activity-meta{color:var(--muted);font-size:13px;margin:7px 0}.empty-state{padding:22px;background:#fff;border:1px solid var(--line);border-radius:14px}
@@ -132,6 +132,7 @@ html,body,input,button,select,textarea{font-family:'Inter',system-ui,-apple-syst
       <svg class="icon icon-sm"><use href="#icon-chevron-down"></use></svg>
       <div class="nav-dropdown" id="user-dropdown">
         <a href="account.html#hoso"><svg class="icon"><use href="#icon-user"></use></svg>Hồ sơ cá nhân</a>
+        <a href="account.html#danhgia"><span class="icon" aria-hidden="true" style="display:inline-flex;justify-content:center;">★</span>Đánh giá của tôi</a>
         <a href="../log-in.html" class="logout"><svg class="icon"><use href="#icon-log-out"></use></svg>Đăng xuất</a>
       </div>
     </div>
@@ -155,7 +156,7 @@ html,body,input,button,select,textarea{font-family:'Inter',system-ui,-apple-syst
     <div class="match-field">
       <label><svg class="icon"><use href="#icon-map-pin"></use></svg> Bạn đang ở đâu?</label>
       <input type="text" id="locationInput" placeholder="Nhập địa chỉ..." style="width:100%;height:40px;border-radius:10px;border:1.5px solid var(--line);padding:0 12px;">
-      <div class="loc-btn"><svg class="icon"><use href="#icon-target"></use></svg> Sử dụng vị trí hiện tại</div>
+      <label class="loc-btn"><input type="checkbox" id="useGpsToggle" checked> Sử dụng vị trí hiện tại</label>
     </div>
     <div class="match-field">
       <label><svg class="icon"><use href="#icon-radius"></use></svg> Bán kính: <span id="radiusValue">5</span> km</label>
@@ -235,6 +236,6 @@ function toggleMobileMenu(){
   });
 })();
 </script>
-<script src="../js/config.js"></script><script src="../js/main.js"></script><script src="../js/customer-api.js?v=20261003-speed"></script><script src="../js/customer-activity-icons.js?v=20260930-location-fix"></script><script src="../js/customer-map.js?v=20261001-tile-loader-fix"></script><script src="../js/customer-business-media.js?v=20261014"></script><script src="../js/customer-home.js?v=20261014-logo"></script><script src="../js/customer-ai-chat.js?v=20261004-ai"></script>
+<script src="../js/config.js"></script><script src="../js/main.js"></script><script src="../js/customer-api.js?v=20261018"></script><script src="../js/customer-activity-icons.js?v=20260930-location-fix"></script><script src="../js/customer-map.js?v=20261001-tile-loader-fix"></script><script src="../js/customer-business-media.js?v=20261014"></script><script src="../js/customer-home.js?v=20261018"></script><script src="../js/customer-ai-chat.js?v=20261018-ai-local"></script>
 <script src="../js/notifications.js?v=20261015"></script>
 </body></html>

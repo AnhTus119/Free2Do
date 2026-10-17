@@ -23,6 +23,7 @@
   function render() {
     business = data.businesses.find(item => item.id === id);
     if (!business) { showNotFound(); return; }
+    data.renderActionLogs(document.getElementById('actionLogs'), 'business', business.userId || business.id);
     const activities = data.activities.filter(activity => activity.businessId === business.id);
     document.title = `FREE2DO Admin | ${business.name}`;
     document.querySelector('.profile-logo').textContent = business.name.trim().charAt(0).toUpperCase();

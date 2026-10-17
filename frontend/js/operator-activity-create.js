@@ -133,6 +133,9 @@
     const priceText = $('opPrice').value.trim();
     const price = priceText === '' ? null : Number(priceText);
     if (price != null && (!Number.isInteger(price) || price < 0)) return toast('Giá phải là số nguyên không âm.', true);
+    const description = $('opDesc').value.trim();
+    if (!description) { $('opDesc').focus(); return toast('Mô tả hoạt động là bắt buộc.', true); }
+    if (!$('opCover').files[0]) return toast('Hãy chọn ảnh bìa cho hoạt động.', true);
 
     const button = $('opSubmit');
     button.disabled = true;
@@ -141,7 +144,7 @@
       const activity = await auth.authFetch('/operator/activities', {
         method: 'POST',
         body: JSON.stringify({
-          business_id: business.user_id, name, description: $('opDesc').value.trim() || null, price, address,
+          business_id: business.user_id, name, description, price, address,
           time_open: timeOrNull('opOpen'), time_close: timeOrNull('opClosed'),
           available_from: from ? `${from}T00:00:00` : null, available_until: until ? `${until}T23:59:59` : null,
           always_available: always, google_maps_url: mapUrl.href,

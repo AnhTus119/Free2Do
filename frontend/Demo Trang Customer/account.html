@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>FREE2DO | Tài khoản của tôi</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="app-style.css">
+<link rel="stylesheet" href="app-style.css?v=20261018">
 <style>
 /* ===== Font ===== */
 html,body,input,button,select,textarea{font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif}
@@ -125,6 +125,7 @@ html,body,input,button,select,textarea{font-family:'Inter',system-ui,-apple-syst
       <svg class="icon icon-sm"><use href="#icon-chevron-down"></use></svg>
       <div class="nav-dropdown" id="user-dropdown">
         <a href="account.html#hoso"><svg class="icon"><use href="#icon-user"></use></svg>Hồ sơ cá nhân</a>
+        <a href="account.html#danhgia"><span class="icon" aria-hidden="true" style="display:inline-flex;justify-content:center;">★</span>Đánh giá của tôi</a>
         <a href="../log-in.html" class="logout"><svg class="icon"><use href="#icon-log-out"></use></svg>Đăng xuất</a>
       </div>
     </div>
@@ -136,6 +137,7 @@ html,body,input,button,select,textarea{font-family:'Inter',system-ui,-apple-syst
   <div class="tabs" id="main-tabs">
     <button class="tab-btn" data-tab="yeuthich" onclick="selectTab('yeuthich')">Yêu thích</button>
     <button class="tab-btn" data-tab="lichsu" onclick="selectTab('lichsu')">Lịch sử tìm kiếm</button>
+    <button class="tab-btn" data-tab="danhgia" onclick="selectTab('danhgia')">Đánh giá của tôi</button>
   </div>
 
   <!-- ===== HỒ SƠ CÁ NHÂN ===== -->
@@ -201,6 +203,11 @@ html,body,input,button,select,textarea{font-family:'Inter',system-ui,-apple-syst
     </div>
   </div>
 
+  <!-- ===== ĐÁNH GIÁ CỦA TÔI ===== -->
+  <div class="tab-pane" id="pane-danhgia">
+    <div class="my-review-list" id="myReviews"><p class="f2d-empty">Đang tải đánh giá...</p></div>
+  </div>
+
   <!-- ===== LỊCH SỬ TÌM KIẾM ===== -->
   <div class="tab-pane" id="pane-lichsu">
     <p id="historyLoading" style="display:none;">Đang tải lịch sử từ máy chủ...</p>
@@ -261,8 +268,9 @@ function toggleMobileMenu(){
 })();
 </script>
 <script src="../js/config.js"></script><script src="../js/main.js"></script>
-<script src="../js/customer-api.js"></script>
-<script src="../js/customer-account.js?v=20261015-interests"></script>
+<script src="../js/customer-api.js?v=20261018"></script>
+<script src="../js/customer-account.js?v=20261018"></script>
 <script src="../js/notifications.js?v=20261015"></script>
+<script src="../js/customer-ai-chat.js?v=20261018-ai-local"></script>
 </body>
 </html>

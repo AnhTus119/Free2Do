@@ -1077,7 +1077,11 @@ async def group_websocket(websocket: WebSocket, group_id: str, token: str):
     try:
         account = (
             db.query(models.Account)
-            .filter(models.Account.account_id == account_id, models.Account.status == "active")
+            .filter(
+                models.Account.account_id == account_id,
+                models.Account.status == "active",
+                models.Account.must_change_password.isnot(True),
+            )
             .first()
             if account_id else None
         )

@@ -48,6 +48,10 @@
       location.href = '../recovery-email.html';
       throw new Error('Cần xác minh email khôi phục.');
     }
+    if (me.requires_password_change) {
+      location.href = '../change-password.html';
+      throw new Error('Cần đổi mật khẩu trước khi tiếp tục.');
+    }
     if (me.role !== 'business') {
       location.href = me.account_type === 'operator'
         ? '../admin.html'

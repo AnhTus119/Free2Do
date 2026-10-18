@@ -15,7 +15,7 @@ from app.auth import (
     verify_google_token,
     get_authenticated_account,
     requires_recovery_email,
-    get_current_account,
+    ensure_recovery_email,
 )
 from app.utils.otp import generate_and_save_otp, verify_otp
 from app.utils.email import EmailDeliveryError, send_otp_email
@@ -187,6 +187,7 @@ def read_me(account: models.Account = Depends(get_authenticated_account), db: Se
             phone=account.phone,
             recovery_email=account.recovery_email,
             requires_recovery_email=requires_recovery_email(account),
+            requires_password_change=bool(account.must_change_password),
             account_type="operator",
             role="operator",
             name=operator.name if operator else "",
@@ -223,6 +224,7 @@ def read_me(account: models.Account = Depends(get_authenticated_account), db: Se
         phone=(account.phone or user.phone) if user else account.phone,
         recovery_email=account.recovery_email,
         requires_recovery_email=requires_recovery_email(account),
+        requires_password_change=bool(account.must_change_password),
         avatar_url=avatar_url,
         redirect=(
             "Demo Trang Business/business-home.html"
@@ -236,9 +238,11 @@ def read_me(account: models.Account = Depends(get_authenticated_account), db: Se
 def change_password(
     payload: schemas.ChangePasswordRequest,
     db: Session = Depends(get_db),
-    account: models.Account = Depends(get_current_account),
+    account: models.Account = Depends(get_authenticated_account),
 ):
-    """Đổi mật khẩu cho mọi loại tài khoản đang đăng nhập (customer, business, operator)."""
+    """Đổi mật khẩu cho mọi loại tài khoản đang đăng nhập (customer, business, operator).
+    Không chặn tài khoản đang bị buộc đổi mật khẩu: đây chính là bước gỡ chặn đó."""
+    ensure_recovery_email(account)
     if not account.password_hash:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Tài khoản này đăng nhập bằng Google nên chưa có mật khẩu")
     if not verify_password(payload.current_password, account.password_hash):
@@ -246,6 +250,7 @@ def change_password(
     if payload.current_password == payload.new_password:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Mật khẩu mới phải khác mật khẩu hiện tại")
     account.password_hash = hash_password(payload.new_password)
+    account.must_change_password = False
     account.updated_at = datetime.utcnow()
     db.commit()
     return {"message": "Đã đổi mật khẩu"}

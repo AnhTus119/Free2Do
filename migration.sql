@@ -277,3 +277,7 @@ SELECT gen_random_uuid()::text, v.group_id, v.member_id, v.activity_id, NOW()
 FROM group_activity_votes v JOIN groups g ON g.group_id = v.group_id
 WHERE g.selected_activity_id IS NULL
 ON CONFLICT DO NOTHING;
+
+-- ===== Cập nhật 2026-10-18 (backend cũng tự bổ sung khi khởi động; chạy lại nhiều lần vẫn an toàn) =====
+-- Tài khoản tạo bằng backend/bootstrap_admin.py phải đổi mật khẩu ở lần đăng nhập đầu tiên.
+ALTER TABLE accounts ADD COLUMN IF NOT EXISTS must_change_password BOOLEAN NOT NULL DEFAULT false;

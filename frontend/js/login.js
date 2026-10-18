@@ -89,6 +89,10 @@ if (loginForm) {
         window.location.href = "recovery-email.html";
         return;
       }
+      if (me.requires_password_change) {
+        window.location.href = "change-password.html";
+        return;
+      }
 
       const pendingGroupInvite = new URLSearchParams(location.search).get("groupInvite");
       if (pendingGroupInvite && me.account_type === "user" && me.role !== "business") {

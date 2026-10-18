@@ -94,6 +94,10 @@
         window.location.href = 'recovery-email.html';
         throw new Error('Cần xác minh email khôi phục.');
       }
+      if (me.requires_password_change) {
+        window.location.href = 'change-password.html';
+        throw new Error('Cần đổi mật khẩu trước khi tiếp tục.');
+      }
       if (me.account_type !== 'operator') {
         window.location.href = 'log-in.html';
         throw new Error('Tài khoản không có quyền quản trị.');

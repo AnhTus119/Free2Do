@@ -459,6 +459,7 @@ class MeResponse(BaseModel):
     phone: Optional[str] = None
     recovery_email: Optional[str] = None
     requires_recovery_email: bool = False
+    requires_password_change: bool = False  # tài khoản tạo bằng bootstrap_admin.py, chưa đổi mật khẩu
     avatar_url: Optional[str] = None
     level: Optional[str] = None
     redirect: str                # Trang phù hợp với operator, customer hoặc business

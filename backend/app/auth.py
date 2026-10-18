@@ -118,14 +118,25 @@ def requires_recovery_email(account: models.Account) -> bool:
     return account.auth_provider == "phone" and not bool(account.recovery_email)
 
 
-def get_current_account(
-    account: models.Account = Depends(get_authenticated_account),
-) -> models.Account:
-    """Tài khoản hợp lệ; phone account phải có email khôi phục đã xác minh."""
+def ensure_recovery_email(account: models.Account) -> None:
     if requires_recovery_email(account):
         raise HTTPException(
             status.HTTP_428_PRECONDITION_REQUIRED,
             "Bạn cần bổ sung và xác minh email khôi phục trước khi tiếp tục",
+        )
+
+
+def get_current_account(
+    account: models.Account = Depends(get_authenticated_account),
+) -> models.Account:
+    """Tài khoản hợp lệ; phone account phải có email khôi phục đã xác minh, tài khoản được
+    tạo bằng bootstrap_admin.py phải đổi mật khẩu trước (chỉ /auth/me và /auth/change-password
+    dùng get_authenticated_account nên vẫn gọi được)."""
+    ensure_recovery_email(account)
+    if account.must_change_password:
+        raise HTTPException(
+            status.HTTP_428_PRECONDITION_REQUIRED,
+            "Bạn cần đổi mật khẩu trước khi tiếp tục",
         )
     return account
 

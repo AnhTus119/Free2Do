@@ -62,6 +62,8 @@ class Account(Base):
     auth_provider = Column(String, nullable=False, default="email")  # "email" | "phone" | "google"
     google_id = Column(String, unique=True, nullable=True)
     email_verified = Column(Boolean, nullable=False, default=False)
+    # True: phải đổi mật khẩu trước khi dùng API khác (tài khoản tạo bằng bootstrap_admin.py).
+    must_change_password = Column(Boolean, nullable=False, default=False, server_default=text("false"))
     account_type = Column(String, nullable=False)
     status = Column(String, nullable=False)
     created_at = Column(DateTime, nullable=False)

@@ -285,7 +285,7 @@ main{animation:f2dPageIn .28s ease-out both;}
 
 /* ===== Lịch sử tìm kiếm (account.html#lichsu) ===== */
 .search-history-list{display:grid;gap:14px;max-width:760px;}
-.search-history-card{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:18px;min-height:132px;padding:18px 22px;border-radius:16px;
+.search-history-card{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;align-items:center;gap:18px;min-height:132px;padding:18px 22px;border-radius:16px;
   background:color-mix(in srgb,var(--paper) 72%,var(--cream));border:1px solid var(--line);transition:border-color .2s ease,box-shadow .2s ease;}
 .search-history-card:hover{border-color:color-mix(in srgb,var(--line) 60%,var(--rose));box-shadow:0 8px 22px rgba(110,82,72,.08);}
 .search-history-info{display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:0;text-align:left;}
@@ -296,8 +296,20 @@ main{animation:f2dPageIn .28s ease-out both;}
 .search-history-again:hover{background:var(--rose-dark);color:#fff;text-decoration:none;}
 .search-history-again:active{transform:translateY(1px);}
 .search-history-again:focus-visible{outline:2px solid var(--rose-dark);outline-offset:3px;}
+.search-history-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;max-width:760px;margin-bottom:14px;}
+.search-history-toolbar .btn{height:40px;padding:0 18px;font-size:13.5px;}
+.search-history-toolbar .btn:disabled{opacity:.5;cursor:not-allowed;}
+.search-history-check{display:inline-flex;align-items:center;gap:8px;margin-right:auto;font-size:14px;font-weight:600;color:var(--ink);cursor:pointer;}
+.search-history-check input,.search-history-select{width:18px;height:18px;accent-color:var(--rose);cursor:pointer;}
+.search-history-danger{color:var(--danger,#C1483E);}
+.search-history-danger:hover{border-color:var(--danger,#C1483E);}
+.search-history-remove{display:grid;place-items:center;width:36px;height:36px;border:1.5px solid var(--line);border-radius:50%;background:#fff;color:var(--muted);font-size:20px;line-height:1;cursor:pointer;transition:background-color .18s ease,color .18s ease,border-color .18s ease;}
+.search-history-remove:hover{border-color:var(--danger,#C1483E);color:var(--danger,#C1483E);}
+.search-history-remove:focus-visible{outline:2px solid var(--rose-dark);outline-offset:2px;}
+.search-history-remove.is-busy::before{margin:0;}
+.search-history-remove.is-busy{font-size:0;}
 .search-history-empty{padding:28px;border:1px dashed var(--line);border-radius:16px;color:var(--muted);text-align:center;max-width:760px;}
-@media (max-width:520px){.search-history-card{padding:16px;gap:12px;}.search-history-place{font-size:17px;}.search-history-again{padding:10px 16px;}}
+@media (max-width:520px){.search-history-card{grid-template-columns:auto minmax(0,1fr) auto;padding:16px;gap:12px;}.search-history-again{grid-column:2;justify-self:start;}.search-history-remove{grid-column:3;grid-row:1;}.search-history-place{font-size:17px;}.search-history-again{padding:10px 16px;}}
 
 /* ===== Chiều sâu & chuyển động (đồng bộ với trang giới thiệu index.html) ===== */
 :root{--font-display:'Be Vietnam Pro','Inter',sans-serif;--ease-out:cubic-bezier(.2,.8,.2,1);}

@@ -178,8 +178,16 @@
     document.getElementById('activityReviews').addEventListener('click', async event => {
       const card = event.target.closest('[data-review-id]'); if (!card) return;
       try {
-        if (event.target.closest('.delete-review-media')) { if (!confirm('Xóa ảnh/video này khỏi đánh giá?')) return; await api.request(`/reviews/media/${encodeURIComponent(event.target.closest('.delete-review-media').dataset.mediaId)}`, { method: 'DELETE' }); location.reload(); return; }
-        if (event.target.closest('.delete-review')) { if (confirm('Xóa đánh giá này?')) { await api.request(`/reviews/${encodeURIComponent(card.dataset.reviewId)}`, { method: 'DELETE' }); location.reload(); } }
+        const mediaButton = event.target.closest('.delete-review-media');
+        if (mediaButton) {
+          if (await F2D.ask({ title: 'Xóa ảnh/video?', text: 'Ảnh/video này sẽ bị xóa vĩnh viễn khỏi đánh giá.', ok: 'Xóa', danger: true, done: 'Đã xóa ảnh/video.',
+            run: () => api.request(`/reviews/media/${encodeURIComponent(mediaButton.dataset.mediaId)}`, { method: 'DELETE', toast: false }) })) location.reload();
+          return;
+        }
+        if (event.target.closest('.delete-review')) {
+          if (await F2D.ask({ title: 'Xóa đánh giá?', text: 'Đánh giá cùng ảnh/video đính kèm sẽ bị xóa vĩnh viễn.', ok: 'Xóa', danger: true, done: 'Đã xóa đánh giá.',
+            run: () => api.request(`/reviews/${encodeURIComponent(card.dataset.reviewId)}`, { method: 'DELETE', toast: false }) })) location.reload();
+        }
         if (event.target.closest('.edit-review')) {
           if (card.querySelector('.review-inline-form')) return;
           const formArea = document.createElement('div');
@@ -199,7 +207,17 @@
     if (me?.account_type === 'user') saved = bookmarks.some(item => item.activity_id === id);
     const updateFavorite = () => { label.textContent = saved ? 'Đã yêu thích' : 'Lưu vào yêu thích'; favorite.classList.toggle('is-favorite', saved); }; updateFavorite();
     favorite.onclick = async () => { if (!me) return location.href = '../log-in.html'; favorite.disabled = true; try { await api.request(`/bookmarks/${encodeURIComponent(id)}`, { method: saved ? 'DELETE' : 'POST' }); saved = !saved; updateFavorite(); } catch (error) { F2D.toast(error.message, 'error'); } finally { favorite.disabled = false; } };
-    document.getElementById('reportActivity').onclick = async event => { event.preventDefault(); if (!me) return location.href = '../log-in.html'; const reason = prompt('Lý do báo cáo hoạt động:'); if (!reason?.trim()) return; const description = prompt('Mô tả thêm (không bắt buộc):') ?? ''; try { await api.request('/reports', { method: 'POST', body: { activity_id: id, reason: reason.trim(), description: description.trim() || null } }); F2D.toast('Đã gửi báo cáo.', 'error'); } catch (error) { F2D.toast(error.message, 'error'); } };
+    // Báo cáo 2 bước trong popup chung: lý do, rồi mô tả (bắt buộc, backend cũng kiểm tra).
+    document.getElementById('reportActivity').onclick = async event => {
+      event.preventDefault();
+      if (!me) return location.href = '../log-in.html';
+      const reason = await F2D.ask({ title: 'Báo cáo hoạt động', text: 'Bước 1/2: lý do báo cáo.', ok: 'Tiếp tục',
+        input: { label: 'Lý do', placeholder: 'Ví dụ: Sai giờ mở cửa, địa chỉ không đúng...', maxLength: 200, requiredMessage: 'Vui lòng nhập lý do báo cáo.' } });
+      if (!reason) return;
+      await F2D.ask({ title: 'Báo cáo hoạt động', text: `Bước 2/2: mô tả chi tiết. Lý do: ${reason}`, ok: 'Gửi báo cáo', done: 'Đã gửi báo cáo. Cảm ơn bạn!',
+        input: { label: 'Mô tả', placeholder: 'Mô tả cụ thể điều bạn thấy chưa đúng', multiline: true, requiredMessage: 'Vui lòng nhập mô tả báo cáo.' },
+        run: description => api.request('/reports', { method: 'POST', body: { activity_id: id, reason, description }, toast: false }) });
+    };
   }
   run().catch(error => { document.querySelector('.wrap').innerHTML = `<div class="card" style="padding:24px">${api.escapeHTML(error.message)}</div>`; });
 })();

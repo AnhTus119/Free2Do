@@ -27,7 +27,9 @@ function card(review) {
     ${mediaHTML(review.media)}
     ${reply ? `<div class="biz-reply"><b>Doanh nghiệp phản hồi:</b> ${esc(reply.content)}${mediaHTML(reply.media, true)}
       <div class="rv-actions"><button type="button" class="row-btn" data-action="toggle-reply">Sửa phản hồi</button><button type="button" class="row-btn danger" data-action="delete-reply">Xóa phản hồi</button></div></div>` : ''}
-    ${complaint ? `<div class="rv-complaint-note"><b>Khiếu nại đang chờ xử lý:</b> ${esc(complaint.reason)}${complaint.description ? `. ${esc(complaint.description)}` : ''}</div>` : ''}
+    ${complaint ? `<div class="rv-complaint-note"><b>${complaint.status === 'expired'
+      ? 'Khiếu nại đã quá hạn 30 ngày, FREE2DO vẫn sẽ xử lý:'
+      : `Khiếu nại đang chờ xử lý (hạn ${esc(F2D.date(complaint.deadline))}):`}</b> ${esc(complaint.reason)}${complaint.description ? `. ${esc(complaint.description)}` : ''}</div>` : ''}
     ${!reply || !complaint ? `<div class="rv-actions">${!reply ? '<button type="button" class="btn btn-secondary" data-action="toggle-reply">Phản hồi</button>' : ''}${!complaint ? '<button type="button" class="btn btn-ghost" data-action="toggle-complaint">Khiếu nại</button>' : ''}</div>` : ''}
     <div class="reply-box"><textarea placeholder="Nhập phản hồi..." aria-label="Nội dung phản hồi">${reply ? esc(reply.content) : ''}</textarea>${reply ? '' : '<input type="file" accept="image/*,video/*" aria-label="Đính kèm ảnh hoặc video">'}<button type="button" class="btn btn-primary" data-action="submit-reply">${reply ? 'Lưu phản hồi' : 'Gửi phản hồi'}</button></div>
     ${!complaint ? `<div class="complaint-box"><input class="complaint-reason" placeholder="Lý do khiếu nại" aria-label="Lý do khiếu nại"><textarea class="complaint-description" placeholder="Mô tả chi tiết..." aria-label="Mô tả chi tiết"></textarea><button type="button" class="btn btn-primary" data-action="submit-complaint">Gửi khiếu nại</button></div>` : ''}
@@ -109,15 +111,18 @@ async function handleAction(button, element, review) {
       message = 'Đã gửi phản hồi.';
     }
   }
-  if (action === 'delete-reply-media') {
-    if (!confirm('Xóa file này khỏi phản hồi?')) return;
-    await BusinessAPI.request(`/business/review-replies/media/${encodeURIComponent(button.dataset.mediaId)}`, { method: 'DELETE', toast: false });
-    message = 'Đã xóa file khỏi phản hồi.';
-  }
-  if (action === 'delete-reply') {
-    if (!confirm('Xóa phản hồi này?')) return;
-    await BusinessAPI.request(`/business/review-replies/${review.reply.reply_id}`, { method: 'DELETE', toast: false });
-    message = 'Đã xóa phản hồi.';
+  if (action === 'delete-reply-media' || action === 'delete-reply') {
+    const media = action === 'delete-reply-media';
+    const deleted = await F2D.ask({
+      title: media ? 'Xóa file khỏi phản hồi?' : 'Xóa phản hồi?',
+      text: media ? 'File sẽ bị xóa vĩnh viễn khỏi phản hồi.' : 'Phản hồi cùng ảnh/video đính kèm sẽ bị xóa vĩnh viễn.',
+      ok: 'Xóa', danger: true, done: media ? 'Đã xóa file khỏi phản hồi.' : 'Đã xóa phản hồi.',
+      run: () => BusinessAPI.request(media
+        ? `/business/review-replies/media/${encodeURIComponent(button.dataset.mediaId)}`
+        : `/business/review-replies/${review.reply.reply_id}`, { method: 'DELETE', toast: false }),
+    });
+    if (deleted) await reload();
+    return;
   }
   if (action === 'submit-complaint') {
     const reason = complaintBox.querySelector('.complaint-reason').value.trim();

@@ -13,28 +13,32 @@
   }
   window.selectTab = selectTab;
   window.toggleEdit = () => { document.getElementById('edit-mode').style.display = document.getElementById('edit-mode').style.display === 'none' ? 'block' : 'none'; };
-  window.saveProfile = () => F2D.busy(document.getElementById('profileSaveButton'), async () => {
-    try {
-      const name = document.getElementById('profileName').value.trim().replace(/\s+/g, ' ');
-      const phone = document.getElementById('profilePhone').value.trim();
-      if (!name) throw new Error('Họ và tên không được để trống.');
-      if (name.length < 2 || name.length > 50 || !/^\p{L}+(?: \p{L}+)*$/u.test(name)) {
-        throw new Error('Họ và tên chỉ gồm chữ cái tiếng Việt hoặc tiếng Anh và khoảng trắng (2-50 ký tự), không chứa số hay ký tự đặc biệt.');
-      }
-      const [profile] = await Promise.all([
+  // Kiểm tra tại chỗ trước, rồi hỏi xác nhận; lỗi máy chủ hiện trong popup, form giữ nguyên nội dung đã nhập.
+  window.saveProfile = async () => {
+    const name = document.getElementById('profileName').value.trim().replace(/\s+/g, ' ');
+    const phone = document.getElementById('profilePhone').value.trim();
+    if (!name) return F2D.toast('Họ và tên không được để trống.', 'error');
+    if (name.length < 2 || name.length > 50 || !/^\p{L}+(?: \p{L}+)*$/u.test(name)) {
+      return F2D.toast('Họ và tên chỉ gồm chữ cái tiếng Việt hoặc tiếng Anh và khoảng trắng (2-50 ký tự), không chứa số hay ký tự đặc biệt.', 'error');
+    }
+    const saved = await F2D.ask({
+      title: 'Lưu thay đổi hồ sơ?', text: 'Họ tên, số điện thoại và sở thích mới sẽ được cập nhật.', ok: 'Lưu thay đổi',
+      done: 'Đã cập nhật hồ sơ và sở thích.',
+      run: () => Promise.all([
         api.request('/users/me', { method: 'PATCH', body: { name, phone: phone || null }, toast: false }),
         interests.save(),
-      ]);
-      currentUser = profile;
-      if (title) title.textContent = profile.name;
-      if (subtitle) subtitle.textContent = [profile.email, profile.phone].filter(Boolean).join(' · ');
-      document.querySelectorAll('.nav-name').forEach(element => { element.textContent = profile.name; });
-      setAvatar(profile.avatar_url, profile.name);
-      F2D.toast('Đã cập nhật hồ sơ và sở thích.');
-      document.getElementById('edit-mode').style.display = 'none';
-      renderCategories();
-    } catch (error) { F2D.toast(error.message, 'error'); }
-  });
+      ]),
+    });
+    if (!saved) return;
+    const [profile] = saved;
+    currentUser = profile;
+    if (title) title.textContent = profile.name;
+    if (subtitle) subtitle.textContent = [profile.email, profile.phone].filter(Boolean).join(' · ');
+    document.querySelectorAll('.nav-name').forEach(element => { element.textContent = profile.name; });
+    setAvatar(profile.avatar_url, profile.name);
+    document.getElementById('edit-mode').style.display = 'none';
+    renderCategories();
+  };
   function renderCategories() {
     const chips = interests.chosenLabels().map(label => `<span class="chip active">${api.escapeHTML(label)}</span>`);
     document.querySelector('#view-mode .chip-row').innerHTML = chips.join('') || '<span>Chưa chọn sở thích.</span>';
@@ -84,12 +88,78 @@
     document.getElementById('avatarPresets').innerHTML = presets.map(item => `<button type="button" class="chip" data-preset-id="${api.escapeHTML(item.preset_id)}"><img src="${api.escapeHTML(item.media_url)}" alt="${api.escapeHTML(item.name)}" style="width:36px;height:36px;border-radius:50%;object-fit:cover"> ${api.escapeHTML(item.name)}</button>`).join('') || '<span>Chưa có ảnh mẫu.</span>';
     renderCategories(); await renderBookmarks();
     renderMyReviews().catch(error => { reviewBox.innerHTML = `<p class="f2d-empty">${api.escapeHTML(error.message)}</p>`; });
-    const historyItems = await api.request('/users/me/search-history');
-    const history = document.querySelector('#pane-lichsu');
-    history.innerHTML = historyItems.length
-      ? `<div class="search-history-list">${historyItems.map(renderHistoryItem).join('')}</div>`
-      : '<div class="search-history-empty">Chưa có lịch sử tìm kiếm.</div>';
+    historyItems = await api.request('/users/me/search-history');
+    renderHistory();
   }).catch(error => { document.getElementById('favoriteActivities').textContent = error.message; });
+  // ---------- Lịch sử tìm kiếm: xóa 1 mục (nút ×), xóa các mục đã chọn, xóa tất cả ----------
+  let historyItems = [];
+  const selectedHistory = new Set();
+  const historyPane = document.querySelector('#pane-lichsu');
+  function renderHistory() {
+    if (!historyItems.length) {
+      historyPane.innerHTML = '<div class="search-history-empty">Chưa có lịch sử tìm kiếm.</div>';
+      return;
+    }
+    historyPane.innerHTML = `<div class="search-history-toolbar">
+        <label class="search-history-check"><input type="checkbox" data-history-all aria-label="Chọn tất cả lịch sử tìm kiếm"> Chọn tất cả</label>
+        <button type="button" class="btn btn-secondary" data-history-delete="selected"></button>
+        <button type="button" class="btn btn-secondary search-history-danger" data-history-delete="all">Xóa tất cả (${historyItems.length})</button>
+      </div>
+      <div class="search-history-list">${historyItems.map(renderHistoryItem).join('')}</div>`;
+    updateHistoryToolbar();
+  }
+  function updateHistoryToolbar() {
+    const button = historyPane.querySelector('[data-history-delete="selected"]');
+    const all = historyPane.querySelector('[data-history-all]');
+    if (!button) return;
+    button.textContent = `Xóa đã chọn (${selectedHistory.size})`;
+    button.disabled = !selectedHistory.size;
+    all.checked = selectedHistory.size === historyItems.length;
+    all.indeterminate = selectedHistory.size > 0 && !all.checked;
+  }
+  function forgetHistory(ids) {
+    const removed = new Set(ids);
+    historyItems = historyItems.filter(item => !removed.has(item.search_id));
+    ids.forEach(id => selectedHistory.delete(id));
+    renderHistory();
+  }
+  historyPane.addEventListener('change', event => {
+    if (event.target.matches('[data-history-all]')) {
+      selectedHistory.clear();
+      if (event.target.checked) historyItems.forEach(item => selectedHistory.add(item.search_id));
+      historyPane.querySelectorAll('[data-history-id]').forEach(box => { box.checked = event.target.checked; });
+    } else if (event.target.matches('[data-history-id]')) {
+      selectedHistory[event.target.checked ? 'add' : 'delete'](event.target.dataset.historyId);
+    }
+    updateHistoryToolbar();
+  });
+  historyPane.addEventListener('click', async event => {
+    const remove = event.target.closest('[data-history-remove]');
+    if (remove) {
+      // Xóa 1 mục: không cần hỏi lại; nút bị khóa tới khi máy chủ trả kết quả.
+      await F2D.busy(remove, async () => {
+        try {
+          await api.request('/users/me/search-history', { method: 'DELETE', body: { search_ids: [remove.dataset.historyRemove] }, toast: false });
+          forgetHistory([remove.dataset.historyRemove]);
+          F2D.toast('Đã xóa mục lịch sử tìm kiếm.');
+        } catch (error) { F2D.toast(error.message, 'error'); }
+      });
+      return;
+    }
+    const bulk = event.target.closest('[data-history-delete]');
+    if (!bulk) return;
+    // Gửi đúng các id đang hiển thị/đã chọn nên số trong câu hỏi luôn khớp với số mục bị xóa.
+    const ids = bulk.dataset.historyDelete === 'all'
+      ? historyItems.map(item => item.search_id)
+      : historyItems.filter(item => selectedHistory.has(item.search_id)).map(item => item.search_id);
+    if (!ids.length) return;
+    const result = await F2D.ask({
+      title: 'Xóa lịch sử tìm kiếm?', text: `Bạn có chắc chắn muốn xóa ${ids.length} mục lịch sử tìm kiếm? Thao tác này không thể hoàn tác.`,
+      ok: `Xóa ${ids.length} mục`, danger: true, done: output => `Đã xóa ${output.deleted} mục lịch sử tìm kiếm.`,
+      run: () => api.request('/users/me/search-history', { method: 'DELETE', body: { search_ids: ids }, toast: false }),
+    });
+    if (result) forgetHistory(ids);
+  });
   // Mỗi lần tìm là 1 box: tên vị trí (đậm), ngày tìm, bán kính; "Tìm lại" chạy lại đúng vị trí + bán kính.
   function renderHistoryItem(item) {
     const label = item.location_label || 'Vị trí đã chọn';
@@ -98,7 +168,9 @@
     if (item.keyword) query.set('q', item.keyword);
     if (item.budget != null) query.set('budget', String(item.budget));
     if (item.free_time != null) { query.set('hours', String(Math.floor(item.free_time / 60))); query.set('minutes', String(item.free_time % 60)); }
+    const id = api.escapeHTML(item.search_id);
     return `<article class="search-history-card">
+      <input type="checkbox" class="search-history-select" data-history-id="${id}" ${selectedHistory.has(item.search_id) ? 'checked' : ''} aria-label="Chọn lịch sử tìm kiếm ${api.escapeHTML(label)}">
       <div class="search-history-info">
         <h3 class="search-history-place">${api.escapeHTML(label)}</h3>
         <p>Ngày tìm kiếm: ${api.escapeHTML(F2D.dateTime(item.created_at))}</p>
@@ -106,6 +178,7 @@
         ${item.keyword ? `<p>Từ khóa: ${api.escapeHTML(item.keyword)}</p>` : ''}
       </div>
       <a class="search-history-again" href="search.html?${query}">Tìm lại</a>
+      <button type="button" class="search-history-remove" data-history-remove="${id}" aria-label="Xóa mục lịch sử tìm kiếm này" title="Xóa">×</button>
     </article>`;
   }
   // Lịch sử đánh giá cá nhân: xem, sửa (sao + nội dung) và xóa ngay tại tab.
@@ -137,9 +210,9 @@
     if (!card) return;
     const review = myReviews.find(item => item.review_id === card.dataset.reviewId);
     if (event.target.closest('[data-review-delete]')) {
-      if (!await F2D.ask({ title: 'Xóa đánh giá?', text: `Đánh giá cho "${review.activity_name}" sẽ bị xóa vĩnh viễn.`, ok: 'Xóa', danger: true })) return;
-      try { await api.request(`/reviews/${encodeURIComponent(review.review_id)}`, { method: 'DELETE' }); await renderMyReviews(); F2D.toast('Đã xóa đánh giá.'); }
-      catch (error) { F2D.toast(error.message, 'error'); }
+      if (!await F2D.ask({ title: 'Xóa đánh giá?', text: `Đánh giá cho "${review.activity_name}" sẽ bị xóa vĩnh viễn.`, ok: 'Xóa', danger: true, done: 'Đã xóa đánh giá.',
+        run: () => api.request(`/reviews/${encodeURIComponent(review.review_id)}`, { method: 'DELETE', toast: false }) })) return;
+      await renderMyReviews().catch(error => F2D.toast(error.message, 'error'));
     } else if (event.target.closest('[data-review-edit]')) {
       const actions = card.querySelector('.my-review-actions');
       actions.outerHTML = `<form class="my-review-edit"><select name="rating" aria-label="Số sao">${[5, 4, 3, 2, 1].map(value => `<option value="${value}" ${value === review.rating ? 'selected' : ''}>${stars(value)} (${value})</option>`).join('')}</select><textarea name="content" rows="3" maxlength="2000" placeholder="Nội dung đánh giá">${api.escapeHTML(review.content || '')}</textarea><div class="my-review-actions"><button type="submit" class="btn btn-primary">Lưu</button><button type="button" class="btn btn-ghost" data-review-cancel>Hủy</button></div></form>`;

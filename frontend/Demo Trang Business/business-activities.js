@@ -126,7 +126,10 @@ async function saveActivity() {
   const description = document.getElementById('f-description').value.trim();
   if (!description) { document.getElementById('f-description').focus(); return BusinessAPI.notify('Mô tả hoạt động là bắt buộc.', 'error'); }
   // Ảnh bìa bắt buộc khi tạo; hoạt động cũ chưa có ảnh vẫn sửa được.
-  if (!editingId && !document.getElementById('f-cover').files[0]) return BusinessAPI.notify('Hãy chọn ảnh bìa cho hoạt động.', 'error');
+  const cover = document.getElementById('f-cover').files[0];
+  if (!editingId && !cover) return BusinessAPI.notify('Hãy chọn ảnh bìa cho hoạt động.', 'error');
+  const coverProblem = cover && F2D.imageProblem(cover);
+  if (coverProblem) return BusinessAPI.notify(coverProblem, 'error');
   const payload = {
     name,
     description,
@@ -141,29 +144,45 @@ async function saveActivity() {
     google_maps_url: submittedLink,
     category_ids: selectedCategoryIds()
   };
-  try {
-    const activity = await BusinessAPI.request(editingId ? `/activities/${editingId}` : '/activities', {
-      method: editingId ? 'PATCH' : 'POST', body: payload
-    });
-    const upload = async (file, kind) => {
-      const form = new FormData();
-      form.append('file', file);
-      await BusinessAPI.request(`/activities/${activity.activity_id}/media/upload?media_kind=${kind}`, { method: 'POST', body: form });
-    };
-    const cover = document.getElementById('f-cover').files[0];
-    if (cover) await upload(cover, 'cover');
-    for (const file of document.getElementById('f-media').files) {
-      await upload(file, 'gallery');
-    }
-    await reloadActivities();
-    closeForm();
-    BusinessAPI.notify(editingId ? 'Đã cập nhật và gửi duyệt lại.' : 'Đã tạo hoạt động và gửi chờ duyệt.');
-  } catch (error) {
-    if (ADDRESS_ERROR_PATTERN.test(error.message)) {
-      setAddressError(error.message);
-      document.getElementById('f-address').focus();
-    } else BusinessAPI.notify(error.message, 'error');
-  }
+  const upload = (activityId, file, kind) => {
+    const form = new FormData();
+    form.append('file', file);
+    return BusinessAPI.request(`/activities/${activityId}/media/upload?media_kind=${kind}`, { method: 'POST', body: form, toast: false });
+  };
+  const resubmits = !editingId || ['active', 'expired'].includes(currentActivity?.status);
+  const saved = await F2D.ask({
+    title: editingId ? 'Lưu thay đổi hoạt động?' : 'Gửi hoạt động chờ duyệt?',
+    text: resubmits ? 'Hoạt động sẽ ở trạng thái "Chờ duyệt" cho tới khi Operator duyệt.' : 'Thông tin hoạt động sẽ được cập nhật.',
+    ok: editingId ? 'Lưu thay đổi' : 'Gửi duyệt',
+    done: result => (editingId ? 'Đã cập nhật hoạt động.' : 'Đã tạo hoạt động và gửi chờ duyệt.')
+      + (result.galleryErrors ? ` ${result.galleryErrors} ảnh/video thư viện chưa tải được, hãy thử lại trong mục Sửa.` : ''),
+    run: async () => {
+      try {
+        let activity;
+        if (editingId) {
+          activity = await BusinessAPI.request(`/activities/${editingId}`, { method: 'PATCH', body: payload, toast: false });
+          if (cover) await upload(activity.activity_id, cover, 'cover');
+        } else {
+          // Ảnh bìa bắt buộc: gửi cùng lúc với thông tin để backend không bao giờ lưu hoạt động thiếu ảnh.
+          const form = new FormData();
+          form.append('payload', JSON.stringify(payload));
+          form.append('cover', cover);
+          activity = await BusinessAPI.request('/activities/with-cover', { method: 'POST', body: form, toast: false });
+        }
+        let galleryErrors = 0;
+        for (const file of document.getElementById('f-media').files) {
+          try { await upload(activity.activity_id, file, 'gallery'); } catch { galleryErrors += 1; }
+        }
+        return { activity, galleryErrors };
+      } catch (error) {
+        if (ADDRESS_ERROR_PATTERN.test(error.message)) setAddressError(error.message);
+        throw error;
+      }
+    },
+  });
+  if (!saved) return;
+  await reloadActivities();
+  closeForm();
 }
 window.submitActivity = submitActivity;
 
@@ -262,17 +281,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     const id = button.closest('tr').dataset.id;
     if (button.dataset.action === 'detail') openDetail(id);
     if (button.dataset.action === 'edit') openForm('edit', id);
-    if (button.dataset.action === 'cancel' && confirm('Hủy hoạt động này?')) {
-      try { await BusinessAPI.request(`/activities/${id}`, { method: 'DELETE' }); await reloadActivities(); BusinessAPI.notify('Đã hủy hoạt động.'); }
-      catch (error) { BusinessAPI.notify(error.message, 'error'); }
-    }
+    if (button.dataset.action === 'cancel' && await F2D.ask({
+      title: 'Hủy hoạt động?', text: 'Hoạt động sẽ ngừng hiển thị với khách hàng. Hoạt động đã hủy được xóa vĩnh viễn sau 60 ngày.',
+      ok: 'Hủy hoạt động', cancel: 'Không', danger: true, done: 'Đã hủy hoạt động.',
+      run: () => BusinessAPI.request(`/activities/${id}`, { method: 'DELETE', toast: false }),
+    })) await reloadActivities().catch(error => BusinessAPI.notify(error.message, 'error'));
   });
   document.getElementById('detail-edit').addEventListener('click', event => { const id = event.currentTarget.dataset.id; closeDetail(); openForm('edit', id); });
   document.getElementById('detail-media').addEventListener('click', async event => {
     const button = event.target.closest('[data-delete-activity-media]');
-    if (!button || !confirm('Xóa media này?')) return;
-    try { await BusinessAPI.request(`/activities/media/${button.dataset.deleteActivityMedia}`, { method: 'DELETE' }); await reloadActivities(); closeDetail(); BusinessAPI.notify('Đã xóa media.'); }
-    catch (error) { BusinessAPI.notify(error.message, 'error'); }
+    if (!button || !await F2D.ask({
+      title: 'Xóa ảnh/video?', text: 'Ảnh/video này sẽ bị xóa vĩnh viễn khỏi hoạt động.', ok: 'Xóa', danger: true, done: 'Đã xóa ảnh/video.',
+      run: () => BusinessAPI.request(`/activities/media/${button.dataset.deleteActivityMedia}`, { method: 'DELETE', toast: false }),
+    })) return;
+    closeDetail();
+    await reloadActivities().catch(error => BusinessAPI.notify(error.message, 'error'));
   });
 });
 window.addEventListener('free2do:business-data-refresh', () => {

@@ -85,36 +85,34 @@ async function saveProfile(event) {
   const address = document.getElementById('edit-address').value.trim();
   if (!name) return BusinessAPI.notify('Tên doanh nghiệp không được để trống.', 'error');
   if (!address) return BusinessAPI.notify('Địa chỉ không được để trống.', 'error');
-  await F2D.busy(document.getElementById('save-profile'), async () => {
-    try {
-      profileState = await BusinessAPI.request('/business/me', {
-        method: 'PATCH', toast: false,
-        body: {
-          business_name: name,
-          phone: document.getElementById('edit-phone').value.trim() || null,
-          business_address: address,
-          description: document.getElementById('edit-description').value.trim() || null,
-        },
-      });
-      renderProfile();
-      dialog().close();
-      BusinessAPI.notify('Đã chỉnh sửa hồ sơ thành công.');
-    } catch (error) { BusinessAPI.notify(error.message, 'error'); }
+  const body = {
+    business_name: name,
+    phone: document.getElementById('edit-phone').value.trim() || null,
+    business_address: address,
+    description: document.getElementById('edit-description').value.trim() || null,
+  };
+  const saved = await F2D.ask({
+    title: 'Lưu hồ sơ doanh nghiệp?', text: 'Tên, số điện thoại, địa chỉ và mô tả mới sẽ hiển thị với khách hàng.', ok: 'Lưu thay đổi',
+    done: 'Đã chỉnh sửa hồ sơ thành công.',
+    run: () => BusinessAPI.request('/business/me', { method: 'PATCH', toast: false, body }),
   });
+  if (!saved) return;
+  profileState = saved;
+  renderProfile();
+  dialog().close();
 }
 
 async function deleteMedia(button) {
   const kind = button.dataset.kind;
-  if (!confirm(kind === 'logo' ? 'Xóa logo hiện tại?' : `Xóa ${KINDS[kind]} này?`)) return;
-  await F2D.busy(button, async () => {
-    try {
-      await BusinessAPI.request(`/business/media/${encodeURIComponent(button.dataset.deleteMedia)}`, { method: 'DELETE', toast: false });
-      mediaState = mediaState.filter(item => item.media_id !== button.dataset.deleteMedia);
-      if (kind === 'logo') await refreshProfile();
-      renderMedia();
-      BusinessAPI.notify('Đã xóa ảnh.');
-    } catch (error) { BusinessAPI.notify(error.message, 'error'); }
+  const deleted = await F2D.ask({
+    title: kind === 'logo' ? 'Xóa logo hiện tại?' : `Xóa ${KINDS[kind]} này?`, text: 'Ảnh sẽ bị xóa vĩnh viễn.',
+    ok: 'Xóa', danger: true, done: 'Đã xóa ảnh.',
+    run: () => BusinessAPI.request(`/business/media/${encodeURIComponent(button.dataset.deleteMedia)}`, { method: 'DELETE', toast: false }),
   });
+  if (!deleted) return;
+  mediaState = mediaState.filter(item => item.media_id !== button.dataset.deleteMedia);
+  if (kind === 'logo') await refreshProfile().catch(error => BusinessAPI.notify(error.message, 'error'));
+  renderMedia();
 }
 
 document.addEventListener('DOMContentLoaded', async () => {

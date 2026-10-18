@@ -15,6 +15,10 @@
  *  - F2D.ask({ title, text, ok, danger, input }) : popup xác nhận cùng tông giao diện, thay confirm()/prompt().
  *                                      Trả về true (hoặc nội dung ô nhập nếu có input) khi đồng ý, null khi hủy.
  *                                      input: { label, placeholder, value, required, multiline, maxLength }.
+ *    Thêm run: async (giá trị) => ... để popup tự thực hiện thao tác sau khi bấm đồng ý: giữ popup mở,
+ *    khóa nút + vòng xoay, thành công thì hiện dấu ✓ xanh kèm `done` (chuỗi hoặc hàm(kết quả)) rồi tự đóng
+ *    và trả về kết quả của run; lỗi thì hiện lỗi ngay trong popup, giữ nguyên nội dung để thử lại hoặc hủy.
+ *  - Lăn chuột trên ô số đang focus không đổi giá trị (trình duyệt tự tăng/giảm theo step: 100000 -> 99984).
  */
 (function () {
   'use strict';
@@ -123,7 +127,7 @@
   }
 
   // ---------- Popup xác nhận / nhập liệu ----------
-  function ask({ title, text = '', ok = 'Xác nhận', cancel = 'Hủy', danger = false, input = null } = {}) {
+  function ask({ title, text = '', ok = 'Xác nhận', cancel = 'Hủy', danger = false, input = null, run = null, done = 'Thao tác thành công.' } = {}) {
     return new Promise(resolve => {
       const dialog = document.createElement('dialog');
       dialog.className = 'f2d-modal f2d-ask';
@@ -133,7 +137,7 @@
           ? `<textarea rows="4" maxlength="${input.maxLength || 1000}" placeholder="${escapeHTML(input.placeholder || '')}">${escapeHTML(input.value || '')}</textarea>`
           : `<input type="text" maxlength="${input.maxLength || 200}" placeholder="${escapeHTML(input.placeholder || '')}" value="${escapeHTML(input.value || '')}">`}</label>
           <p class="f2d-ask-error" role="alert"></p>`
-        : '';
+        : run ? '<p class="f2d-ask-error" role="alert"></p>' : '';
       dialog.innerHTML = `<form method="dialog" class="f2d-modal-card">
           <h2 class="f2d-modal-title" id="f2dAskTitle">${escapeHTML(title)}</h2>
           ${text ? `<p class="f2d-modal-sub">${escapeHTML(text)}</p>` : ''}
@@ -145,28 +149,64 @@
         </form>`;
       document.body.append(dialog);
       const control = dialog.querySelector('input, textarea');
+      const errorBox = dialog.querySelector('.f2d-ask-error');
+      const buttons = [...dialog.querySelectorAll('.f2d-ask-btn')];
       let result = null;
-      dialog.querySelector('form').addEventListener('submit', event => {
+      let running = false;
+      dialog.querySelector('form').addEventListener('submit', async event => {
+        let value = true;
         if (control) {
-          const value = control.value.trim();
+          value = control.value.trim();
           if (input.required !== false && value.length < (input.minLength || 1)) {
             event.preventDefault();
-            dialog.querySelector('.f2d-ask-error').textContent = input.requiredMessage || 'Vui lòng nhập nội dung.';
+            errorBox.textContent = input.requiredMessage || 'Vui lòng nhập nội dung.';
             control.focus();
             return;
           }
-          result = value;
-        } else {
-          result = true;
+        }
+        if (!run) { result = value; return; }
+        event.preventDefault();
+        if (running) return;
+        running = true;
+        errorBox.textContent = '';
+        buttons.forEach(button => { button.disabled = true; });
+        if (control) control.readOnly = true;
+        event.submitter?.classList.add('is-busy');
+        try {
+          const output = await run(value);
+          result = output === undefined ? value : output;
+          showDone(dialog, typeof done === 'function' ? done(output) : done);
+          setTimeout(() => dialog.close(), 1300);
+        } catch (error) {
+          running = false;
+          event.submitter?.classList.remove('is-busy');
+          buttons.forEach(button => { button.disabled = false; });
+          if (control) control.readOnly = false;
+          errorBox.textContent = error?.message || 'Thao tác thất bại. Vui lòng thử lại.';
         }
       });
+      // Đang xử lý thì không cho đóng (Esc, bấm nền, nút Hủy đã khóa): kết quả phải hiện ra trước.
+      dialog.addEventListener('cancel', event => { if (running) event.preventDefault(); });
       dialog.querySelector('[data-cancel]').addEventListener('click', () => dialog.close());
-      dialog.addEventListener('click', event => { if (event.target === dialog) dialog.close(); });
+      dialog.addEventListener('click', event => { if (event.target === dialog && !running) dialog.close(); });
       dialog.addEventListener('close', () => { dialog.remove(); resolve(result); });
       dialog.showModal();
       (control || dialog.querySelector('[type=submit]')).focus();
     });
   }
+
+  function showDone(dialog, message) {
+    dialog.querySelector('.f2d-modal-card').innerHTML = `<div class="f2d-done" role="status">
+      <span class="f2d-done-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.2 4.2L19 7.5"/></svg></span>
+      <p>${escapeHTML(message)}</p></div>`;
+  }
+
+  // Chrome/Edge tăng/giảm <input type="number"> đang focus khi lăn chuột (giá 100000 thành 99984).
+  // Bỏ focus trước khi trình duyệt xử lý cú lăn: giá trị giữ nguyên, trang cuộn như bình thường.
+  document.addEventListener('wheel', event => {
+    const target = event.target;
+    if (target instanceof HTMLInputElement && target.type === 'number' && target === document.activeElement) target.blur();
+  }, { passive: true, capture: true });
 
   // ---------- Lightbox ----------
   let box = null;
@@ -333,6 +373,12 @@
   // options.max: số ảnh tối đa; options.maxMB; options.accept;
   // options.onFiles(files): nếu có thì tải lên ngay (không giữ trong picker), vd hồ sơ doanh nghiệp.
   const IMAGE_ACCEPT = 'image/jpeg,image/png,image/webp';
+  // Kiểm tra nhanh trước khi gửi (backend vẫn kiểm tra lại nội dung file). Trả về câu lỗi hoặc ''.
+  function imageProblem(file, maxMB = 5, accept = IMAGE_ACCEPT) {
+    if (!accept.split(',').includes(file.type)) return `"${file.name}" không phải ảnh JPG, PNG hoặc WEBP.`;
+    if (file.size > maxMB * 1024 * 1024) return `"${file.name}" lớn hơn ${maxMB}MB.`;
+    return '';
+  }
   function imagePicker(container, options = {}) {
     const max = options.max || 5;
     const maxMB = options.maxMB || 5;
@@ -355,11 +401,10 @@
       zone.classList.toggle('is-full', !options.onFiles && picked.length >= max);
     }
     function add(fileList) {
-      const allowed = accept.split(',');
       const files = [...fileList].filter(file => {
-        if (!allowed.includes(file.type)) { toast(`"${file.name}" không phải ảnh JPG, PNG hoặc WEBP.`, 'error'); return false; }
-        if (file.size > maxMB * 1024 * 1024) { toast(`"${file.name}" lớn hơn ${maxMB}MB.`, 'error'); return false; }
-        return true;
+        const problem = imageProblem(file, maxMB, accept);
+        if (problem) toast(problem, 'error');
+        return !problem;
       });
       if (options.onFiles) { if (files.length) options.onFiles(files.slice(0, max)); return; }
       const room = max - picked.length;
@@ -527,5 +572,5 @@
   const fillYear = () => document.querySelectorAll('[data-current-year]').forEach(el => { el.textContent = new Date().getFullYear(); });
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fillYear); else fillYear();
 
-  window.F2D = Object.freeze({ toast, busy, mutate, ask, lightbox, closeLightbox, date, dateTime, toDate, escapeHTML, interestsEditor, imagePicker, accountId, confetti });
+  window.F2D = Object.freeze({ toast, busy, mutate, ask, lightbox, closeLightbox, date, dateTime, toDate, escapeHTML, interestsEditor, imagePicker, imageProblem, accountId, confetti });
 })();

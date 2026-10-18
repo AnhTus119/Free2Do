@@ -105,6 +105,11 @@
       </div>
 
       <div class="section">
+        <div class="section-head op-case-panel-head"><h3>Đánh giá của khách hàng</h3><span class="op-count" id="activityReviewCount">0</span></div>
+        <div class="card"><div id="activityReviews" class="op-case-list"><p class="op-case-empty">Đang tải...</p></div></div>
+      </div>
+
+      <div class="section">
         <div class="section-head"><h3>Lịch sử thao tác Admin</h3></div>
         <div class="card" id="actionLogs">
           <div class="alert-row"><div class="alert-text">Đang tải...</div></div>
@@ -114,6 +119,15 @@
     </div>
   </div>
 </div>
+<dialog class="f2d-modal op-case-dialog" id="reviewDialog" aria-labelledby="reviewDialogTitle">
+  <div class="f2d-modal-card">
+    <button type="button" class="f2d-modal-close" id="reviewDialogClose" aria-label="Đóng">&times;</button>
+    <h2 class="f2d-modal-title" id="reviewDialogTitle">Chi tiết đánh giá</h2>
+    <p class="f2d-modal-sub" id="reviewDialogSub"></p>
+    <div class="f2d-modal-body" id="reviewDialogBody"></div>
+  </div>
+</dialog>
+
 <script src="js/config.js"></script><script src="js/main.js"></script>
 <script src="js/admin-auth.js"></script>
 <script src="js/admin-shell.js"></script>

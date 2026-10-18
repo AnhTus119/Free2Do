@@ -154,27 +154,28 @@
   }
 
   // Từ chối (kèm lý do, backend gửi email cho doanh nghiệp) và xóa hoạt động đang hiển thị.
-  async function rejectActivity(id, reason) {
+  async function rejectActivity(id, reason, { quiet = false } = {}) {
     await auth.authFetch(`/operator/activities/${encodeURIComponent(id)}/reject`, {
-      method: 'PATCH', body: JSON.stringify({ reason }), toast: 'Đã từ chối hoạt động và gửi email cho doanh nghiệp.',
+      method: 'PATCH', body: JSON.stringify({ reason }), toast: quiet ? false : 'Đã từ chối hoạt động và gửi email cho doanh nghiệp.',
     });
     const item = state.activities.find(entry => entry.id === id);
     if (item) { item.status = 'rejected'; item.rejectionReason = reason; }
     await refreshSummaries();
   }
-  async function deleteActivity(id) {
-    await auth.authFetch(`/operator/activities/${encodeURIComponent(id)}`, { method: 'DELETE', toast: 'Đã xóa hoạt động.' });
+  async function deleteActivity(id, { quiet = false } = {}) {
+    await auth.authFetch(`/operator/activities/${encodeURIComponent(id)}`, { method: 'DELETE', toast: quiet ? false : 'Đã xóa hoạt động.' });
     const item = state.activities.find(entry => entry.id === id);
     if (item) item.status = 'cancelled';
     await refreshSummaries();
   }
 
-  async function setStatus(kind, id, status) {
+  // quiet: không hiện toast (popup xác nhận F2D.ask tự hiện kết quả).
+  async function setStatus(kind, id, status, { quiet = false } = {}) {
     if (kind === 'activity') {
       const next = status === 'rejected' ? 'hidden' : status;
       await auth.authFetch(`/operator/activities/${encodeURIComponent(id)}/status`, {
         method: 'PATCH', body: JSON.stringify({ status: next }),
-        toast: { active: 'Đã duyệt và hiển thị hoạt động.', hidden: 'Đã ẩn hoạt động.' }[next] || 'Đã cập nhật trạng thái hoạt động.',
+        toast: quiet ? false : { active: 'Đã duyệt và hiển thị hoạt động.', hidden: 'Đã ẩn hoạt động.' }[next] || 'Đã cập nhật trạng thái hoạt động.',
       });
       const item = state.activities.find(entry => entry.id === id);
       if (item) item.status = next;
@@ -187,7 +188,7 @@
     if (kind === 'business' && item.requestId) {
       const action = status === 'active' ? 'approve' : 'reject';
       await auth.authFetch(`/operator/business-requests/${encodeURIComponent(item.requestId)}/${action}`, {
-        method: 'PATCH', toast: action === 'approve' ? 'Đã duyệt yêu cầu doanh nghiệp.' : 'Đã từ chối yêu cầu doanh nghiệp.',
+        method: 'PATCH', toast: quiet ? false : action === 'approve' ? 'Đã duyệt yêu cầu doanh nghiệp.' : 'Đã từ chối yêu cầu doanh nghiệp.',
       });
       state.businesses = state.businesses.filter(entry => entry.id !== id);
       await refreshSummaries();
@@ -196,10 +197,24 @@
     const backendStatus = status === 'locked' ? 'blocked' : status;
     await auth.authFetch(`/operator/users/${encodeURIComponent(id)}/status`, {
       method: 'PATCH', body: JSON.stringify({ status: backendStatus }),
-      toast: backendStatus === 'active' ? 'Đã mở khóa tài khoản.' : 'Đã khóa tài khoản.',
+      toast: quiet ? false : backendStatus === 'active' ? 'Đã mở khóa tài khoản.' : 'Đã khóa tài khoản.',
     });
     item.status = mapStatus(backendStatus);
     await refreshSummaries();
+  }
+
+  // Duyệt/từ chối đơn doanh nghiệp, khóa/mở khóa tài khoản: hỏi xác nhận, giữ popup tới khi có kết quả.
+  // Trả về true khi đã đổi trạng thái thành công, null khi người dùng hủy.
+  function confirmStatus(kind, id, status, name) {
+    const isRequest = kind === 'business' && state.businesses.find(entry => entry.id === id)?.requestId;
+    const [title, text, ok, done, danger] = isRequest
+      ? (status === 'active'
+        ? ['Duyệt doanh nghiệp?', `"${name}" trở thành tài khoản doanh nghiệp và nhận email thông báo.`, 'Duyệt', 'Đã duyệt yêu cầu doanh nghiệp.', false]
+        : ['Từ chối doanh nghiệp?', `Yêu cầu của "${name}" bị từ chối; người gửi nhận email thông báo và vẫn là khách hàng.`, 'Từ chối', 'Đã từ chối yêu cầu doanh nghiệp.', true])
+      : (status === 'active'
+        ? ['Mở khóa tài khoản?', `"${name}" sẽ đăng nhập và sử dụng FREE2DO trở lại.`, 'Mở khóa', 'Đã mở khóa tài khoản.', false]
+        : ['Khóa tài khoản?', `"${name}" sẽ không đăng nhập được cho tới khi được mở khóa.`, 'Khóa tài khoản', 'Đã khóa tài khoản.', true]);
+    return F2D.ask({ title, text, ok, done, danger, run: () => setStatus(kind, id, status, { quiet: true }) });
   }
 
   // Nhật ký thao tác operator cho trang hồ sơ đang xem (customer | business | activity).
@@ -226,7 +241,7 @@
     get customerSummary() { return state.customerSummary; },
     get businessSummary() { return state.businessSummary; },
     get activitySummary() { return state.activitySummary; },
-    statusLabels, setStatus, renderActionLogs, rejectActivity, deleteActivity, refreshActivity, parseViDate, normalize, escapeHTML: auth.escapeHTML, refresh,
+    statusLabels, setStatus, confirmStatus, renderActionLogs, rejectActivity, deleteActivity, refreshActivity, parseViDate, normalize, escapeHTML: auth.escapeHTML, refresh,
     businessName(activity) {
       return state.businesses.find(item => item.id === activity.businessId)?.name
         || activity.businessName || 'Chưa xác định';

@@ -46,7 +46,7 @@
     }
     tableBody.innerHTML = businesses.map(business => {
       let action = `<button class="row-btn danger" data-action="lock">Khóa</button>`;
-      if (business.status === 'pending') action = '<button class="row-btn approve" data-action="approve">Duyệt</button>';
+      if (business.status === 'pending') action = '<button class="row-btn approve" data-action="approve">Duyệt</button><button class="row-btn danger" data-action="reject">Từ chối</button>';
       if (business.status === 'locked') action = '<button class="row-btn approve" data-action="unlock">Mở khóa</button>';
       return `<tr data-id="${data.escapeHTML(business.id)}">
         <td class="cell-code">${data.escapeHTML(business.code || 'Chờ duyệt')}</td>
@@ -176,14 +176,15 @@
   editDialog.addEventListener('click', event => {
     if (event.target === editDialog) editDialog.close();
   });
-  document.getElementById('editBusinessForm').addEventListener('submit', event => {
+  document.getElementById('editBusinessForm').addEventListener('submit', async event => {
     event.preventDefault();
     const name = document.getElementById('editBusinessName').value.trim();
     if (!name) return F2D.toast('Tên doanh nghiệp không được để trống.', 'error');
-    const button = document.getElementById('saveBusinessEdit');
-    F2D.busy(button, async () => {
-      try {
-        const proofFiles = document.getElementById('editBusinessProofs').files;
+    const proofFiles = document.getElementById('editBusinessProofs').files;
+    const saved = await F2D.ask({
+      title: 'Lưu hồ sơ doanh nghiệp?', text: `Thông tin mới của "${name}" sẽ hiển thị ngay với khách hàng.`, ok: 'Lưu thay đổi',
+      done: proofFiles.length ? 'Đã cập nhật hồ sơ và tải minh chứng lên.' : 'Đã cập nhật hồ sơ doanh nghiệp.',
+      run: async () => {
         await window.AdminAuth.authFetch(`/operator/business-profiles/${encodeURIComponent(editingBusinessId)}`, {
           method: 'PATCH',
           toast: false,
@@ -199,14 +200,12 @@
           existingProofCount += media.length;
           document.getElementById('editBusinessProofsNote').textContent = `Đã có ${existingProofCount} file minh chứng.`;
         }
-        editDialog.close();
-        await data.refresh();
-        render();
-        F2D.toast(proofFiles.length ? 'Đã cập nhật hồ sơ và tải minh chứng lên.' : 'Đã cập nhật hồ sơ doanh nghiệp.');
-      } catch (error) {
-        F2D.toast(error.message, 'error');
-      }
+      },
     });
+    if (!saved) return;
+    editDialog.close();
+    await data.refresh().catch(error => F2D.toast(error.message, 'error'));
+    render();
   });
 
   tableBody.addEventListener('click', async event => {
@@ -218,15 +217,9 @@
       if (business) await openBusinessEditor(business);
       return;
     }
-    const nextStatus = button.dataset.action === 'approve' || button.dataset.action === 'unlock' ? 'active' : 'locked';
-    button.disabled = true;
-    try {
-      await data.setStatus('business', id, nextStatus);
-      render();
-    } catch (error) {
-      F2D.toast(error.message, 'error');
-      button.disabled = false;
-    }
+    const nextStatus = { approve: 'active', unlock: 'active', reject: 'rejected', lock: 'locked' }[button.dataset.action];
+    const business = data.businesses.find(item => item.id === id);
+    if (await data.confirmStatus('business', id, nextStatus, business?.name || 'Doanh nghiệp')) render();
   });
 
   data.ready.then(render).catch(error => { tableBody.innerHTML = `<tr><td colspan="6">${data.escapeHTML(error.message)}</td></tr>`; });

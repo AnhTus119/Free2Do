@@ -48,13 +48,16 @@
 
       <div class="op-cases">
         <section class="management-panel op-case-panel" aria-labelledby="reportsHeading">
-          <div class="op-case-panel-head"><h3 id="reportsHeading">Báo cáo hoạt động</h3><span class="op-count" id="reportCount">0</span></div>
+          <div class="op-case-panel-head"><h3 id="reportsHeading">Báo cáo hoạt động</h3><span class="op-count" id="reportCount">0</span>
+            <select class="filter-select" id="reportStatus" aria-label="Lọc báo cáo theo trạng thái">
+              <option value="pending">Chờ xử lý</option><option value="resolved">Đã ẩn hoạt động</option><option value="dismissed">Đã bỏ qua</option><option value="">Tất cả</option>
+            </select></div>
           <p>Người dùng báo cáo hoạt động sai thông tin hoặc vi phạm. Bấm vào một báo cáo để xem chi tiết và xử lý.</p>
           <div id="reports" class="op-case-list"><p class="op-case-empty">Đang tải...</p></div>
         </section>
         <section class="management-panel op-case-panel" aria-labelledby="complaintsHeading">
           <div class="op-case-panel-head"><h3 id="complaintsHeading">Khiếu nại đánh giá</h3><span class="op-count" id="complaintCount">0</span></div>
-          <p>Doanh nghiệp khiếu nại đánh giá của khách hàng. Bấm vào một khiếu nại để xem đánh giá gốc và xử lý.</p>
+          <p>Doanh nghiệp khiếu nại đánh giá của khách hàng. Hạn xử lý 30 ngày; khiếu nại quá hạn vẫn xử lý được. Bấm vào một khiếu nại để xem đánh giá gốc và xử lý.</p>
           <div id="complaints" class="op-case-list"><p class="op-case-empty">Đang tải...</p></div>
         </section>
       </div>

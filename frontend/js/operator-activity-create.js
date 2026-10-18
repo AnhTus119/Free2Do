@@ -101,16 +101,23 @@
     setTimeout(() => { overlay.hidden = true; }, 200);
   }
 
-  async function upload(activityId, file, kind) {
-    const form = new FormData();
-    form.append('file', file);
-    const response = await fetch(`${auth.API_BASE_URL}/operator/activities/${encodeURIComponent(activityId)}/media/upload?media_kind=${kind}`, {
+  // authFetch luôn gửi JSON nên form multipart (ảnh) đi qua hàm này.
+  async function postForm(path, form) {
+    const response = await fetch(`${auth.API_BASE_URL}${path}`, {
       method: 'POST', headers: { Authorization: `Bearer ${auth.getToken()}` }, body: form,
     });
+    const data = await response.json().catch(() => ({}));
     if (!response.ok) {
-      const data = await response.json().catch(() => ({}));
-      throw new Error(data.detail || 'Không tải được ảnh/video lên.');
+      const detail = Array.isArray(data.detail) ? data.detail.map(item => item.msg).join(', ') : data.detail;
+      throw new Error(detail || 'Không tải được ảnh/video lên.');
     }
+    window.FREE2DO_CACHE?.clear();
+    return data;
+  }
+  function upload(activityId, file, kind) {
+    const form = new FormData();
+    form.append('file', file);
+    return postForm(`/operator/activities/${encodeURIComponent(activityId)}/media/upload?media_kind=${kind}`, form);
   }
 
   const timeOrNull = id => ($(id).value ? `${TIME_DATE}T${$(id).value}:00` : null);
@@ -135,39 +142,44 @@
     if (price != null && (!Number.isInteger(price) || price < 0)) return toast('Giá phải là số nguyên không âm.', true);
     const description = $('opDesc').value.trim();
     if (!description) { $('opDesc').focus(); return toast('Mô tả hoạt động là bắt buộc.', true); }
-    if (!$('opCover').files[0]) return toast('Hãy chọn ảnh bìa cho hoạt động.', true);
+    const cover = $('opCover').files[0];
+    if (!cover) return toast('Hãy chọn ảnh bìa cho hoạt động.', true);
+    const coverProblem = F2D.imageProblem(cover);
+    if (coverProblem) return toast(coverProblem, true);
 
-    const button = $('opSubmit');
-    button.disabled = true;
-    button.textContent = 'Đang tạo...';
-    try {
-      const activity = await auth.authFetch('/operator/activities', {
-        method: 'POST',
-        body: JSON.stringify({
-          business_id: business.user_id, name, description, price, address,
-          time_open: timeOrNull('opOpen'), time_close: timeOrNull('opClosed'),
-          available_from: from ? `${from}T00:00:00` : null, available_until: until ? `${until}T23:59:59` : null,
-          always_available: always, google_maps_url: mapUrl.href,
-          category_ids: [...document.querySelectorAll('#opCategories input:checked')].map(input => input.value),
-        }),
-      });
-      let uploadError = null;
-      try {
-        const cover = $('opCover').files[0];
-        if (cover) await upload(activity.activity_id, cover, 'cover');
-        for (const file of $('opGallery').files) await upload(activity.activity_id, file, 'gallery');
-      } catch (error) { uploadError = error; }
-      close();
-      await window.AdminData?.refresh?.();
-      if (uploadError) toast(`Đã tạo hoạt động nhưng chưa tải được ảnh: ${uploadError.message}`, true);
-      else toast(`Đã tạo hoạt động "${activity.name}" cho ${business.business_name}.`);
-    } catch (error) {
-      if (/địa chỉ|google maps|vị trí/i.test(error.message)) { setError('opAddressError', error.message, 'opAddress'); $('opAddress').focus(); }
-      else toast(error.message, true);
-    } finally {
-      button.textContent = 'Tạo hoạt động';
-      button.disabled = !business;
-    }
+    const payload = {
+      business_id: business.user_id, name, description, price, address,
+      time_open: timeOrNull('opOpen'), time_close: timeOrNull('opClosed'),
+      available_from: from ? `${from}T00:00:00` : null, available_until: until ? `${until}T23:59:59` : null,
+      always_available: always, google_maps_url: mapUrl.href,
+      category_ids: [...document.querySelectorAll('#opCategories input:checked')].map(input => input.value),
+    };
+    const created = await F2D.ask({
+      title: 'Tạo hoạt động?', text: `Hoạt động "${name}" của ${business.business_name} sẽ hiển thị ngay với khách hàng.`, ok: 'Tạo hoạt động',
+      done: result => `Đã tạo hoạt động "${result.activity.name}" cho ${business.business_name}.`
+        + (result.galleryErrors ? ` ${result.galleryErrors} ảnh/video thư viện chưa tải được.` : ''),
+      run: async () => {
+        // Ảnh bìa bắt buộc đi cùng thông tin: backend kiểm tra ảnh trước, không bao giờ lưu hoạt động thiếu ảnh bìa.
+        const form = new FormData();
+        form.append('payload', JSON.stringify(payload));
+        form.append('cover', cover);
+        let activity;
+        try {
+          activity = await postForm('/operator/activities/with-cover', form);
+        } catch (error) {
+          if (/địa chỉ|google maps|vị trí/i.test(error.message)) setError('opAddressError', error.message, 'opAddress');
+          throw error;
+        }
+        let galleryErrors = 0;
+        for (const file of $('opGallery').files) {
+          try { await upload(activity.activity_id, file, 'gallery'); } catch { galleryErrors += 1; }
+        }
+        return { activity, galleryErrors };
+      },
+    });
+    if (!created) return;
+    close();
+    await window.AdminData?.refresh?.();
   }
 
   document.addEventListener('DOMContentLoaded', async () => {

@@ -9,6 +9,12 @@
   const STAR = '<path d="M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.3 1.3-6.6L2.5 9.4l6.6-.8z"/>';
   const stars = rating => `<span class="op-stars" role="img" aria-label="${rating} trên 5 sao">${Array.from({ length: 5 }, (_, index) => `<svg viewBox="0 0 24 24" class="${index < rating ? '' : 'empty'}" aria-hidden="true">${STAR}</svg>`).join('')}</span>`;
   const STATUS = { active: 'Đang hiển thị', pending: 'Chờ duyệt', hidden: 'Đã ẩn', cancelled: 'Đã hủy' };
+  // Trạng thái báo cáo/khiếu nại -> [nhãn, class badge sẵn có].
+  const CASE_STATUS = {
+    pending: ['Chờ xử lý', 'pending'], resolved: ['Đã ẩn hoạt động', 'hidden'], dismissed: ['Đã bỏ qua', 'expired'],
+    expired: ['Quá hạn xử lý', 'rejected'],
+  };
+  const caseBadge = status => { const [label, css] = CASE_STATUS[status] || [status, '']; return `<span class="badge ${esc(css)}">${esc(label)}</span>`; };
   const activityLabel = item => `${item.activity_code ? `${item.activity_code} · ` : ''}${item.activity_name || 'Hoạt động không còn tồn tại'}`;
   const emptyRow = text => `<p class="op-case-empty">${esc(text)}</p>`;
 
@@ -31,7 +37,7 @@
   function caseRow(kind, item, title, meta) {
     return `<button type="button" class="op-case" data-kind="${kind}" data-id="${esc(kind === 'report' ? item.report_id : item.complaint_id)}">
       <span class="op-case-main">
-        <span class="op-case-title">${esc(title)}</span>
+        <span class="op-case-title">${item.status !== 'pending' ? `${caseBadge(item.status)} ` : ''}${esc(title)}</span>
         <span class="op-case-meta">${esc(meta)}</span>
       </span>
       <time class="op-case-time">${esc(F2D.dateTime(item.created_at))}</time>
@@ -39,15 +45,17 @@
     </button>`;
   }
   async function loadReports() {
-    reports = await auth.authFetch('/operator/reports?status=pending');
+    const status = document.getElementById('reportStatus').value;
+    reports = await auth.authFetch(`/operator/reports${status ? `?status=${encodeURIComponent(status)}` : ''}`);
     document.getElementById('reportCount').textContent = reports.length;
     document.getElementById('reports').innerHTML = reports.map(item => caseRow('report', item, item.reason, `${activityLabel(item)} · Người gửi: ${item.reporter_name || 'Không rõ'}`)).join('')
-      || emptyRow('Không có báo cáo chờ xử lý.');
+      || emptyRow(status ? `Không có báo cáo ở trạng thái "${CASE_STATUS[status][0]}".` : 'Chưa có báo cáo nào.');
   }
   async function loadComplaints() {
-    complaints = await auth.authFetch('/operator/complaints?status=pending');
+    // Khiếu nại đã xử lý bị xóa, nên danh sách là mọi khiếu nại chưa xử lý: chờ xử lý + quá hạn.
+    complaints = await auth.authFetch('/operator/complaints');
     document.getElementById('complaintCount').textContent = complaints.length;
-    document.getElementById('complaints').innerHTML = complaints.map(item => caseRow('complaint', item, item.reason, `${activityLabel(item)} · Đánh giá ${item.review_rating ?? '?'}/5 của ${item.reviewer_name || 'khách hàng'}`)).join('')
+    document.getElementById('complaints').innerHTML = complaints.map(item => caseRow('complaint', item, item.reason, `${activityLabel(item)} · Hạn xử lý ${F2D.date(item.deadline)} · Đánh giá ${item.review_rating ?? '?'}/5 của ${item.reviewer_name || 'khách hàng'}`)).join('')
       || emptyRow('Không có khiếu nại chờ xử lý.');
   }
 
@@ -90,12 +98,15 @@
           ${field('Mô tả', esc(item.description || 'Không có mô tả'))}
           ${field('Người gửi', esc(item.reporter_name || 'Không rõ'))}
           ${field('Thời gian', esc(F2D.dateTime(item.created_at)))}
+          ${field('Trạng thái', caseBadge(item.status))}
+          ${item.resolved_at ? field('Xử lý lúc', esc(F2D.dateTime(item.resolved_at))) : ''}
         </dl></section>`
       : `<section class="op-case-section"><h3>Nội dung khiếu nại</h3><dl class="op-fields">
           ${field('Lý do', esc(item.reason))}
           ${field('Mô tả', esc(item.description || 'Không có mô tả'))}
           ${field('Doanh nghiệp gửi', esc(item.complainant_name || 'Không rõ'))}
           ${field('Thời gian', esc(F2D.dateTime(item.created_at)))}
+          ${field('Hạn xử lý', `${esc(F2D.dateTime(item.deadline))} ${caseBadge(item.status)}`)}
         </dl></section>
         <section class="op-case-section"><h3>Đánh giá gốc</h3>
           <div class="op-review">
@@ -106,33 +117,34 @@
           </div>
         </section>`;
     body.innerHTML = `${caseSection}<section class="op-case-section"><h3>Thông tin hoạt động để xác minh</h3><div id="caseActivity"><p class="op-case-empty">Đang tải thông tin hoạt động...</p></div></section>`;
+    // Báo cáo đã xử lý chỉ để xem lại; khiếu nại quá hạn vẫn xử lý được.
     document.getElementById('caseActions').innerHTML = kind === 'report'
-      ? '<button type="button" class="qa-btn" data-resolve="dismiss">Bỏ qua</button><button type="button" class="qa-btn danger" data-resolve="hide_activity">Ẩn hoạt động</button>'
+      ? (item.status === 'pending' ? '<button type="button" class="qa-btn" data-resolve="dismiss">Bỏ qua</button><button type="button" class="qa-btn danger" data-resolve="hide_activity">Ẩn hoạt động</button>' : '')
       : '<button type="button" class="qa-btn" data-resolve="dismiss">Bỏ qua khiếu nại</button><button type="button" class="qa-btn danger" data-resolve="delete_review">Xóa đánh giá</button>';
     if (!box.open) box.showModal();
     document.getElementById('caseActivity').innerHTML = await activityBlock(item.activity_id);
   }
 
+  const RESOLVE_CONFIRM = {
+    'report:dismiss': ['Bỏ qua báo cáo?', 'Báo cáo được đánh dấu "Đã bỏ qua", hoạt động giữ nguyên.', 'Bỏ qua', 'Đã bỏ qua báo cáo.'],
+    'report:hide_activity': ['Ẩn hoạt động?', 'Hoạt động bị ẩn khỏi FREE2DO và doanh nghiệp nhận email thông báo.', 'Ẩn hoạt động', 'Đã ẩn hoạt động và xử lý báo cáo.'],
+    'complaint:dismiss': ['Bỏ qua khiếu nại?', 'Đánh giá được giữ nguyên và khiếu nại được đóng.', 'Bỏ qua khiếu nại', 'Đã bỏ qua khiếu nại.'],
+    'complaint:delete_review': ['Xóa đánh giá?', 'Đánh giá bị khiếu nại sẽ bị xóa vĩnh viễn cùng ảnh và phản hồi.', 'Xóa đánh giá', 'Đã xóa đánh giá và xử lý khiếu nại.'],
+  };
   async function resolveCase(button) {
     const box = dialog();
     const { kind, id } = box.dataset;
     const action = button.dataset.resolve;
-    if (action === 'hide_activity' && !confirm('Ẩn hoạt động này khỏi FREE2DO?')) return;
-    if (action === 'delete_review' && !confirm('Xóa vĩnh viễn đánh giá bị khiếu nại?')) return;
-    const messages = {
-      'report:dismiss': 'Đã bỏ qua báo cáo.', 'report:hide_activity': 'Đã ẩn hoạt động và xử lý báo cáo.',
-      'complaint:dismiss': 'Đã bỏ qua khiếu nại.', 'complaint:delete_review': 'Đã xóa đánh giá và xử lý khiếu nại.',
-    };
-    await F2D.busy(button, async () => {
-      try {
-        await auth.authFetch(`/operator/${kind === 'report' ? 'reports' : 'complaints'}/${encodeURIComponent(id)}/resolve`, {
-          method: 'PATCH', body: JSON.stringify({ action }), toast: false,
-        });
-        box.close();
-        F2D.toast(messages[`${kind}:${action}`]);
-        await (kind === 'report' ? loadReports() : loadComplaints());
-      } catch (error) { F2D.toast(error.message, 'error'); }
+    const [title, text, ok, done] = RESOLVE_CONFIRM[`${kind}:${action}`];
+    const resolved = await F2D.ask({
+      title, text, ok, done, danger: action !== 'dismiss',
+      run: () => auth.authFetch(`/operator/${kind === 'report' ? 'reports' : 'complaints'}/${encodeURIComponent(id)}/resolve`, {
+        method: 'PATCH', body: JSON.stringify({ action }), toast: false,
+      }),
     });
+    if (!resolved) return;
+    box.close();
+    await (kind === 'report' ? loadReports() : loadComplaints());
   }
 
   async function loadOperators(me) {
@@ -176,6 +188,7 @@
       await loadCategories();
     } catch (error) { /* toast lỗi đã hiện ở F2D.mutate */ }
   };
+  document.getElementById('reportStatus').addEventListener('change', () => loadReports().catch(error => F2D.toast(error.message, 'error')));
   document.querySelector('.op-cases').addEventListener('click', event => {
     const row = event.target.closest('.op-case');
     if (row) openCase(row.dataset.kind, row.dataset.id);
@@ -202,13 +215,17 @@
     const row = event.target.closest('[data-operator]');
     if (!row || event.target.dataset.action !== 'toggle-operator') return;
     const disabled = event.target.textContent.includes('Kích hoạt');
-    try {
-      await auth.authFetch(`/operator/operators/${encodeURIComponent(row.dataset.operator)}`, {
-        method: 'PATCH', body: JSON.stringify({ status: disabled ? 'active' : 'disabled' }),
-        toast: disabled ? 'Đã kích hoạt tài khoản.' : 'Đã vô hiệu hóa tài khoản.',
-      });
-      await loadOperators(currentMe);
-    } catch (error) { /* toast lỗi đã hiện ở F2D.mutate */ }
+    const name = row.querySelector('b')?.textContent || 'Operator';
+    const done = await F2D.ask({
+      title: disabled ? 'Kích hoạt tài khoản Operator?' : 'Vô hiệu hóa tài khoản Operator?',
+      text: disabled ? `"${name}" sẽ đăng nhập trang quản trị trở lại.` : `"${name}" sẽ không đăng nhập được trang quản trị.`,
+      ok: disabled ? 'Kích hoạt' : 'Vô hiệu hóa', danger: !disabled,
+      done: disabled ? 'Đã kích hoạt tài khoản.' : 'Đã vô hiệu hóa tài khoản.',
+      run: () => auth.authFetch(`/operator/operators/${encodeURIComponent(row.dataset.operator)}`, {
+        method: 'PATCH', body: JSON.stringify({ status: disabled ? 'active' : 'disabled' }), toast: false,
+      }),
+    });
+    if (done) await loadOperators(currentMe).catch(error => F2D.toast(error.message, 'error'));
   };
 
   (async () => {

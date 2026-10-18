@@ -279,16 +279,20 @@
   editDialog.addEventListener('click', event => {
     if (event.target === editDialog) editDialog.close();
   });
-  editForm.addEventListener('submit', event => {
+  editForm.addEventListener('submit', async event => {
     event.preventDefault();
     const name = editInput('editActivityName').value.trim();
     const address = editInput('editActivityAddress').value.trim();
     const mapsUrl = editInput('editActivityMaps').value.trim();
     const description = editInput('editActivityDescription').value.trim();
     if (!name || !address || !mapsUrl || !description) return F2D.toast('Hãy nhập tên, mô tả, địa chỉ và link Google Maps.', 'error');
-    const saveButton = editInput('saveActivityEdit');
-    F2D.busy(saveButton, async () => {
-      try {
+    const cover = editInput('editActivityCover').files[0];
+    const coverProblem = cover && F2D.imageProblem(cover);
+    if (coverProblem) return F2D.toast(coverProblem, 'error');
+    const saved = await F2D.ask({
+      title: 'Lưu thay đổi hoạt động?', text: 'Thông tin mới sẽ hiển thị ngay với khách hàng.', ok: 'Lưu thay đổi',
+      done: 'Đã cập nhật thông tin hoạt động.',
+      run: async () => {
         const timeValue = id => editInput(id).value ? `2000-01-01T${editInput(id).value}:00` : null;
         const dateValue = id => editInput(id).value ? `${editInput(id).value}T00:00:00` : null;
         const activity = await window.AdminAuth.authFetch(`/operator/activities/${encodeURIComponent(editingActivityId)}`, {
@@ -308,23 +312,15 @@
             category_ids: [...editInput('editActivityCategories').querySelectorAll('.admin-category-option[aria-pressed="true"]')].map(button => button.value),
           }),
         });
-        const cover = editInput('editActivityCover').files[0];
-        if (cover) {
-          await uploadActivityMedia(activity.activity_id, cover, 'cover');
-          editInput('editActivityExistingMedia').textContent = 'Đã tải ảnh/video lên thành công.';
-        }
-        for (const file of editInput('editActivityMedia').files) {
-          await uploadActivityMedia(activity.activity_id, file, 'gallery');
-          editInput('editActivityExistingMedia').textContent = 'Đã tải ảnh/video lên thành công.';
-        }
-        editDialog.close();
-        await data.refresh();
-        render();
-        F2D.toast('Đã cập nhật thông tin hoạt động.');
-      } catch (error) {
-        F2D.toast(error.message, 'error');
-      }
+        if (cover) await uploadActivityMedia(activity.activity_id, cover, 'cover');
+        for (const file of editInput('editActivityMedia').files) await uploadActivityMedia(activity.activity_id, file, 'gallery');
+        return activity;
+      },
     });
+    if (!saved) return;
+    editDialog.close();
+    await data.refresh().catch(error => F2D.toast(error.message, 'error'));
+    render();
   });
 
   tableBody.addEventListener('click', async event => {
@@ -338,22 +334,22 @@
     const activity = data.activities.find(item => item.id === id);
     const label = activity ? `${activity.code} · ${activity.name}` : 'hoạt động này';
     if (button.dataset.action === 'reject') {
-      const reason = await F2D.ask({
+      const rejected = await F2D.ask({
         title: 'Từ chối hoạt động', text: `Doanh nghiệp sẽ nhận email kèm lý do từ chối "${label}".`,
-        ok: 'Từ chối', danger: true,
+        ok: 'Từ chối', danger: true, done: 'Đã từ chối hoạt động và gửi email cho doanh nghiệp.',
         input: { label: 'Lý do từ chối', placeholder: 'Ví dụ: Ảnh không đúng địa điểm, thiếu giờ mở cửa...', multiline: true, minLength: 3, requiredMessage: 'Hãy nhập lý do từ chối (ít nhất 3 ký tự).' },
+        run: reason => data.rejectActivity(id, reason, { quiet: true }),
       });
-      if (!reason) return;
-      await runRowAction(button, () => data.rejectActivity(id, reason));
+      if (rejected) render();
       return;
     }
     if (button.dataset.action === 'delete') {
-      const confirmed = await F2D.ask({
-        title: 'Xóa hoạt động?', text: `"${label}" sẽ bị gỡ khỏi FREE2DO và chuyển sang mục Đã hủy. Khách hàng sẽ không còn thấy hoạt động này.`,
-        ok: 'Xóa hoạt động', danger: true,
+      const deleted = await F2D.ask({
+        title: 'Xóa hoạt động?', text: `"${label}" sẽ bị gỡ khỏi FREE2DO và chuyển sang mục Đã hủy (xóa vĩnh viễn sau 60 ngày). Khách hàng sẽ không còn thấy hoạt động này.`,
+        ok: 'Xóa hoạt động', danger: true, done: 'Đã xóa hoạt động.',
+        run: () => data.deleteActivity(id, { quiet: true }),
       });
-      if (!confirmed) return;
-      await runRowAction(button, () => data.deleteActivity(id));
+      if (deleted) render();
       return;
     }
     if (button.dataset.action !== 'approve') return;

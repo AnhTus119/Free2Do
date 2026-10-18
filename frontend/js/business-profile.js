@@ -100,33 +100,31 @@
     editDialog.showModal();
   });
   document.getElementById('ebCancel').addEventListener('click', () => editDialog.close());
-  document.getElementById('editBusinessForm').addEventListener('submit', event => {
+  document.getElementById('editBusinessForm').addEventListener('submit', async event => {
     event.preventDefault();
     const name = document.getElementById('ebName').value.trim();
     if (!name) return F2D.toast('Tên doanh nghiệp không được để trống.', 'error');
-    F2D.busy(document.getElementById('ebSave'), async () => {
-      try {
-        await window.AdminAuth.authFetch(`/operator/business-profiles/${encodeURIComponent(business.id)}`, {
-          method: 'PATCH', toast: 'Đã chỉnh sửa thành công',
-          body: JSON.stringify({
-            business_name: name,
-            phone: document.getElementById('ebPhone').value.trim() || null,
-            business_address: document.getElementById('ebAddress').value.trim() || null,
-            description: document.getElementById('ebDescription').value.trim() || null,
-          }),
-        });
-        editDialog.close();
-        await data.refresh();
-        render();
-      } catch (error) { /* toast lỗi đã hiện ở F2D.mutate */ }
+    const saved = await F2D.ask({
+      title: 'Lưu hồ sơ doanh nghiệp?', text: `Thông tin mới của "${name}" sẽ hiển thị ngay với khách hàng.`, ok: 'Lưu thay đổi',
+      done: 'Đã chỉnh sửa thành công.',
+      run: () => window.AdminAuth.authFetch(`/operator/business-profiles/${encodeURIComponent(business.id)}`, {
+        method: 'PATCH', toast: false,
+        body: JSON.stringify({
+          business_name: name,
+          phone: document.getElementById('ebPhone').value.trim() || null,
+          business_address: document.getElementById('ebAddress').value.trim() || null,
+          description: document.getElementById('ebDescription').value.trim() || null,
+        }),
+      }),
     });
+    if (!saved) return;
+    editDialog.close();
+    await data.refresh().catch(error => F2D.toast(error.message, 'error'));
+    render();
   });
 
   document.getElementById('toggleBusinessStatus').addEventListener('click', async () => {
-    try {
-      await data.setStatus('business', business.id, business.status === 'locked' ? 'active' : 'locked');
-      render();
-    } catch (error) { F2D.toast(error.message, 'error'); }
+    if (await data.confirmStatus('business', business.id, business.status === 'locked' ? 'active' : 'locked', business.name)) render();
   });
 
   data.ready.then(() => { id ||= data.businesses[0]?.id; render(); }).catch(error => {

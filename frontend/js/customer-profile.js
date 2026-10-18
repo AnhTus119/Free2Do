@@ -76,10 +76,7 @@
   }
 
   document.getElementById('toggleCustomerStatus').addEventListener('click', async () => {
-    try {
-      await data.setStatus('customer', customer.id, customer.status === 'locked' ? 'active' : 'locked');
-      render();
-    } catch (error) { F2D.toast(error.message, 'error'); }
+    if (await data.confirmStatus('customer', customer.id, customer.status === 'locked' ? 'active' : 'locked', customer.name)) render();
   });
 
   data.ready.then(() => { id ||= data.customers[0]?.id; render(); }).catch(error => {

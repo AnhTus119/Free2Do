@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  const { escapeHTML, normalize, parseViDate, setStatus, statusLabels } = window.AdminData;
+  const { escapeHTML, normalize, parseViDate, confirmStatus, statusLabels } = window.AdminData;
   const tableBody = document.getElementById('customerRows');
   const searchInput = document.getElementById('customerSearch');
   const statusFilter = document.getElementById('statusFilter');
@@ -110,14 +110,7 @@
     if (!button) return;
     const id = button.closest('tr').dataset.id;
     const customer = getCustomers().find(item => item.id === id);
-    button.disabled = true;
-    try {
-      await setStatus('customer', id, customer.status === 'locked' ? 'active' : 'locked');
-      render();
-    } catch (error) {
-      F2D.toast(error.message, 'error');
-      button.disabled = false;
-    }
+    if (await confirmStatus('customer', id, customer.status === 'locked' ? 'active' : 'locked', customer.name)) render();
   });
 
   window.AdminData.ready.then(render).catch(error => { tableBody.innerHTML = `<tr><td colspan="6">${escapeHTML(error.message)}</td></tr>`; });

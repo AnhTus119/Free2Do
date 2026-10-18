@@ -588,11 +588,8 @@
   }
 
   async function decideBusiness(id, status) {
-    await data.setStatus(
-      'business',
-      id,
-      status
-    );
+    const business = data.businesses.find(item => item.id === id);
+    if (!await data.confirmStatus('business', id, status, business?.name || 'Doanh nghiệp')) return;
 
     businessModal.classList.remove('open');
 

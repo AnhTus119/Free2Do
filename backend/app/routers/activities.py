@@ -2,7 +2,9 @@ import logging
 import unicodedata
 from datetime import datetime, timedelta
 from typing import Literal, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
+from fastapi.exceptions import RequestValidationError
+from pydantic import BaseModel, ValidationError
 from sqlalchemy.orm import Session, joinedload, selectinload
 from sqlalchemy import func
 
@@ -21,7 +23,8 @@ from app.routers.action_logs import log_action, status_change
 from app.utils.geocoding import address_matches_place, address_shape_ok, geocode_address, resolve_location
 from app.utils.google_maps import is_google_maps_url
 from app.utils.distance import haversine_km
-from app.services.supabase_storage import delete_asset
+from app.services.supabase_storage import InvalidMedia, delete_asset, validate_upload
+from app.routers.media import delete_quietly, upload_or_http_error
 
 router = APIRouter(prefix="/activities", tags=["activities"])
 logger = logging.getLogger("free2do.activities")
@@ -252,9 +255,19 @@ def _create_activity_record(
     payload: schemas.ActivityCreate,
     *,
     operator: models.Operator | None = None,
+    cover: tuple[bytes, str] | None = None,
 ) -> models.Activity:
-    """Tạo hoạt động. Business tự tạo -> chờ duyệt; Operator tạo -> duyệt và hiển thị ngay."""
+    """Tạo hoạt động. Business tự tạo -> chờ duyệt; Operator tạo -> duyệt và hiển thị ngay.
+
+    cover=(nội dung, content type): ảnh bìa bắt buộc được kiểm tra TRƯỚC mọi bước khác, chỉ upload
+    sau khi qua hết kiểm tra trùng, rồi ghi hoạt động + ảnh bìa trong cùng một commit; commit lỗi thì
+    xóa file vừa upload. Không bao giờ còn hoạt động thiếu ảnh bìa hay file mồ côi."""
     now = datetime.utcnow()
+    if cover is not None:
+        try:
+            validate_upload(cover[0], cover[1], allow_video=False)
+        except InvalidMedia as exc:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, f"Ảnh bìa không hợp lệ: {exc}") from exc
     if not payload.google_maps_url:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Link Google Maps là bắt buộc để xác minh vị trí")
     if not payload.always_available and (not payload.available_from or not payload.available_until):
@@ -283,7 +296,15 @@ def _create_activity_record(
     if recent:
         return recent
     _ensure_not_duplicate(db, payload.name, payload.address, latitude, longitude)
+    activity_id = models.gen_id()
+    asset = None
+    if cover is not None:
+        asset = upload_or_http_error(
+            cover[0], cover[1], folder=f"businesses/{business.user_id}/activities/{activity_id}",
+            owner_id=business.user_id, kind="activity",
+        )
     activity = models.Activity(
+        activity_id=activity_id,
         business_id=business.user_id,
         name=payload.name,
         description=payload.description,
@@ -305,12 +326,36 @@ def _create_activity_record(
         source_url=payload.source_url,
         google_maps_url=payload.google_maps_url,
     )
-    db.add(activity)
-    db.flush()
-    _set_categories(db, activity.activity_id, payload.category_ids)
-    db.commit()
+    try:
+        db.add(activity)
+        db.flush()
+        _set_categories(db, activity.activity_id, payload.category_ids)
+        if asset is not None:
+            db.add(models.ActivityMedia(
+                activity_id=activity_id, media_url=asset.media_url, media_type=asset.media_type,
+                public_id=asset.public_id, bytes=asset.bytes, width=asset.width, height=asset.height,
+                media_kind="cover",
+            ))
+        db.commit()
+    except Exception:
+        db.rollback()
+        if asset is not None:
+            delete_quietly(asset.public_id, asset.media_type)
+        raise
     db.refresh(activity)
     return activity
+
+
+def _form_payload(raw: str, schema: type[BaseModel]) -> BaseModel:
+    """Trường "payload" (JSON) của form multipart, kiểm tra giống hệt body JSON thường."""
+    try:
+        return schema.model_validate_json(raw)
+    except ValidationError as exc:
+        raise RequestValidationError(exc.errors(include_url=False)) from exc
+
+
+def _read_cover(cover: UploadFile) -> tuple[bytes, str]:
+    return cover.file.read(), cover.content_type or "application/octet-stream"
 
 
 @router.post("", response_model=schemas.ActivityDetail, status_code=status.HTTP_201_CREATED)
@@ -322,6 +367,18 @@ def create_activity(
     activity = _create_activity_record(db, business, payload)
     # Operator nhận thông báo trong web (GET /notifications, loại pending_activity), không gửi Gmail.
     return _to_detail(db, activity)
+
+
+@router.post("/with-cover", response_model=schemas.ActivityDetail, status_code=status.HTTP_201_CREATED)
+def create_activity_with_cover(
+    payload: str = Form(..., description="JSON giống body của POST /activities"),
+    cover: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    business: models.BusinessProfile = Depends(get_current_business_user),
+):
+    """Tạo hoạt động kèm ảnh bìa bắt buộc trong một request (multipart/form-data)."""
+    data = _form_payload(payload, schemas.ActivityCreate)
+    return _to_detail(db, _create_activity_record(db, business, data, cover=_read_cover(cover)))
 
 
 @router.patch("/{activity_id}", response_model=schemas.ActivityDetail)
@@ -451,6 +508,27 @@ def operator_create_activity(
             "Không tìm thấy doanh nghiệp. Operator chỉ tạo hoạt động cho doanh nghiệp đã có tài khoản.",
         )
     activity = _create_activity_record(db, business, payload, operator=operator)
+    log_action(db, operator, "Tạo hoạt động", "activity", activity.activity_id, activity.business_id)
+    db.commit()
+    return _to_detail(db, activity)
+
+
+@operator_router.post("/with-cover", response_model=schemas.ActivityDetail, status_code=status.HTTP_201_CREATED)
+def operator_create_activity_with_cover(
+    payload: str = Form(..., description="JSON giống body của POST /operator/activities"),
+    cover: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    operator: models.Operator = Depends(get_current_operator),
+):
+    """Operator tạo hoạt động kèm ảnh bìa bắt buộc trong một request (multipart/form-data)."""
+    data = _form_payload(payload, schemas.OperatorActivityCreate)
+    business = db.query(models.BusinessProfile).filter(models.BusinessProfile.user_id == data.business_id).first()
+    if not business:
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND,
+            "Không tìm thấy doanh nghiệp. Operator chỉ tạo hoạt động cho doanh nghiệp đã có tài khoản.",
+        )
+    activity = _create_activity_record(db, business, data, operator=operator, cover=_read_cover(cover))
     log_action(db, operator, "Tạo hoạt động", "activity", activity.activity_id, activity.business_id)
     db.commit()
     return _to_detail(db, activity)

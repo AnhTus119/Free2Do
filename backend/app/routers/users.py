@@ -125,6 +125,25 @@ def get_my_search_history(
     )
 
 
+@router.delete("/search-history", response_model=schemas.DeletedCount)
+def delete_my_search_history(
+    payload: schemas.SearchHistoryDelete,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    """Xóa các mục lịch sử theo id; chỉ xóa được của chính mình, trả về số mục thực sự đã xóa."""
+    deleted = (
+        db.query(models.SearchHistory)
+        .filter(
+            models.SearchHistory.user_id == user.user_id,
+            models.SearchHistory.search_id.in_(set(payload.search_ids)),
+        )
+        .delete(synchronize_session=False)
+    )
+    db.commit()
+    return {"deleted": deleted}
+
+
 @router.get("/categories", response_model=list[schemas.Category])
 def get_my_categories(user: models.User = Depends(get_current_user)):
     return [uc.category for uc in user.categories]

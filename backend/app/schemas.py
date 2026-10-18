@@ -187,7 +187,7 @@ RequiredText = Annotated[str, StringConstraints(strip_whitespace=True, min_lengt
 class ActivityCreate(BaseModel):
     name: str
     description: RequiredText
-    price: Optional[int] = Field(None, ge=0)
+    price: Optional[int] = Field(None, ge=0, strict=True)  # strict: chuỗi "100.000" không bị hiểu thành 100
     price_text: Optional[str] = None
     address: str
     latitude: Optional[float] = Field(None, ge=-90, le=90)
@@ -447,6 +447,12 @@ class ResetPasswordRequest(BaseModel):
 class MessageResponse(BaseModel):
     message: str
 
+class SearchHistoryDelete(BaseModel):
+    search_ids: list[str] = Field(min_length=1)  # 1 mục, các mục đã chọn, hoặc toàn bộ mục đang hiển thị
+
+class DeletedCount(BaseModel):
+    deleted: int
+
 class MeResponse(BaseModel):
     """Dùng cho GET /auth/me -- frontend gọi ngay sau khi có token để biết điều hướng vào trang nào."""
     account_id: str
@@ -630,7 +636,7 @@ class GroupRecommendationOut(GroupSelectedActivityOut):
 class ActivityUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[RequiredText] = None
-    price: Optional[int] = Field(None, ge=0)
+    price: Optional[int] = Field(None, ge=0, strict=True)  # strict: chuỗi "100.000" không bị hiểu thành 100
     price_text: Optional[str] = None
     address: Optional[str] = None
     latitude: Optional[float] = None

@@ -1,3 +1,4 @@
+import logging
 from datetime import UTC, datetime
 from typing import Literal
 
@@ -17,6 +18,7 @@ from app.services.supabase_storage import (
 from app.routers.action_logs import log_action
 
 
+logger = logging.getLogger(__name__)
 router = APIRouter(tags=["media"])
 
 
@@ -94,6 +96,18 @@ async def upload_operator_business_proofs(
     return uploaded
 
 
+def upload_or_http_error(content: bytes, content_type: str | None, **kwargs):
+    """upload_asset nhưng đổi lỗi sang mã HTTP phù hợp (dùng chung cho mọi API upload)."""
+    try:
+        return upload_asset(content=content, content_type=content_type or "application/octet-stream", **kwargs)
+    except StorageNotConfigured as exc:
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, str(exc)) from exc
+    except InvalidMedia as exc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, "Không thể tải file lên Supabase Storage") from exc
+
+
 async def _upload(
     file: UploadFile,
     *,
@@ -102,22 +116,19 @@ async def _upload(
     kind: str,
     allow_video: bool = False,
 ):
+    return upload_or_http_error(
+        await file.read(), file.content_type, folder=folder, owner_id=owner_id, kind=kind, allow_video=allow_video
+    )
+
+
+def delete_quietly(public_id: str | None, media_type: str = "image") -> None:
+    """Dọn file sau khi database đã chốt: lỗi chỉ ghi log (file mồ côi), không làm hỏng thao tác."""
+    if not public_id:
+        return
     try:
-        content = await file.read()
-        return upload_asset(
-            content=content,
-            content_type=file.content_type or "application/octet-stream",
-            folder=folder,
-            owner_id=owner_id,
-            kind=kind,
-            allow_video=allow_video,
-        )
-    except StorageNotConfigured as exc:
-        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, str(exc)) from exc
-    except InvalidMedia as exc:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc)) from exc
-    except Exception as exc:
-        raise HTTPException(status.HTTP_502_BAD_GATEWAY, "Không thể tải file lên Supabase Storage") from exc
+        delete_asset(public_id, media_type)
+    except Exception:  # noqa: BLE001
+        logger.exception("Không xóa được file %s trên Storage", public_id)
 
 
 def _delete_or_502(public_id: str | None, media_type: str = "image") -> None:
@@ -330,9 +341,16 @@ async def _save_activity_media(db: Session, activity: models.Activity, file: Upl
     )
     db.add(media)
     for old_cover in old_covers:
-        _delete_or_502(old_cover.public_id, old_cover.media_type)
         db.delete(old_cover)
-    db.commit()
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+        delete_quietly(asset.public_id, asset.media_type)  # không để file mới mồ côi
+        raise
+    # Xóa file ảnh bìa cũ chỉ sau khi database đã trỏ sang ảnh mới.
+    for old_cover in old_covers:
+        delete_quietly(old_cover.public_id, old_cover.media_type)
     db.refresh(media)
     return media
 

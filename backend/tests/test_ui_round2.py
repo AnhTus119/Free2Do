@@ -84,7 +84,7 @@ class UiRound2Tests(unittest.TestCase):
             hidden = activities_router.hide_activity("X2", db=self.db, operator=self.operator)
         self.assertEqual(self.db.get(models.Activity, "X1").status, "hidden")
         self.assertEqual(hidden.status, "hidden")
-        self.assertIsNone(self.db.get(models.Report, "P1"))
+        self.assertEqual(self.db.get(models.Report, "P1").status, "resolved")  # giữ lại, xóa sau 60 ngày
 
     def test_complaint_after_reply_then_delete_review(self):
         self.db.add(models.Review(review_id="R1", user_id="C1", activity_id="X1", rating=1, created_at=self.now))

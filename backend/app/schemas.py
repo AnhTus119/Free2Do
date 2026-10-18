@@ -338,8 +338,9 @@ class Complaint(BaseModel):
     review_id: str
     reason: str
     description: Optional[str] = None
-    status: str
+    status: str  # "pending" | "expired" (quá 30 ngày chưa xử lý, Operator vẫn xử lý được)
     created_at: datetime
+    deadline: Optional[datetime] = None
     resolved_at: Optional[datetime] = None
     activity_name: Optional[str] = None
     activity_id: Optional[str] = None

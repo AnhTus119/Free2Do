@@ -1,10 +1,14 @@
 import uuid
+from datetime import timedelta
 from sqlalchemy import Column, String, Float, Integer, Text, DateTime, Boolean, ForeignKey, UniqueConstraint, text
 from sqlalchemy.orm import relationship
 from app.database import Base
 
 def gen_id() -> str:
     return str(uuid.uuid4())
+
+
+COMPLAINT_DEADLINE = timedelta(days=30)
 
 
 _sqlite_activity_code = 0
@@ -343,6 +347,11 @@ class Complaint(Base):
     resolved_by = Column(String, ForeignKey("operators.operator_id"))
     user = relationship("User", back_populates="complaints")
     review = relationship("Review", back_populates="complaints")
+
+    @property
+    def deadline(self):
+        """Hạn Operator xử lý: 30 ngày kể từ lúc gửi (tính ra, không lưu thêm cột)."""
+        return self.created_at + COMPLAINT_DEADLINE if self.created_at else None
 
 class Report(Base):
     __tablename__ = "reports"

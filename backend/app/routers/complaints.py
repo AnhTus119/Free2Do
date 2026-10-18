@@ -9,6 +9,21 @@ from app import models, schemas
 from app.auth import get_current_business_user, get_current_operator
 
 router = APIRouter(tags=["complaints"])
+UNRESOLVED = ("pending", "expired")
+
+
+def expire_overdue_complaints(db: Session) -> int:
+    """Khiếu nại chờ quá 30 ngày -> "expired". Gọi ở các API danh sách và trong vòng quét
+    định kỳ của app/main.py (giống expire_overdue_activities), không cần cron riêng."""
+    cutoff = datetime.now(UTC).replace(tzinfo=None) - models.COMPLAINT_DEADLINE
+    count = (
+        db.query(models.Complaint)
+        .filter(models.Complaint.status == "pending", models.Complaint.created_at <= cutoff)
+        .update({models.Complaint.status: "expired"}, synchronize_session=False)
+    )
+    if count:
+        db.commit()
+    return count
 
 
 @router.post("/complaints", response_model=schemas.Complaint, status_code=status.HTTP_201_CREATED)
@@ -34,7 +49,7 @@ def create_complaint(
         .filter(
             models.Complaint.user_id == business.user_id,
             models.Complaint.review_id == payload.review_id,
-            models.Complaint.status == "pending",
+            models.Complaint.status.in_(UNRESOLVED),
         )
         .first()
     )
@@ -60,6 +75,7 @@ def list_business_complaints(
     db: Session = Depends(get_db),
     business: models.BusinessProfile = Depends(get_current_business_user),
 ):
+    expire_overdue_complaints(db)
     return (
         db.query(models.Complaint)
         .filter(models.Complaint.user_id == business.user_id)
@@ -80,6 +96,7 @@ def list_complaints(
     db: Session = Depends(get_db),
     _operator: models.Operator = Depends(get_current_operator),
 ):
+    expire_overdue_complaints(db)
     query = db.query(models.Complaint).options(
         joinedload(models.Complaint.review).joinedload(models.Review.activity),
         joinedload(models.Complaint.review).joinedload(models.Review.user),
@@ -98,6 +115,7 @@ def list_complaints(
         description=item.description,
         status=item.status,
         created_at=item.created_at,
+        deadline=item.deadline,
         resolved_at=item.resolved_at,
         activity_name=item.review.activity.name if item.review and item.review.activity else None,
         activity_id=item.review.activity_id if item.review else None,
@@ -127,7 +145,8 @@ def resolve_complaint(
     complaint = db.query(models.Complaint).filter(models.Complaint.complaint_id == complaint_id).first()
     if not complaint:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Không tìm thấy khiếu nại")
-    if complaint.status != "pending":
+    # Quá hạn 30 ngày vẫn xử lý được: hạn là của Operator, không phải lý do bỏ khiếu nại.
+    if complaint.status not in UNRESOLVED:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Khiếu nại đã được xử lý")
 
     if payload.action == "delete_review":

@@ -11,6 +11,7 @@ from app.config import settings
 from app.utils.email import get_email_provider
 from app.database import SessionLocal, engine
 from app.schema_sync import find_schema_gaps, sync_schema_safely
+from app.retention import purge_stale_records
 from app.routers import (
     search,
     auth,
@@ -40,27 +41,30 @@ logger = logging.getLogger("free2do.api")
 async def lifespan(_app: FastAPI):
     # Tự bổ sung bảng/cột còn thiếu để không phụ thuộc vào việc đã chạy migrate hay chưa.
     sync_schema_safely(engine)
-    sweeper = asyncio.create_task(_expire_activities_periodically())
+    sweeper = asyncio.create_task(_maintain_periodically())
     yield
     sweeper.cancel()
 
 
-def _expire_activities_once() -> None:
+def _maintain_once() -> None:
     db = SessionLocal()
     try:
-        activities.expire_overdue_activities(db)
+        for task in (activities.expire_overdue_activities, complaints.expire_overdue_complaints, purge_stale_records):
+            try:
+                task(db)
+            except Exception:  # noqa: BLE001 -- một việc lỗi không chặn các việc còn lại
+                db.rollback()
+                logger.exception("Vòng quét định kỳ lỗi ở %s", task.__name__)
     finally:
         db.close()
 
 
-async def _expire_activities_periodically() -> None:
-    """Mỗi giờ chuyển hoạt động chờ duyệt quá 30 ngày sang "expired" (kèm email) kể cả khi
-    không ai mở trang quản lý. Các API danh sách cũng tự quét nên trễ tối đa ~1 giờ."""
+async def _maintain_periodically() -> None:
+    """Chạy ngay khi khởi động rồi mỗi giờ: hoạt động chờ duyệt quá 30 ngày -> "expired" (kèm email),
+    khiếu nại quá hạn 30 ngày -> "expired", xóa vĩnh viễn dữ liệu đã kết thúc quá 60 ngày
+    (app/retention.py). Các API danh sách cũng tự quét hết hạn nên trễ tối đa ~1 giờ."""
     while True:
-        try:
-            await asyncio.to_thread(_expire_activities_once)
-        except Exception:  # noqa: BLE001
-            logger.exception("Không quét được hoạt động hết hạn")
+        await asyncio.to_thread(_maintain_once)
         await asyncio.sleep(3600)
 
 

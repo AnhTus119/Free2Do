@@ -46,7 +46,7 @@ Sau khi lưu, chọn deploy commit mới nhất hoặc **Manual Deploy → Deplo
 Mở:
 
 ```text
-https://free2do.onrender.com/health/ready
+https://free2do-o4oy.onrender.com/health/ready
 ```
 
 Kết quả phải có:

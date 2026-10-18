@@ -1,446 +1,181 @@
 # Free2Do
 
-**Nền tảng khám phá hoạt động dựa trên thời gian rảnh**
+**Nền tảng khám phá hoạt động dựa trên thời gian rảnh.**
 
-Free2Do giúp người dùng biến những khoảng thời gian rảnh ngắn, không cố định thành các trải nghiệm có giá trị — bằng cách gợi ý hoạt động phù hợp dựa trên **thời gian rảnh, vị trí, ngân sách và sở thích**, thay vì bắt người dùng phải tự biết mình muốn làm gì.
+Người dùng nhập thời gian rảnh, vị trí, ngân sách và sở thích; Free2Do lọc, tính khoảng cách và
+xếp hạng các hoạt động phù hợp quanh họ, thay vì bắt người dùng tự biết mình muốn làm gì.
 
----
+## Tính năng
 
-## 1. Vấn đề thực tế
+- **Khách hàng**: tìm hoạt động theo thời gian rảnh, vị trí, ngân sách, tags và bán kính, xem trên
+  bản đồ; trang chi tiết hoạt động/doanh nghiệp; lưu (bookmark), đánh giá kèm ảnh, báo cáo;
+  lập nhóm đi chơi (mời bằng link, bình chọn hoạt động, chia tiền); trợ lý AI gợi ý bằng tiếng Việt;
+  thông báo; đăng ký trở thành doanh nghiệp.
+- **Doanh nghiệp**: dashboard và biểu đồ, hồ sơ (logo, gallery, menu), tạo/sửa hoạt động kèm
+  ảnh/video, trả lời đánh giá, gửi khiếu nại. Hoạt động mới/sửa đổi chờ Operator duyệt.
+- **Operator (quản trị)**: dashboard, duyệt hoạt động và đơn đăng ký doanh nghiệp, quản lý khách
+  hàng/doanh nghiệp/Operator, xử lý báo cáo/khiếu nại, nhật ký thao tác.
+- **Tài khoản**: đăng ký/đăng nhập bằng email hoặc số điện thoại, quên mật khẩu bằng OTP qua email.
 
-Mọi người thường có những khoảng thời gian rảnh ngắn và không cố định nhưng lại không biết nên làm gì, đặc biệt khi muốn tìm một hoạt động phù hợp với thời gian, vị trí, ngân sách và sở thích hiện tại. Thông tin về các hoạt động đang phân tán trên Facebook, TikTok, Instagram, website và nhiều cộng đồng khác khiến việc tìm kiếm trở nên mất thời gian.
+## Cấu trúc
 
-## 2. Mô hình vận hành
-
-Người dùng nhập **thời gian rảnh, vị trí, ngân sách và sở thích**; hệ thống xếp hạng và đề xuất những hoạt động phù hợp nhất thay vì yêu cầu người dùng phải biết trước mình muốn làm gì.
-
-- **Tìm kiếm đa tiêu chí**: loại hình, thời gian, giá, khoảng cách, hình thức online/offline, đối tượng tham gia.
-- **Định vị & bản đồ**: xác định vị trí hiện tại (hoặc vị trí người dùng chọn), hiển thị hoạt động xung quanh, tính khoảng cách và ưu tiên hoạt động người dùng có đủ thời gian di chuyển tới.
-- **Chấm điểm mức độ phù hợp**: kết hợp thời gian, khoảng cách, ngân sách, sở thích và lịch hoạt động — ví dụ một hoạt động có thể hiển thị "92% phù hợp".
-- **Đánh giá sau trải nghiệm**: người dùng đánh giá chất lượng, trải nghiệm, mức độ phù hợp, viết nhận xét/chia sẻ hình ảnh — dữ liệu này dùng để cải thiện dần hệ thống đề xuất.
-
-## 3. Chức năng cốt lõi
-
-| Chức năng | Mô tả ngắn |
-|---|---|
-| Time Matching | Gợi ý hoạt động vừa khít với khoảng thời gian rảnh của người dùng |
-| Location & Map | Định vị người dùng, hiển thị hoạt động quanh khu vực, tính khoảng cách |
-| Budget Filtering | Lọc hoạt động theo ngân sách người dùng nhập |
-| Interest Matching | Khớp hoạt động với sở thích/loại hình người dùng chọn |
-| Recommendation | Chấm điểm % phù hợp và xếp hạng kết quả |
-| Rating & Review | Đánh giá, nhận xét hoạt động sau khi tham gia |
-
-## 4. Đối tượng người dùng
-
-Mọi người có nhu cầu tận dụng thời gian rảnh — sinh viên, người đi làm, freelancer, nhóm bạn, cặp đôi... Điểm chung không phải tuổi tác hay nghề nghiệp, mà là nhu cầu: *"Tôi đang có một khoảng thời gian rảnh và muốn tìm một điều gì đó đáng để làm."*
-
-## 5. Nguồn cung hoạt động
-
-- **Giai đoạn đầu (MVP)**: Operator chủ động tìm kiếm, thu thập, xác minh hoạt động (workshop, lớp học, sự kiện, thể thao, giải trí, cộng đồng...) và chịu trách nhiệm cập nhật thời gian, địa điểm, giá, trạng thái.
-- **Giai đoạn sau**: mở rộng nguồn từ doanh nghiệp, CLB, studio, trung tâm, nhà hàng, đơn vị tổ chức sự kiện — nhưng MVP vẫn quản lý dữ liệu tập trung qua Operator để đảm bảo tính khả thi.
-
-## 6. Rủi ro
-
-| Rủi ro | Hướng xử lý |
-|---|---|
-| **Dữ liệu** lỗi thời (thay đổi giờ/giá/địa điểm, bị hủy) | Hoạt động có trạng thái + thời hạn hiển thị, Operator kiểm tra định kỳ |
-| **Độ tin cậy** (hoạt động giả, thông tin sai) | Xác minh trước khi đăng, cho phép người dùng báo cáo/đánh giá, Operator ẩn hoạt động bất thường |
-| **Người dùng** không thực sự tham gia hoặc gợi ý chưa đúng | Theo dõi tỷ lệ click, lưu hoạt động, đánh giá sau trải nghiệm để tinh chỉnh thuật toán |
-| **Phạm vi dự án** phình to (booking, thanh toán, chat, AI, mobile...) | MVP chỉ tập trung: tìm kiếm + bản đồ + matching + recommendation + đánh giá + quản trị hoạt động |
-
-## 7. Tính khả thi
-
-Triển khai dưới dạng **responsive web**, thử nghiệm tại một khu vực cụ thể (làm ở các quận nhỏ trước VD: **Hai Bà Trưng**), dữ liệu do Operator quản lý, recommendation dùng thuật toán scoring đơn giản. Bản đồ, tìm kiếm, đánh giá, quản lý dữ liệu và xác thực đều thực hiện được bằng công nghệ web phổ biến, không cần AI hay hệ thống phức tạp.
-
-## 8. Giá trị của dự án
-
-Free2Do không chỉ giúp "tìm chỗ đi chơi", mà giải quyết bài toán lớn hơn: biến thời gian rảnh thành trải nghiệm có giá trị — học kỹ năng mới, thử hoạt động mới, vận động, giải trí hoặc kết nối cộng đồng. Đồng thời tạo thêm kênh để các đơn vị tổ chức hoạt động tiếp cận đúng người đang có thời gian và nhu cầu.
-
----
-
-## 9. Công nghệ sử dụng
-
-### Frontend
-
-| Công cụ | Loại | Mục đích sử dụng trong Free2Do |
-|---|---|---|
-| HTML | Ngôn ngữ nền tảng | Xây dựng cấu trúc các trang: trang chủ (nhập thời gian rảnh/sở thích), trang kết quả tìm kiếm, trang chi tiết hoạt động, trang đánh giá, trang quản trị Operator |
-| CSS | Ngôn ngữ nền tảng | Định dạng giao diện, bố cục responsive |
-| JavaScript | Ngôn ngữ nền tảng | Xử lý logic: lọc dữ liệu (`filter()`, `sort()`), hiển thị hoạt động động (`innerHTML`), xử lý sự kiện (click, submit form) |
-| Bootstrap | Framework CSS (nhúng qua CDN) | Tạo giao diện đẹp, responsive nhanh cho: card hiển thị hoạt động (kèm % phù hợp), thanh filter (ngân sách, loại hình), form nhập liệu |
-| Geolocation API | Web API có sẵn của trình duyệt | Lấy tọa độ (kinh độ, vĩ độ) vị trí hiện tại của người dùng làm điểm gốc tính khoảng cách |
-| Fetch API | Web API có sẵn của trình duyệt | Gọi dữ liệu từ backend: gửi yêu cầu tìm kiếm, lấy danh sách hoạt động, gọi endpoint tính khoảng cách đường đi, gửi đánh giá sau khi tham gia |
-| LocalStorage API | Web API có sẵn của trình duyệt | Lưu tạm tọa độ người dùng và dữ liệu tìm kiếm (thời gian, ngân sách, sở thích) khi chuyển giữa các trang `.html` |
-
-### Backend
-
-| Công cụ | Loại | Mục đích sử dụng trong Free2Do |
-|---|---|---|
-| Python | Ngôn ngữ lập trình | Xây dựng logic backend, xử lý dữ liệu, kết nối và thao tác với cơ sở dữ liệu |
-| FastAPI | Framework backend (Python) | Xây dựng REST API: định nghĩa endpoint, validate dữ liệu (Pydantic), xử lý request/response bất đồng bộ, tự sinh tài liệu API (Swagger) |
-| PostgreSQL | Hệ quản trị CSDL quan hệ | Lưu trữ dữ liệu chính của hệ thống: người dùng, hoạt động, đánh giá... đảm bảo tính toàn vẹn dữ liệu |
-| PostGIS | Extension không gian địa lý (chạy trên PostgreSQL) | Lưu tọa độ, xử lý truy vấn không gian: tìm địa điểm gần nhất, kiểm tra vị trí trong bán kính — phục vụ chức năng bản đồ/vị trí |
-| Supabase | Backend-as-a-Service (hosting DB) | Cung cấp PostgreSQL/PostGIS được quản lý sẵn, kèm Authentication, Storage, Realtime API — giảm thời gian dựng hạ tầng |
-
----
-
-## 10. Cấu trúc thư mục
-
-```
-free2do/
-├── frontend/
-│   ├── index.html            # Trang chủ - nhập thời gian/ngân sách/sở thích
-│   ├── search-results.html   # Trang kết quả tìm kiếm
-│   ├── activity-detail.html  # Trang chi tiết hoạt động
-│   ├── review.html           # Trang đánh giá
-│   ├── admin.html            # Trang quản trị Operator
-│   ├── css/
-│   │   └── style.css
-│   └── js/
-│       ├── main.js           # Helper dùng chung: Fetch API, LocalStorage, Geolocation
-│       ├── search.js
-│       ├── results.js
-│       ├── detail.js
-│       ├── review.js
-│       └── admin.js
-└── backend/
-    ├── app/
-    │   ├── main.py
-    │   ├── config.py
-    │   ├── database.py
-    │   ├── models.py
-    │   ├── schemas.py
-    │   ├── routers/
-    │   │   ├── activities.py
-    │   │   ├── search.py
-    │   │   ├── reviews.py
-    │   │   └── operator.py
-    │   └── utils/
-    │       └── distance.py
-    ├── requirements.txt
-    └── .env.example
+```text
+backend/        API FastAPI (app/), script quản trị database, tests/
+frontend/       Trang HTML/CSS/JS tĩnh, không cần build
+migration.sql   SQL bổ sung cho database đã có dữ liệu (xem MAINTAINING.md)
+render.yaml     Cấu hình deploy backend lên Render
 ```
 
-## 11. Hướng dẫn chạy dự án
+## Yêu cầu
 
-### Backend
+- Python 3.13 (Render dùng 3.13.5)
+- Một database PostgreSQL. Khuyên dùng một project [Supabase](https://supabase.com) miễn phí
+  (có sẵn PostGIS và Storage để upload ảnh).
+- Git
+
+## Cài đặt và chạy
+
+### 1. Clone và cài thư viện
+
 ```bash
-cd backend
+git clone https://github.com/AnhTus119/Free2Do.git
+cd Free2Do/backend
 python -m venv venv
-source venv/bin/activate        # Windows: venv\Scripts\activate
-pip install -r requirements.txt
-cp .env.example .env            # điền thông tin kết nối Supabase/PostgreSQL
-uvicorn app.main:app --reload
 ```
-API mặc định chạy tại `http://localhost:8000`, tài liệu Swagger tại `http://localhost:8000/docs`.
 
-### Frontend
-Mở trực tiếp `frontend/index.html` bằng trình duyệt, hoặc dùng Live Server để tránh vấn đề CORS/Geolocation:
+Kích hoạt venv — Windows: `venv\Scripts\activate`, macOS/Linux: `source venv/bin/activate`. Sau đó:
+
 ```bash
-cd frontend
-npx live-server
+pip install -r requirements.txt
 ```
 
-### Cấu hình backend cho frontend
+### 2. Cấu hình `backend/.env`
 
-Frontend lấy địa chỉ API tập trung từ `frontend/js/config.js`. Bản triển khai hiện dùng:
-
-```text
-https://free2do.onrender.com
+```bash
+cp .env.example .env
 ```
 
-Các trang phải nạp `js/config.js` trước file JavaScript gọi API. Không hard-code
-`http://localhost:8000` trong từng file frontend; địa chỉ đó chỉ dùng khi backend
-được chạy thật trên cùng máy và cấu hình chung đã được đổi sang môi trường local.
+(Windows: `copy .env.example .env`.) Mở `backend/.env` và điền **2 biến bắt buộc**:
 
----
-
-## 12. Thành viên nhóm
-
-| Vai trò | Họ và tên | Nhiệm vụ chính |
-|---|---|---|
-| Project Manager (PM) | *Nguyễn Thiện Nhân* | Lên kế hoạch, phân công công việc, theo dõi tiến độ, quản lý rủi ro dự án |
-| UI/UX Designer | *Lê Thị Diệu Linh* | Thiết kế wireframe, luồng người dùng, giao diện các trang |
-| System Architect | *Dương Khánh Duy* | Thiết kế kiến trúc hệ thống, sơ đồ CSDL, luồng dữ liệu frontend-backend |
-| Frontend Developer | *Phạm Phương Anh* | Xây dựng giao diện HTML/CSS/JS, tích hợp Bootstrap, gọi API bằng Fetch |
-| Backend Developer | *Đoàn Anh Tú* | Xây dựng REST API bằng FastAPI, thiết kế và triển khai CSDL PostgreSQL/PostGIS |
-| QA/Tester | *Trần Hoàng Trung* | Viết test case, kiểm thử chức năng, báo cáo và theo dõi lỗi |
-| Thư ký + Triển khai | *Nguyễn Thị Linh Anh* | Ghi biên bản họp, theo dõi tiến độ của team, làm slide, triển khai (deploy) hệ thống |
-
----
-
-## 13. Phạm vi MVP
-
-Tìm kiếm + Bản đồ + Matching + Recommendation + Đánh giá + Quản trị hoạt động.
-# Backend người dùng và dữ liệu hoạt động
-
-Các phép tính tổng quan của Dashboard, Customer, Business và Activity được thực hiện tại backend qua các endpoint:
-
-- `GET /operator/dashboard`
-- `GET /operator/summaries/customers`
-- `GET /operator/summaries/businesses`
-- `GET /operator/activities/summary/counts`
-- `POST /search` để lọc, tính khoảng cách và xếp hạng hoạt động cho người dùng.
-
-Dữ liệu từ sheet `DỮ LIỆU` trong `QUẢN LÝ DỰ ÁN CNTT.xlsx` được đóng gói trong script seed idempotent. Chạy từ thư mục `backend`:
-
-```powershell
-python init_db.py
-python migrate_db.py
-python seed_activities.py
-```
-
-`migrate_db.py` creates the group activity vote table directly from the backend model,
-so the group voting flow does not require a manual SQL change.
-
-`seed_activities.py` tạo/cập nhật 28 doanh nghiệp, 30 hoạt động và 15 tags theo mã nguồn. Một hoạt động có thể có nhiều tags trong bảng `activities_categories`; bộ lọc tìm kiếm khớp nếu hoạt động có ít nhất một tag người dùng chọn. `price_text` giữ nguyên chuỗi giá trong Excel, còn `price` dùng mức trần của khoảng giá để lọc ngân sách.
-
-Với database đã có dữ liệu, đồng bộ tags và audit tọa độ mà không seed lại tài khoản/media:
-
-```powershell
-python sync_activity_tags.py
-python sync_activity_locations.py
-python sync_activity_locations.py --apply
-```
-
-Các script có thể chạy lại an toàn. Script tags cập nhật quan hệ nhiều-nhiều và sửa
-Onemore Workspace thành hoạt động `Cà phê`. Script location mặc định chỉ in báo cáo;
-chỉ `--apply` mới ghi tọa độ Google Maps đã xác minh vào database.
-
-Tạo thông tin đăng nhập bằng số điện thoại cho các doanh nghiệp mẫu:
-
-```powershell
-python seed_business_accounts.py
-```
-
-Mật khẩu kiểm thử chung là `Doanhnghiep123`. Script chỉ cập nhật doanh nghiệp có số
-điện thoại trong database/dữ liệu mẫu và có thể chạy lại. Không dùng mật khẩu chung này
-cho môi trường vận hành thật.
-
-Đăng ký và đăng nhập chấp nhận email hoặc số điện thoại. Sau lần đăng nhập đầu tiên,
-mọi tài khoản phải nhập và xác minh email khôi phục trước khi sử dụng các chức năng khác.
-OTP đặt lại mật khẩu chỉ được gửi tới email khôi phục đã xác minh.
-
-Gửi OTP bằng Gmail SMTP không cần Twilio. Cấu hình trên máy chạy backend/Render:
-
-```env
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=your-account@gmail.com
-SMTP_PASSWORD=your-16-character-google-app-password
-```
-
-`smtp.gmail.com` và cổng TLS `587` là giá trị cố định. `SMTP_PASSWORD` phải là App
-Password của Google, không phải mật khẩu đăng nhập Gmail và không được commit `.env`.
-
-Chạy kiểm thử backend:
-
-```powershell
-python -m unittest discover -s tests -v
-```
-
-## 14. API dành cho Business
-
-Toàn bộ số liệu tổng quan được tính trong backend; frontend chỉ hiển thị response:
-
-| Nhóm | Endpoint chính |
+| Biến | Giá trị |
 |---|---|
-| Hồ sơ | `GET/PATCH /business/me` |
-| Dashboard | `GET /business/dashboard` |
-| Hoạt động | `GET /business/activities`, `POST/PATCH/DELETE /activities...` |
-| Ảnh/video hoạt động | `POST /activities/{id}/media/upload` |
-| Đánh giá | `GET /business/reviews` |
-| Phản hồi đánh giá | `POST /business/reviews/{id}/reply`, `PATCH/DELETE /business/review-replies/{id}` |
-| Media phản hồi | `POST /business/review-replies/{id}/media/upload` |
-| Khiếu nại | `POST /complaints`, `GET /business/complaints` |
-| Menu/gallery/logo | `GET/POST /business/media`, `DELETE /business/media/{id}` |
+| `DATABASE_URL` | Chuỗi kết nối PostgreSQL **của bạn**, dạng `postgresql://USER:PASSWORD@HOST:5432/postgres`. Supabase: tạo project mới → **Connect → Connection string → Session pooler** (chạy được cả mạng chỉ có IPv4) |
+| `JWT_SECRET_KEY` | Chuỗi ngẫu nhiên dài, tạo bằng `python -c "import secrets; print(secrets.token_urlsafe(48))"` |
 
-Các endpoint Business đều dùng Bearer token và kiểm tra quyền sở hữu ở backend. Hoạt
-động mới hoặc hoạt động đang active được Business chỉnh sửa sẽ về trạng thái `pending`
-để Operator duyệt lại.
+Dùng database riêng của bạn, không dùng database production của nhóm: các script bên dưới ghi
+thẳng vào database mà `DATABASE_URL` trỏ tới.
 
-## 15. Lưu ảnh bằng Supabase Storage
+Các biến còn lại là tùy chọn; để trống thì app vẫn chạy, chỉ tính năng tương ứng không dùng được:
 
-Backend dùng chính dự án Supabase hiện tại để lưu avatar, logo, gallery, menu và
-ảnh/video hoạt động. Không còn cần tài khoản Cloudinary. Điền các biến sau vào
-`backend/.env` và Render (không đưa secret lên Git):
+| Tính năng | Biến | Khi để trống |
+|---|---|---|
+| Upload ảnh/video | `SUPABASE_URL`, `SUPABASE_SERVICE_KEY` | API upload báo "chưa cấu hình" |
+| Email OTP | `SMTP_*` hoặc `GMAIL_API_*` | Không gửi được OTP quên mật khẩu / xác minh email |
+| Trợ lý AI | `OPENAI_API_KEY` | Trợ lý AI vẫn chạy (xem [AI_SETUP.md](AI_SETUP.md)) |
 
-```env
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_SERVICE_KEY=your_service_role_key
-SUPABASE_STORAGE_BUCKET=free2do-media
-MAX_IMAGE_UPLOAD_MB=5
-MAX_VIDEO_UPLOAD_MB=25
+Giải thích từng biến nằm ngay trong [`backend/.env.example`](backend/.env.example).
+
+### 3. Khởi tạo database (lần đầu)
+
+Database mới **không cần chạy file SQL nào** trong Supabase SQL Editor. Chạy trong `backend/`:
+
+```bash
+python init_db.py
 ```
 
-3. Chạy migration rồi khởi động API:
+**Bắt buộc.** Tạo bảng và role `customer`/`business` (thiếu role thì không đăng ký được). Mỗi lần
+khởi động, backend cũng tự bổ sung bảng/cột còn thiếu.
 
-```powershell
-cd backend
-python migrate_db.py
+```bash
+python bootstrap_admin.py
+```
+
+**Bắt buộc nếu cần vào trang quản trị (Operator).** Tạo tài khoản admin đầu tiên. Bấm Enter để dùng
+mặc định `test123@gmail.com` / `test12345`, hoặc truyền email khác (`python bootstrap_admin.py
+admin@example.com`) và nhập mật khẩu riêng. Script in ra database đích và chỉ ghi khi bạn gõ `yes`;
+email đã tồn tại thì dừng, không sửa tài khoản nào. Lần đăng nhập đầu tiên tài khoản này **bắt buộc
+đổi mật khẩu** (backend chặn mọi API khác cho tới khi đổi xong). Các Operator khác tạo trong trang
+quản trị.
+
+Tùy chọn:
+
+- `python seed_activities.py`: nạp 28 doanh nghiệp và 30 hoạt động mẫu để có dữ liệu xem thử.
+  Tài khoản doanh nghiệp mẫu không có mật khẩu nên không đăng nhập được.
+- `python migrate_db.py`: bật tìm kiếm theo bán kính bằng PostGIS (chạy `migration.sql`). Không chạy
+  thì tìm kiếm vẫn hoạt động bằng cách tính khoảng cách trong Python.
+
+### 4. Chạy backend
+
+Trong `backend/`, venv đã kích hoạt:
+
+```bash
 uvicorn app.main:app --reload
 ```
 
-Bucket public `free2do-media` được backend tự tạo nếu chưa tồn tại. Frontend gửi
-`multipart/form-data`, field tên `file`, tới endpoint upload. File đi qua backend để
-service-role key không bao giờ xuất hiện ở trình duyệt. Backend giới hạn MIME và kích
-thước, lưu URL cùng object path, và xóa file cũ khi người dùng thay avatar/logo.
+API chạy tại `http://localhost:8000`, tài liệu API (Swagger) tại `http://localhost:8000/docs`.
 
-### Avatar mẫu dùng chung
+### 5. Chạy frontend
 
-Upload 5-10 ảnh mẫu đúng một lần; mọi người dùng sau đó chỉ lưu chung URL của ảnh, nên
-không phát sinh thêm bản sao trong Storage:
+Mở terminal khác, đứng ở thư mục gốc `Free2Do/`:
 
-```powershell
-cd backend
-python seed_avatar_presets.py `
-  --avatar "Mèo xanh=C:\images\cat-blue.png" `
-  --avatar "Phi hành gia=C:\images\astronaut.png"
+```bash
+python -m http.server 5500 --directory frontend
 ```
 
-- `GET /media/avatar-presets`: lấy danh sách avatar mẫu.
-- `PUT /media/avatar/preset/{preset_id}`: chọn một avatar mẫu.
-- `POST /media/avatar`: upload avatar riêng.
-- `DELETE /media/avatar`: xóa avatar riêng.
+Mở `http://localhost:5500`. Khi trang được mở từ `localhost`/`127.0.0.1`, frontend tự gọi backend
+`http://localhost:8000` (xem [`frontend/js/config.js`](frontend/js/config.js)); bản deploy gọi
+backend trên Render.
 
-Nên theo dõi Storage Usage trong Supabase, đặt giới hạn file hợp lý và ưu tiên WebP/JPEG.
-Menu, gallery, ảnh/video hoạt động và phản hồi đều do Business tự upload; Operator
-không cần đưa ảnh lên thủ công.
+## Kiểm tra đã chạy đúng
 
-## 16. Biểu đồ Business từ dữ liệu thật
+1. `http://localhost:8000/health/live` trả `{"status":"ok"}`.
+2. `http://localhost:8000/health/ready` có `"database": "connected"` và `"schema": []`.
+3. Mở `http://localhost:5500/sign-up.html`, đăng ký bằng **email** rồi đăng nhập: lưu hoạt động yêu
+   thích, tìm kiếm, đánh giá đều ghi vào database của bạn. (Đăng ký bằng số điện thoại cần cấu hình
+   email để nhận OTP xác minh email khôi phục.)
+4. Đăng nhập `log-in.html` bằng tài khoản admin vừa tạo, đổi mật khẩu, rồi vào trang quản trị.
 
-Frontend lấy toàn bộ dataset đã tính sẵn qua:
+## Chạy test
 
-```http
-GET /business/analytics?days=30
-GET /business/analytics?days=90&activity_id=A001
+Trong `backend/`, venv đã kích hoạt:
+
+```bash
+pip install pytest
+python -m pytest
 ```
 
-`days` nhận giá trị từ 7 đến 365. Backend tự trả bucket theo ngày (tối đa 31
-ngày), tuần (tối đa 120 ngày), hoặc tháng. Response có:
+Test dùng SQLite trong bộ nhớ: không cần database hay `.env`, không gửi email, không gọi AI.
 
-- `summary`: tổng review, bookmark, tương tác và rating trong kỳ.
-- `engagement_trend`: chuỗi thời gian dùng cho line/bar chart.
-- `rating_distribution`: phân bố 1-5 sao dùng cho bar/donut chart.
-- `activity_status_distribution`: phân bố trạng thái hoạt động.
-- `category_distribution`: số hoạt động theo danh mục.
-- `activity_performance`: review, bookmark, rating và phản hồi còn thiếu của
-  từng hoạt động.
+## Lỗi thường gặp
 
-Các con số được truy vấn từ `reviews`, `bookmarks`, `activities`,
-`activities_categories` và `review_replies`; frontend không cần tự tổng hợp.
+| Triệu chứng | Cách xử lý |
+|---|---|
+| Khởi động báo `ValidationError` ở `DATABASE_URL` hoặc `JWT_SECRET_KEY` | Chưa tạo `backend/.env` hoặc còn để trống 2 biến bắt buộc |
+| `/health/ready` trả 503 | `DATABASE_URL` sai hoặc không kết nối được database (kiểm tra mật khẩu, host, cổng) |
+| Đăng ký báo "Không tìm thấy role customer" | Chạy `python init_db.py` |
+| Đăng nhập admin bị chuyển sang trang đổi mật khẩu | Đúng thiết kế: tài khoản tạo bằng `bootstrap_admin.py` phải đổi mật khẩu lần đầu |
+| `bootstrap_admin.py` báo email đã có tài khoản | Database đó đã có email này; dùng email khác hoặc đăng nhập tài khoản cũ |
+| Frontend báo "Không kết nối được backend" | Backend chưa chạy ở cổng 8000, hoặc frontend không mở ở cổng 5500 (cổng khác thì thêm vào `CORS_ORIGINS`) |
+| `password cannot be longer than 72 bytes` | Đang dùng thư viện ngoài venv; kích hoạt venv và chạy lại `pip install -r requirements.txt` |
+| `UnicodeEncodeError` khi chạy script trên Git Bash (Windows) | Đặt `PYTHONUTF8=1` (Git Bash: `export PYTHONUTF8=1`) hoặc dùng PowerShell/cmd |
+| Upload ảnh báo chưa cấu hình | Điền `SUPABASE_URL`, `SUPABASE_SERVICE_KEY` |
+| Không nhận được OTP | Cấu hình email theo [SMTP_GMAIL_SETUP.md](SMTP_GMAIL_SETUP.md); kiểm tra cả thư mục Spam |
 
-## 17. Seed logo và gallery từ thư mục business_id
+## Tài liệu khác
 
-Cấu trúc đầu vào:
+- [MAINTAINING.md](MAINTAINING.md): deploy (Render, Vercel), migration, script seed và bảo trì.
+- [SMTP_GMAIL_SETUP.md](SMTP_GMAIL_SETUP.md), [GMAIL_API_RENDER_SETUP.md](GMAIL_API_RENDER_SETUP.md): gửi email OTP.
+- [AI_SETUP.md](AI_SETUP.md): trợ lý AI.
+- [MAP_ICON_GUIDE.md](MAP_ICON_GUIDE.md): icon hoạt động trên bản đồ.
 
-```text
-QLDACNTT/
-├── B001/
-│   ├── Logo.jpg
-│   ├── IMG_1152.PNG
-│   └── ...
-├── B002/
-└── ...
-```
+## Thành viên nhóm
 
-Kiểm tra ánh xạ trước, chưa upload:
-
-```powershell
-cd backend
-python seed_business_media.py --root "C:\duong-dan\QLDACNTT" --dry-run
-```
-
-Upload lên Supabase Storage và ghi `business_media`:
-
-```powershell
-python seed_business_media.py --root "C:\duong-dan\QLDACNTT"
-```
-
-`Logo.*` được gắn `media_kind=logo`; ảnh còn lại là `gallery`. Muốn coi ảnh
-còn lại là menu, thêm `--image-kind menu`. Script tạo `public_id` ổn định từ
-hash nội dung, nên chạy lại sẽ bỏ qua bản ghi đã seed thay vì nhân đôi. Mặc
-định script không ghi đè logo mà doanh nghiệp đã tự thay; chỉ dùng
-`--replace-existing-logo` khi thực sự muốn thay.
-
-Seed chỉ dành cho bộ dữ liệu ban đầu. Sau đó doanh nghiệp vẫn tự upload bằng
-`POST /business/media?kind=logo|gallery|menu` và
-`POST /activities/{activity_id}/media/upload`; Operator không tham gia luồng
-này.
-
-Nếu database còn URL Cloudinary từ bản cũ, chạy một lần để sao chép các file còn
-truy cập được sang bucket Supabase và cập nhật URL trong database:
-
-```powershell
-cd backend
-python migrate_media_to_supabase.py
-```
-
-Script chạy lại an toàn; các URL đã thuộc Supabase Storage sẽ được bỏ qua.
-
-### PostGIS và tọa độ Google Maps
-
-`python migrate_db.py` bật extension PostGIS, thêm cột
-`activities.location geography(Point,4326)`, trigger đồng bộ cột đó từ
-`latitude/longitude`, và GiST index để tìm theo bán kính. API vẫn giữ hai cột số cũ để
-không phá hợp đồng frontend. Search trên PostgreSQL dùng `ST_DWithin`; SQLite test dùng
-Haversine dự phòng.
-
-Khi tạo hoặc sửa hoạt động, link Google Maps là nguồn tọa độ ưu tiên kể cả khi
-request đồng thời có latitude/longitude cũ. Backend mở short link rồi đọc tọa độ
-`place` từ Google Embed công khai (không cần Google Maps API key), không lấy tâm
-viewport của trang preview. Nếu không có link, backend dùng tọa độ nhập tay hoặc
-geocode địa chỉ qua Nominatim với cache và giới hạn tối đa 1 request/giây.
-
-- `GET /search/location?query=...`: đổi địa chỉ hoặc link Google Maps do người dùng
-  nhập thành tọa độ cho bộ lọc.
-- `python sync_activity_locations.py`: audit tọa độ; thêm `--apply` để ghi vào DB.
-- Map customer hỗ trợ wheel/nhấp đúp để zoom, kéo để pan và nhấn vùng trống để chọn
-  tâm tìm kiếm mới. Khoảng cách ở trang chi tiết được backend tính theo tâm đó.
-
-## 18. Deploy backend lên Render
-
-Repository có sẵn `render.yaml` và đã khóa phiên bản dependency để build có thể
-lặp lại. Khi cấu hình Web Service thủ công, dùng đúng các giá trị:
-
-```text
-Root Directory: backend
-Build Command: pip install --upgrade pip && pip install -r requirements.txt
-Start Command: uvicorn app.main:app --host 0.0.0.0 --port $PORT
-Health Check Path: /health/live
-PYTHON_VERSION: 3.13.5
-```
-
-Các biến bắt buộc trên Render: `DATABASE_URL`, `JWT_SECRET_KEY`, `SUPABASE_URL`,
-`SUPABASE_SERVICE_KEY`, `SUPABASE_STORAGE_BUCKET`.
-Đặt `CORS_ORIGINS` thành danh sách domain frontend, phân tách bằng dấu phẩy.
-Backend cũng cho phép HTTPS từ các deployment `*.vercel.app` để dùng được với
-preview của Vercel.
-
-- `GET /health/live`: kiểm tra tiến trình FastAPI, không phụ thuộc dịch vụ ngoài.
-- `GET /health/ready`: kiểm tra kết nối database, PostGIS và trạng thái cấu hình
-  Supabase Storage, không trả secret.
-- `GET /businesses` và `GET /businesses/{business_id}`: dữ liệu public của doanh
-  nghiệp, gồm logo/gallery/menu và tổng số hoạt động active để frontend hiển thị.
-
-## 19. Frontend Business
-
-Các trang trong `frontend/Demo Trang Business` đã kết nối trực tiếp với backend:
-
-- `business-home.html`: dashboard và biểu đồ từ `/business/dashboard` và
-  `/business/analytics`.
-- `business-profile.html`: xem/sửa hồ sơ, upload/xóa logo, gallery và menu qua
-  Supabase Storage.
-- `my-activities.html`: tạo, sửa, hủy hoạt động; chọn danh mục; upload/xóa
-  ảnh/video.
-- `reviews.html`: xem review và media thật, phản hồi, sửa/xóa phản hồi, upload
-  media phản hồi và gửi khiếu nại.
-
-Đăng nhập tự điều hướng theo role: Operator tới trang quản trị, Customer tới trang
-Customer và Business tới `Demo Trang Business/business-home.html`. Frontend chỉ
-định dạng và hiển thị response; các số liệu dashboard, biểu đồ, rating, review và
-tương tác đều được tổng hợp ở backend.
-
-`upgrade-plan.html` hiện chỉ là trang giới thiệu. Nút thanh toán bị vô hiệu hóa vì
-backend chưa có nghiệp vụ subscription/payment; trang không giả lập thao tác nâng
-cấp ở trình duyệt.
+| Vai trò | Họ và tên |
+|---|---|
+| Project Manager | Nguyễn Thiện Nhân |
+| UI/UX Designer | Lê Thị Diệu Linh |
+| System Architect | Dương Khánh Duy |
+| Frontend Developer | Phạm Phương Anh |
+| Backend Developer | Đoàn Anh Tú |
+| QA/Tester | Trần Hoàng Trung |
+| Thư ký + Triển khai | Nguyễn Thị Linh Anh |

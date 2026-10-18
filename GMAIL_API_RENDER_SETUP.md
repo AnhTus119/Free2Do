@@ -53,7 +53,7 @@ Khi chỉ thay biến môi trường trên Render:
 
 ## 4. Kiểm tra
 
-Mở `https://free2do.onrender.com/health/ready`. Kết quả cần có:
+Mở `https://free2do-o4oy.onrender.com/health/ready`. Kết quả cần có:
 
 ```json
 "email_provider": "gmail_api",

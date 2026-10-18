@@ -13,10 +13,12 @@ _sqlite_activity_code = 0
 def next_activity_code(context) -> str:
     """Mã hiển thị A1, A2... cho hoạt động mới (khóa chính vẫn là activity_id).
 
-    PostgreSQL: lấy từ SEQUENCE activity_code_seq (tạo trong migrations/2026-10-16_ui_round2.sql),
-    an toàn khi nhiều request đồng thời, mã đã xóa không bị dùng lại."""
+    PostgreSQL: lấy từ SEQUENCE activity_code_seq, an toàn khi nhiều request đồng thời,
+    mã đã xóa không bị dùng lại."""
     connection = context.connection
     if connection.dialect.name == "postgresql":
+        # IF NOT EXISTS: database mới (clone mới, chưa có sequence) vẫn tạo được hoạt động.
+        connection.execute(text("CREATE SEQUENCE IF NOT EXISTS activity_code_seq"))
         return "A" + str(connection.execute(text("SELECT nextval('activity_code_seq')")).scalar())
     # ponytail: SQLite chỉ dùng cho test/chạy local 1 tiến trình, max+1 + bộ đếm là đủ.
     global _sqlite_activity_code
@@ -34,7 +36,7 @@ _sqlite_user_code = 0
 
 def next_user_code(context) -> str:
     """Mã khách hàng C1, C2... (khóa chính vẫn là user_id). Cùng cách với next_activity_code;
-    PostgreSQL dùng SEQUENCE user_code_seq (tạo trong migrations/2026-10-17_operator_round.sql)."""
+    PostgreSQL dùng SEQUENCE user_code_seq."""
     connection = context.connection
     if connection.dialect.name == "postgresql":
         # IF NOT EXISTS: deploy trước khi chạy migration vẫn đăng ký được (migration sẽ setval lại).

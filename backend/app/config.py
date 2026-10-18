@@ -1,10 +1,12 @@
 from pathlib import Path
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 ENV_PATH = Path(__file__).resolve().parent.parent / ".env"
 class Settings(BaseSettings):
-    DATABASE_URL: str
-    JWT_SECRET_KEY: str
+    # Bắt buộc. Để trống (copy .env.example mà quên điền) thì dừng ngay: JWT key rỗng vẫn ký được token.
+    DATABASE_URL: str = Field(min_length=1)
+    JWT_SECRET_KEY: str = Field(min_length=1)
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRE_MINUTES: int = 60 * 24        # 1 ngày -- token của user (khách hàng/doanh nghiệp)
     OPERATOR_TOKEN_EXPIRE_MINUTES: int = 180  # 3 tiếng -- token của Operator/admin, ngắn hơn vì là tài khoản quản trị

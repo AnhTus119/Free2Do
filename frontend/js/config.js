@@ -1,7 +1,11 @@
 // Cấu hình dùng chung cho toàn bộ frontend tĩnh.
 // Không thêm dấu "/" ở cuối URL để tránh tạo đường dẫn "//auth/...".
+// Mở frontend từ localhost/127.0.0.1 thì gọi backend chạy local (uvicorn cổng 8000),
+// để khi phát triển không ghi nhầm vào dữ liệu production.
 window.FREE2DO_CONFIG = Object.freeze({
-  API_BASE_URL: "https://free2do-o4oy.onrender.com",
+  API_BASE_URL: ["localhost", "127.0.0.1"].includes(location.hostname)
+    ? "http://localhost:8000"
+    : "https://free2do-o4oy.onrender.com",
 });
 
 // Đánh thức Render ngay khi trang vừa mở. Với gói Free, backend có thể ngủ sau

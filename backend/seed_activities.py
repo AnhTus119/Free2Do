@@ -1,16 +1,18 @@
-"""Nạp dữ liệu hoạt động từ sheet ``DỮ LIỆU`` của QUẢN LÝ DỰ ÁN CNTT.xlsx.
+"""Nạp dữ liệu mẫu: 28 doanh nghiệp, 30 hoạt động, tags, link Google Maps (sheet ``DỮ LIỆU`` của
+QUẢN LÝ DỰ ÁN CNTT.xlsx). Chỉ dùng cho database phát triển của bạn.
 
-Chạy sau ``python init_db.py`` và migration.sql:
+Chạy sau ``python init_db.py``:
     python seed_activities.py
 
-Script có thể chạy lại an toàn: doanh nghiệp/hoạt động được cập nhật theo mã nguồn.
+Chạy lại an toàn: doanh nghiệp/hoạt động mẫu được cập nhật theo mã nguồn (ghi đè chỉnh sửa trên
+chính các bản ghi mẫu). Tài khoản doanh nghiệp mẫu KHÔNG có mật khẩu nên không đăng nhập được,
+và lần chạy lại không bao giờ đặt/đổi mật khẩu của tài khoản đã có.
 """
 
 import re
 from datetime import UTC, datetime, time
 
 from app import models
-from app.auth import hash_password
 from app.database import SessionLocal
 from app.utils.identity import normalize_phone
 
@@ -201,8 +203,8 @@ def main():
                     account_id=f"ACC-{business_id}",
                     email=f"{business_id.lower()}@seed.free2do.local",
                     phone=login_phone,
-                    password_hash=hash_password("Doanhnghiep123") if login_phone else None,
-                    auth_provider="phone" if login_phone else "seed",
+                    password_hash=None,  # không đăng nhập được: không có mật khẩu mẫu dùng chung
+                    auth_provider="seed",
                     email_verified=True,
                     account_type="user",
                     status="active",
@@ -218,12 +220,6 @@ def main():
                 )
                 db.add(user)
                 db.flush()
-            elif phone and user.account and user.account.auth_provider == "seed":
-                login_phone = normalize_phone(phone)
-                user.account.phone = login_phone
-                user.account.password_hash = hash_password("Doanhnghiep123")
-                user.account.auth_provider = "phone"
-                user.phone = login_phone
             profile = db.query(models.BusinessProfile).filter(models.BusinessProfile.user_id == business_id).first()
             if profile is None:
                 profile = models.BusinessProfile(user_id=business_id, business_name=name, phone=phone, business_address=address)

@@ -18,8 +18,6 @@ from app.routers.search import search_activities
 from app.routers.users import update_my_categories, update_my_profile
 from app.utils.google_maps import coordinates_from_google_maps_url
 import seed_activities
-import seed_business_accounts
-import sync_activity_tags
 
 
 class BackendCalculationTests(unittest.TestCase):
@@ -108,34 +106,35 @@ class BackendCalculationTests(unittest.TestCase):
             )
             self.assertIn("A003", {item.activity_id for item in results})
 
-    def test_tag_sync_is_idempotent_and_fixes_onemore(self):
-        updated, missing = sync_activity_tags.sync_activity_tags(self.db)
-        self.assertEqual(updated, 30)
-        self.assertEqual(missing, [])
+    def test_seed_sets_tags_and_maps_links(self):
         activity = self.db.query(models.Activity).filter_by(activity_id="A023").one()
-        self.assertEqual(activity.name, "Cà phê")
         self.assertEqual(
             {item.category.name for item in activity.categories},
             {"Cà phê", "Ăn uống", "Làm việc", "Thư giãn"},
         )
+        self.assertEqual(activity.google_maps_url, seed_activities.GOOGLE_MAP_URLS["A023"])
 
-    def test_seed_enables_business_phone_login(self):
-        updated, missing = seed_business_accounts.seed_business_accounts(self.db)
-        self.assertEqual(len(updated), 27)
-        self.assertEqual(missing, ["B022"])
+    def test_seeded_businesses_cannot_log_in_and_rerun_keeps_passwords(self):
+        from fastapi import HTTPException as _HTTPException
+        from fastapi.security import OAuth2PasswordRequestForm
+        from app.auth import hash_password
+        from app.routers.auth import login
 
+        accounts = self.db.query(models.Account).filter(models.Account.account_id.like("ACC-B%")).all()
+        self.assertEqual(len(accounts), 28)
+        self.assertTrue(all(account.password_hash is None for account in accounts))
         business = self.db.query(models.User).filter_by(user_id="B001").one()
-        self.assertEqual(
-            business.account.phone,
-            seed_business_accounts.SEED_PHONES["B001"],
-        )
-        self.assertEqual(business.account.auth_provider, "phone")
-        self.assertTrue(
-            verify_password(
-                seed_business_accounts.DEFAULT_BUSINESS_PASSWORD,
-                business.account.password_hash,
-            )
-        )
+        for identifier in (business.account.phone, business.account.email):
+            with self.assertRaises(_HTTPException) as raised:
+                login(OAuth2PasswordRequestForm(username=identifier, password="Doanhnghiep123"), db=self.db)
+            self.assertEqual(raised.exception.status_code, 401)
+
+        # Chủ doanh nghiệp được cấp mật khẩu riêng sau này: chạy lại seed không được đụng tới.
+        business.account.password_hash = own = hash_password("mat-khau-rieng")
+        self.db.commit()
+        seed_activities.main()
+        self.db.expire_all()
+        self.assertEqual(self.db.query(models.User).filter_by(user_id="B001").one().account.password_hash, own)
 
     def test_operator_summaries_are_calculated_by_backend(self):
         dashboard = get_dashboard(db=self.db, _operator=None)

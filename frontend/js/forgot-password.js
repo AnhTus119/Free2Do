@@ -84,45 +84,6 @@ if (inlineOtpForm) {
   });
 }
 
-const checkEmailForm = document.querySelector(".check-email__form");
-if (checkEmailForm) {
-  checkEmailForm.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const identifier = sessionStorage.getItem("reset_identifier");
-    const code = document.getElementById("check-email-code").value.trim();
-
-    if (!identifier) {
-      F2D.toast("Không tìm thấy tài khoản cần đặt lại mật khẩu. Vui lòng thử lại.", "error");
-      setTimeout(() => { window.location.href = "forgot-password.html"; }, 1800);
-      return;
-    }
-
-    const button = checkEmailForm.querySelector("button");
-    const message = checkEmailForm.querySelector(".form-message");
-    button.disabled = true;
-    button.textContent = "Đang xác nhận...";
-    message.textContent = "";
-    try {
-      await window.FREE2DO_BACKEND_READY;
-      const response = await fetch(`${AUTH_API_BASE_URL}/auth/verify-reset-otp`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ identifier, code }),
-      });
-      const data = await readJson(response);
-      if (!response.ok) throw new Error(data.detail || "Mã xác nhận không đúng hoặc đã hết hạn.");
-
-      sessionStorage.setItem("reset_token", data.reset_token);
-      window.location.href = "reset-password.html";
-    } catch (error) {
-      console.error(error);
-      button.disabled = false;
-      button.textContent = "Xác nhận mã OTP";
-      message.textContent = error.message || `Không kết nối được backend tại ${AUTH_API_BASE_URL}.`;
-    }
-  });
-}
-
 const resetForm = document.querySelector(".reset-password__form");
 if (resetForm) {
   resetForm.addEventListener("submit", async (event) => {

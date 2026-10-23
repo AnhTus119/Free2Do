@@ -4,6 +4,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import jwt, JWTError
 from passlib.context import CryptContext
+from sqlalchemy import exists
 from sqlalchemy.orm import Session, joinedload
 from google.oauth2 import id_token as google_id_token
 from google.auth.transport import requests as google_requests
@@ -20,11 +21,36 @@ def hash_password(password: str) -> str:
 
 def verify_password(password: str, password_hash: str) -> bool:
     return pwd_context.verify(password, password_hash)
-def create_access_token(account_id: str, expire_minutes: Optional[int] = None) -> str:
+def create_access_token(account_id: str, expire_minutes: Optional[int] = None, session_id: Optional[str] = None) -> str:
     minutes = expire_minutes if expire_minutes is not None else settings.JWT_EXPIRE_MINUTES
     expire = datetime.utcnow() + timedelta(minutes=minutes)
     payload = {"sub": account_id, "type": "access", "exp": expire}
+    if session_id:
+        payload["sid"] = session_id  # phiên (refresh_tokens.token_id): đăng xuất là token này hết hiệu lực
     return jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+
+
+def issue_tokens(db: Session, account: models.Account) -> dict:
+    """Tạo phiên đăng nhập mới: access token ngắn hạn + refresh token (user 7 ngày, Operator 8 tiếng)."""
+    now = datetime.utcnow()
+    lifetime = (
+        timedelta(minutes=settings.OPERATOR_REFRESH_TOKEN_EXPIRE_MINUTES)
+        if account.account_type == "operator"
+        else timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
+    )
+    account_id, session_id, expires_at = account.account_id, models.gen_id(), now + lifetime
+    db.add(models.RefreshToken(token_id=session_id, account_id=account_id, expires_at=expires_at, created_at=now))
+    db.commit()
+    refresh_token = jwt.encode(
+        {"sub": account_id, "type": "refresh", "jti": session_id, "exp": expires_at},
+        settings.JWT_SECRET_KEY,
+        algorithm=settings.JWT_ALGORITHM,
+    )
+    return {
+        "access_token": create_access_token(account_id, session_id=session_id),
+        "refresh_token": refresh_token,
+        "token_type": "bearer",
+    }
 
 def create_reset_token(account_id: str) -> str:
     """Token ngắn hạn, chỉ dùng để đổi mật khẩu sau khi đã xác minh OTP thành công."""
@@ -32,15 +58,21 @@ def create_reset_token(account_id: str) -> str:
     payload = {"sub": account_id, "type": "reset", "exp": expire}
     return jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 
-def decode_token(token: str, expected_type: str) -> Optional[str]:
-    """Trả về account_id trong ``sub`` nếu token hợp lệ và đúng loại."""
+def decode_payload(token: str, expected_type: str) -> Optional[dict]:
+    """Toàn bộ payload nếu token hợp lệ (chữ ký, hạn dùng) và đúng loại, ngược lại None."""
     try:
         payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
     except JWTError:
         return None
     if payload.get("type") != expected_type:
         return None
-    return payload.get("sub")
+    return payload
+
+
+def decode_token(token: str, expected_type: str) -> Optional[str]:
+    """Trả về account_id trong ``sub`` nếu token hợp lệ và đúng loại."""
+    payload = decode_payload(token, expected_type)
+    return payload.get("sub") if payload else None
 
 def verify_google_token(token: str) -> Optional[dict]:
     """Xác minh id_token do Google Identity Services trả về ở frontend.
@@ -70,8 +102,8 @@ def get_authenticated_account(
     db: Session = Depends(get_db),
 ) -> models.Account:
     """Giải mã access token mà chưa yêu cầu email khôi phục."""
-    account_id = decode_token(token, expected_type="access")
-    if not account_id:
+    payload = decode_payload(token, expected_type="access")
+    if not payload or not payload.get("sub"):
         raise HTTPException(
             status.HTTP_401_UNAUTHORIZED,
             "Token không hợp lệ hoặc đã hết hạn",
@@ -80,36 +112,29 @@ def get_authenticated_account(
 
     # Nạp luôn hồ sơ user/operator bằng JOIN: mỗi request chỉ tốn 1 lượt tới database
     # (trước đây là 2 lượt nối đuôi nhau: tìm account rồi mới tìm user/operator).
-    account = (
+    query = (
         db.query(models.Account)
         .options(joinedload(models.Account.user), joinedload(models.Account.operator))
-        .filter(models.Account.account_id == account_id)
-        .first()
+        .filter(models.Account.account_id == payload["sub"])
     )
+    session_id = payload.get("sid")
+    if session_id:
+        # Phiên đã đăng xuất/hết hạn -> access token của phiên đó bị từ chối ngay (cùng 1 truy vấn).
+        query = query.filter(exists().where(
+            models.RefreshToken.token_id == session_id,
+            models.RefreshToken.account_id == models.Account.account_id,
+            models.RefreshToken.revoked_at.is_(None),
+            models.RefreshToken.expires_at > datetime.utcnow(),
+        ))
+    account = query.first()
     if not account:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Tài khoản không tồn tại")
+        raise HTTPException(
+            status.HTTP_401_UNAUTHORIZED,
+            "Phiên đăng nhập đã kết thúc. Vui lòng đăng nhập lại",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     if account.status != "active":
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Tài khoản chưa được kích hoạt hoặc đã bị khóa")
-    if account.user:
-        cutoff = datetime.utcnow() - timedelta(days=60)
-        overdue = (
-            db.query(models.GroupPayment.payment_id)
-            .join(models.GroupMember, models.GroupMember.member_id == models.GroupPayment.member_id)
-            .filter(
-                models.GroupMember.user_id == account.user.user_id,
-                models.GroupPayment.status == "unpaid",
-                models.GroupPayment.overdue_since.is_not(None),
-                models.GroupPayment.overdue_since <= cutoff,
-            )
-            .first()
-        )
-        if overdue:
-            account.status = "blocked"
-            db.commit()
-            raise HTTPException(
-                status.HTTP_403_FORBIDDEN,
-                "Tài khoản bị khóa do khoản thanh toán nhóm quá hạn trên 2 tháng",
-            )
     return account
 
 

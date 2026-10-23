@@ -13,6 +13,9 @@
   let currentPage = 1;
   let editingBusinessId = null;
   let existingProofCount = 0;
+  // Link từ cảnh báo ở Tổng quan: businesses.html?status=pending | missingPhone lọc sẵn.
+  const statusParam = new URLSearchParams(location.search).get('status');
+  if ([...statusFilter.options].some(option => option.value === statusParam)) statusFilter.value = statusParam;
 
   function activityCount(id) {
     return data.businesses.find(business => business.id === id)?.activityCount || 0;
@@ -29,7 +32,9 @@
   function filteredBusinesses() {
     const query = data.normalize(searchInput.value);
     const businesses = data.businesses.filter(business => {
-      const matchesStatus = statusFilter.value === 'all' || business.status === statusFilter.value;
+      const matchesStatus = statusFilter.value === 'all' || business.status === statusFilter.value
+        // Cùng tiêu chí với cảnh báo ở Tổng quan: hồ sơ doanh nghiệp chưa có SĐT (không tính đơn đang chờ duyệt).
+        || (statusFilter.value === 'missingPhone' && !business.requestId && !business.profilePhone);
       const matchesSearch = !query || data.normalize(`${business.code || ''} ${business.name} ${business.address} ${business.type}`).includes(query);
       return matchesStatus && matchesSearch;
     });
@@ -180,6 +185,8 @@
     event.preventDefault();
     const name = document.getElementById('editBusinessName').value.trim();
     if (!name) return F2D.toast('Tên doanh nghiệp không được để trống.', 'error');
+    const phoneError = F2D.phoneProblem(document.getElementById('editBusinessPhone').value);
+    if (phoneError) return F2D.toast(phoneError, 'error');
     const proofFiles = document.getElementById('editBusinessProofs').files;
     const saved = await F2D.ask({
       title: 'Lưu hồ sơ doanh nghiệp?', text: `Thông tin mới của "${name}" sẽ hiển thị ngay với khách hàng.`, ok: 'Lưu thay đổi',

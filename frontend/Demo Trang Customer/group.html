@@ -30,31 +30,10 @@ if (!/Demo(%20| )Trang(%20| )Customer/.test(location.pathname) && !/\.html?$/i.t
   .group-avg .pct{font-size:30px;font-weight:800;color:var(--rose-dark);}
   .group-avg .lbl{font-size:13px;color:var(--muted);}
 
-  .cost-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px;}
-  .cost-stat{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px;text-align:center;}
-  .cost-stat .num{font-size:20px;font-weight:800;}
-  .cost-stat .lbl{font-size:12px;color:var(--muted);margin-top:4px;}
-  .expense-total-input{width:100%;min-width:0;height:40px;margin-top:8px;border:1.5px solid var(--line);border-radius:9px;padding:0 10px;text-align:center;font:700 16px 'Inter',sans-serif;color:var(--ink);}
-  .expense-total-input:focus{outline:none;border-color:var(--rose);}
-  .expense-total-hint{font-size:11px;color:var(--muted);margin-top:6px;}
-  .expense-entry-row{display:grid;grid-template-columns:auto minmax(120px,240px) auto;justify-content:center;align-items:center;gap:60px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:16px;}
-  .expense-entry-row[hidden],#deleteGroupSection[hidden]{display:none;}
-  .expense-entry-row label{font-size:18px;font-weight:700;color:var(--brown);}
-  .expense-entry-controls{display:contents;}
-  .expense-entry-controls .expense-total-input{margin-top:0;}
-  .expense-entry-controls .btn{white-space:nowrap;}
+  #deleteGroupSection[hidden]{display:none;}
   .delete-group-section{margin-top:28px;padding-top:18px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;}
   .delete-group-button{color:var(--danger);}
-  @media(max-width:650px){.expense-entry-row{grid-template-columns:minmax(0,1fr) minmax(100px,180px) auto;gap:8px;padding:12px;}.expense-entry-row label{font-size:12px;}.expense-entry-controls .btn{padding:0 10px;font-size:12px;}}
-  @media(max-width:650px){.cost-stats{grid-template-columns:repeat(2,minmax(0,1fr));}}
 
-  .split-row{display:flex;align-items:center;gap:14px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:10px;}
-  .split-amount{font-size:13.5px;font-weight:700;margin-left:auto;}
-  .payment-actions{display:flex;gap:7px;margin-left:8px;}
-  .payment-actions .btn{height:32px;padding:0 10px;font-size:11.5px;}
-  .pay-badge{display:inline-block;margin-left:10px;padding:4px 12px;border-radius:100px;font-size:11.5px;font-weight:700;vertical-align:middle;}
-  .pay-badge.paid{background:var(--success-bg);color:var(--success);}
-  .pay-badge.unpaid{background:var(--warn-bg);color:var(--warn);}
   .group-overlay{position:fixed;inset:0;background:rgba(43,36,32,.42);display:none;align-items:center;justify-content:center;padding:20px;z-index:80;}
   .group-overlay.open{display:flex;}
   .group-modal{width:min(680px,100%);max-height:90vh;overflow:auto;background:#fff;border-radius:20px;padding:24px;box-shadow:0 24px 70px rgba(43,36,32,.25);}
@@ -169,7 +148,6 @@ if (!/Demo(%20| )Trang(%20| )Customer/.test(location.pathname) && !/\.html?$/i.t
   .g-wait::after{content:'';display:inline-block;width:12px;text-align:left;animation:gDots 1.2s steps(4,end) infinite;}
   .g-pulse{animation:gPulse 2s ease-in-out infinite;}
   .g-fade{animation:gFadeUp .25s ease-out;}
-  .g-reminded{opacity:.7;cursor:default;}
   .g-decision-overlay{position:fixed;inset:0;z-index:120;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(43,36,32,.5);backdrop-filter:blur(3px);opacity:0;pointer-events:none;transition:opacity .22s ease;}
   .g-decision-overlay.open{opacity:1;pointer-events:auto;}
   .g-decision-card{position:relative;width:min(440px,100%);max-height:90vh;overflow:auto;background:#fff;border-radius:24px;padding:28px 26px 24px;box-shadow:0 30px 80px rgba(43,36,32,.3);transform:translateY(16px) scale(.97);transition:transform .25s cubic-bezier(.2,.8,.2,1);text-align:center;}
@@ -189,6 +167,31 @@ if (!/Demo(%20| )Trang(%20| )Customer/.test(location.pathname) && !/\.html?$/i.t
   .g-cheer{font-size:14.5px;line-height:1.6;margin:16px 0 0;}
   .g-confetti{position:absolute;inset:0;pointer-events:none;overflow:hidden;border-radius:inherit;}
   .g-confetti i{position:absolute;top:-12px;width:8px;height:14px;border-radius:2px;opacity:.9;animation:gConfetti 1.6s ease-in forwards;}
+  .g-voting-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:0 0 16px;padding:12px 14px;border:1px dashed var(--line);border-radius:14px;background:var(--paper);}
+  .g-voting-bar p{margin:0;font-size:13px;color:var(--muted);line-height:1.5;}
+  .g-voting-bar b{color:var(--ink);}
+  .g-voting-live{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:700;color:var(--rose-dark);}
+  .g-voting-live::before{content:'';width:8px;height:8px;border-radius:50%;background:var(--rose);animation:gPulse 2s ease-in-out infinite;}
+  .g-pick-label{display:inline-block;margin-bottom:4px;padding:3px 10px;border-radius:999px;background:var(--cream);color:var(--brown);font-size:11px;font-weight:800;letter-spacing:.03em;}
+  .g-decision-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:14px;}
+  .g-option{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;padding:16px 12px 14px;border:2px solid var(--line);border-radius:18px;background:#fff;color:var(--ink);font-family:inherit;text-align:center;cursor:pointer;transition:border-color .18s ease,box-shadow .18s ease,transform .18s ease;}
+  .g-option:hover{transform:translateY(-2px);border-color:#E9B3C0;}
+  .g-option:focus-visible{outline:3px solid rgba(219,102,128,.35);outline-offset:2px;}
+  .g-option.is-picked{border-color:var(--rose);box-shadow:0 0 0 4px rgba(219,102,128,.12);}
+  .g-option.is-mine{border-color:var(--rose-dark);box-shadow:0 0 0 4px rgba(190,79,104,.22),0 10px 24px rgba(190,79,104,.18);}
+  .g-option.is-mine::after{content:'Bạn chọn';position:absolute;top:-10px;right:12px;padding:2px 9px;border-radius:999px;background:var(--rose-dark);color:#fff;font-size:10.5px;font-weight:800;}
+  .g-option.g-pop{animation:gCardPop .42s cubic-bezier(.34,1.56,.64,1);}
+  .g-option-icon{font-size:28px;line-height:1;}
+  .g-option-title{font-size:15px;font-weight:800;}
+  .g-option-text{font-size:11.5px;color:var(--muted);line-height:1.45;}
+  .g-option-pickers{display:flex;flex-wrap:wrap;justify-content:center;gap:4px;min-height:26px;margin-top:4px;}
+  .g-option-empty{font-size:11px;color:var(--muted);align-self:center;}
+  .g-pick-avatar{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:var(--rose);color:#fff;font-size:11.5px;font-weight:800;border:2px solid #fff;box-shadow:0 2px 6px rgba(43,36,32,.18);}
+  .g-pick-avatar.g-pop{animation:gPop .38s cubic-bezier(.34,1.56,.64,1);}
+  .g-option-cta{font-size:11px;font-weight:800;color:var(--rose-dark);}
+  .g-decision-hint{font-size:12px;color:var(--muted);text-align:center;margin:10px 0 0;}
+  @media(max-width:420px){.g-decision-cards{grid-template-columns:1fr;}}
+  @keyframes gCardPop{0%{transform:scale(.94);}55%{transform:scale(1.05);}100%{transform:none;}}
   @keyframes gFadeUp{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
   @keyframes gPop{from{transform:scale(.6);opacity:0;}to{transform:none;opacity:1;}}
   @keyframes gTick{from{transform:translateY(-14px);opacity:.3;}to{transform:none;opacity:1;}}
@@ -196,7 +199,7 @@ if (!/Demo(%20| )Trang(%20| )Customer/.test(location.pathname) && !/\.html?$/i.t
   @keyframes gPulse{0%,100%{box-shadow:0 0 0 0 rgba(219,102,128,.35);}50%{box-shadow:0 0 0 8px rgba(219,102,128,0);}}
   @keyframes gDots{0%{content:'';}25%{content:'.';}50%{content:'..';}75%{content:'...';}}
   @keyframes gConfetti{to{transform:translateY(520px) rotate(540deg);opacity:0;}}
-  @media (prefers-reduced-motion:reduce){.g-decision-overlay,.g-decision-card,.g-tally-bar span,.suggestion-card{transition:none;}.g-pulse,.g-fade,.g-decision-body.g-swap,.g-slot-tick,.g-slot-win,.g-vote-badge,.g-confetti i,.g-wait::after{animation:none;}}
+  @media (prefers-reduced-motion:reduce){.g-decision-overlay,.g-decision-card,.g-tally-bar span,.suggestion-card{transition:none;}.g-pulse,.g-fade,.g-decision-body.g-swap,.g-slot-tick,.g-slot-win,.g-vote-badge,.g-confetti i,.g-wait::after,.g-option.g-pop,.g-pick-avatar.g-pop,.g-voting-live::before{animation:none;}.g-option{transition:none;}}
 </style>
 <style>
 /* ===== Font ===== */
@@ -235,7 +238,6 @@ html,body,input,button,select,textarea{font-family:'Inter',system-ui,-apple-syst
   .map-side-list{max-height:360px;overflow-y:auto}
 }
 
-@media(max-width:900px){.cost-stats{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:600px){
   .invite-row{grid-template-columns:1fr}
   .tabs{overflow-x:auto;white-space:nowrap}
@@ -298,11 +300,10 @@ html,body,input,button,select,textarea{font-family:'Inter',system-ui,-apple-syst
   <div id="groupWorkspace" class="group-home-mode">
   <button class="btn btn-secondary group-back-button" type="button" onclick="returnToGroupList()">← Quay lại nhóm của tôi</button>
   <div class="section-title" id="currentGroupTitle"></div>
-  <div class="section-sub">Ghép lịch, chốt hoạt động và theo dõi chi phí cùng các thành viên.</div>
+  <div class="section-sub">Ghép lịch và tìm hoạt động phù hợp cho cả nhóm.</div>
   <div class="group-tab-header">
     <div class="tabs">
       <button class="tab-btn" data-tab="matching" onclick="selectTab('matching')">Ghép lịch nhóm</button>
-      <button class="tab-btn" data-tab="expense" onclick="selectTab('expense')">Chia chi phí</button>
     </div>
     <div class="group-invite-toolbar" id="groupInviteToolbar">
       <button class="copy-link-btn" type="button" onclick="copyGroupLink()">Sao chép link nhóm</button>
@@ -320,6 +321,7 @@ html,body,input,button,select,textarea{font-family:'Inter',system-ui,-apple-syst
     </div>
 
     <div class="group-result" id="group-result" style="display:none;">
+      <div id="votingBar"></div>
       <div id="bestMatch"></div>
       <div id="groupVoteSummary"></div>
       <div class="suggestions" id="suggestions">
@@ -328,7 +330,6 @@ html,body,input,button,select,textarea{font-family:'Inter',system-ui,-apple-syst
       </div>
 
       <div style="display:flex;gap:10px;margin-top:20px;">
-        <button class="btn btn-primary" id="resultExpenseButton" style="flex:1;" onclick="selectTab('expense')" disabled>Chờ host chốt hoạt động</button>
         <button class="btn btn-secondary" type="button" id="suggestionsToggle" onclick="toggleSuggestions()" style="display:none">Xem gợi ý khác</button>
       </div>
     </div>
@@ -398,31 +399,8 @@ html,body,input,button,select,textarea{font-family:'Inter',system-ui,-apple-syst
     <div class="group-modal activity-overlay-card"><div class="group-modal-head"><div><h2 id="activityPopupTitle">Chi tiết hoạt động</h2></div><button class="modal-close" type="button" onclick="closeActivityPopup()">×</button></div><div id="activityPopupBody"></div></div>
   </div>
 
-  <!-- ===== TAB 2: CHIA CHI PHÍ ===== -->
-  <div class="tab-pane" id="pane-expense">
-    <div id="expenseActivity"></div>
-    <div class="expense-entry-row" id="expenseTotalEntry" hidden>
-      <label for="expenseTotalInput">Nhập số tiền host đã chi</label>
-      <div class="expense-entry-controls">
-        <input class="expense-total-input" id="expenseTotalInput" type="number" min="0" step="1" placeholder="Nhập số tiền">
-        <button class="btn btn-primary" type="button" id="saveExpenseTotal">Cập nhật chi phí</button>
-      </div>
-    </div>
-    <div class="cost-stats">
-      <div class="cost-stat"><div class="num" id="expenseTotal">0 ₫</div><div class="lbl">Tổng chi phí</div></div>
-      <div class="cost-stat"><div class="num" id="expensePerPerson">0 ₫</div><div class="lbl">Chi phí mỗi người</div></div>
-      <div class="cost-stat"><div class="num" id="expensePaid" style="color:var(--success);">0 ₫</div><div class="lbl">Đã thu</div></div>
-      <div class="cost-stat"><div class="num" id="expenseMissing" style="color:var(--warn);">0 ₫</div><div class="lbl">Còn thiếu</div></div>
-    </div>
-
-    <div class="section-title" style="font-size:15px;">Chi tiết thanh toán</div>
-
-    <div id="paymentRows"></div>
-
-  </div>
-
   <section class="delete-group-section" id="deleteGroupSection" hidden>
-    <button class="btn btn-secondary delete-group-button" type="button" onclick="openGroupActionConfirm('deleteGroup')">Xóa nhóm</button>
+    <button class="btn btn-secondary delete-group-button" type="button" id="groupExitButton" onclick="openGroupActionConfirm(currentGroupIsHost() ? 'deleteGroup' : 'leave')">Xóa nhóm</button>
   </section>
 
   </div>

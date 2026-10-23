@@ -36,7 +36,6 @@
   let activeGroupId = null;
 
   const escapeValue = value => api.escapeHTML(value ?? '');
-  const money = value => `${Number(value || 0).toLocaleString('vi-VN')} ₫`;
   const categoryName = id => categories.find(item => item.category_id === id)?.name || id;
 
   function displayGroupName(group) {
@@ -51,11 +50,12 @@
 
   function memberPayload(form) {
     const value = name => form.querySelector(`[name="${name}"]`).value.trim();
+    const number = raw => (raw === '' ? NaN : Number(raw));
     return {
       name: value('member-name'),
-      free_hours: Number(value('member-hours')),
+      free_hours: number(value('member-hours')),
       address: value('member-address'),
-      budget: Number(value('member-budget')),
+      budget: number(value('member-budget')),
       category_ids: [...form.querySelectorAll('[name="member-interests"]:checked')].map(input => input.value),
     };
   }
@@ -98,11 +98,22 @@
     return { address, latitude: result.latitude, longitude: result.longitude };
   }
 
-  function validMember(member) {
-    return member.name && member.free_hours > 0 && member.address && member.budget >= 0 && member.category_ids.length;
+  // Trả về câu báo trường còn thiếu/sai đầu tiên, '' nếu hợp lệ.
+  function memberProblem(member) {
+    if (!member.name) return 'Vui lòng nhập tên.';
+    if (!(member.free_hours > 0 && member.free_hours <= 24)) return 'Vui lòng nhập số giờ rảnh (từ 0,5 đến 24 giờ).';
+    if (!member.address) return 'Vui lòng nhập địa chỉ hoặc dùng vị trí hiện tại.';
+    if (!Number.isFinite(member.budget) || member.budget < 0) return 'Vui lòng nhập ngân sách tối đa (nhập 0 nếu chỉ muốn hoạt động miễn phí).';
+    if (!member.category_ids.length) return 'Vui lòng chọn ít nhất 1 sở thích.';
+    return '';
   }
 
   window.openGroupModal = function () {
+    if (!categories.length) {
+      F2D.toast('Đang tải danh sách sở thích, vui lòng thử lại sau giây lát.', 'error');
+      initializeGroupPage();
+      return;
+    }
     if (!joinMode) {
       document.querySelector('#groupFormStep .group-actions .btn-primary').textContent = 'Tạo nhóm';
     }
@@ -223,8 +234,9 @@
   window.createGroup = async function () {
     const forms = [...document.querySelectorAll('#memberForms .member-form')];
     const members = forms.map(memberPayload);
-    if (!members.length || members.some(member => !validMember(member))) {
-      F2D.toast('Vui lòng nhập đầy đủ thông tin cho tất cả thành viên.', 'error');
+    const problem = members.length ? members.map(memberProblem).find(Boolean) : 'Vui lòng nhập thông tin của bạn.';
+    if (problem) {
+      F2D.toast(problem, 'error');
       return;
     }
     try {
@@ -262,6 +274,8 @@
 
   function applyGroup(group) {
     const groupChanged = activeGroupId !== group.group_id;
+    if (groupChanged) decisionPicks = null;
+    trackDecisionPicks(group);
     if (groupChanged) {
       recommendations = [];
       recommendationsLoadedForGroup = null;
@@ -283,7 +297,8 @@
     document.getElementById('groupWorkspace').classList.remove('group-home-mode');
     document.getElementById('currentGroupTitle').textContent = displayGroupName(group);
     document.getElementById('createdMembers').style.display = 'block';
-    document.getElementById('deleteGroupSection').hidden = !group.is_host;
+    document.getElementById('deleteGroupSection').hidden = false;
+    document.getElementById('groupExitButton').textContent = group.is_host ? 'Xóa nhóm' : 'Rời nhóm';
     if (groupChanged) selectTab('matching');
     document.getElementById('inviteLink').value = inviteUrl(group);
     document.getElementById('groupInviteToolbar').style.display = 'flex';
@@ -291,8 +306,6 @@
     // Giữ đúng thư mục trang (link tương đối như home.html vẫn chạy); link rút gọn chỉ dùng khi sao chép.
     if (!/\/g\//.test(location.pathname)) history.replaceState(null, '', `${location.pathname}?groupInvite=${encodeURIComponent(group.invite_code)}`);
     renderCreatedMembers();
-    renderExpense();
-    updateExpenseButton();
     if (!group.search_started) {
       recommendationsLoadedForGroup = null;
       recommendations = [];
@@ -317,7 +330,7 @@
       const online = member.user_id ? (member.is_online ? ' · Đang online' : ' · Ngoại tuyến') : ' · Khách được host thêm';
       const readyButton = currentGroup.status === 'active' && !currentGroup.search_started && member.user_id === currentUser?.user_id
         ? `<button class="btn ${member.is_ready ? 'btn-secondary' : 'btn-primary'}" type="button" onclick="toggleMemberReady(${index})">${member.is_ready ? 'Đã sẵn sàng' : 'Tôi đã sẵn sàng'}</button>` : '';
-      return `<div class="member-card"><button type="button" onclick="openMemberEdit(${index})" style="display:flex;align-items:center;gap:14px;flex:1;text-align:left;cursor:pointer;border:0;background:transparent;color:inherit;padding:0;"><div class="member-avatar">${escapeValue(member.name.charAt(0).toUpperCase())}</div><div><div class="member-name">${escapeValue(member.name)}${member.is_host ? ' · Host' : ''} · ${member.is_ready ? 'Sẵn sàng' : 'Chưa sẵn sàng'}${member.leave_status === 'pending' ? ' · Xin rời nhóm' : member.leave_status === 'rejected' ? ' · Yêu cầu bị từ chối' : ''}</div><div class="member-crit"><span>◷ Rảnh ${escapeValue(member.free_hours)} giờ</span> · <span>⌖ ${escapeValue(member.address)}</span> · <span>▣ ≤${Number(member.budget).toLocaleString('vi-VN')} ₫</span> · <span>✦ ${escapeValue(member.category_names.join(', '))}</span><span>${escapeValue(online)}</span></div></div></button>${readyButton}</div>`;
+      return `<div class="member-card"><button type="button" onclick="openMemberEdit(${index})" style="display:flex;align-items:center;gap:14px;flex:1;text-align:left;cursor:pointer;border:0;background:transparent;color:inherit;padding:0;"><div class="member-avatar">${escapeValue(member.name.charAt(0).toUpperCase())}</div><div><div class="member-name">${escapeValue(member.name)}${member.is_host ? ' · Host' : ''} · ${member.is_ready ? 'Sẵn sàng' : 'Chưa sẵn sàng'}</div><div class="member-crit"><span>◷ Rảnh ${escapeValue(member.free_hours)} giờ</span> · <span>⌖ ${escapeValue(member.address)}</span> · <span>▣ ≤${Number(member.budget).toLocaleString('vi-VN')} ₫</span> · <span>✦ ${escapeValue(member.category_names.join(', '))}</span><span>${escapeValue(online)}</span></div></div></button>${readyButton}</div>`;
     }).join('');
     const lifecycleActions = document.getElementById('groupLifecycleActions');
     lifecycleActions.innerHTML = '';
@@ -337,38 +350,24 @@
     } catch (error) { F2D.toast(error.message, 'error'); }
   };
 
-  window.requestGroupLeave = async function (index) {
-    const member = groupMembers[index];
-    if (!member || currentGroup.is_host || member.user_id !== currentUser?.user_id) return;
-    try {
-      applyGroup(await api.request(`/groups/${currentGroup.group_id}/members/${member.member_id}/leave-request`, { method: 'POST' }));
-      F2D.toast('Yêu cầu từ chối tham gia đã được gửi và đang chờ host duyệt.');
-    }
-    catch (error) { F2D.toast(error.message, 'error'); }
-  };
-  window.resolveGroupLeave = async function (index, action) {
-    const member = groupMembers[index];
-    if (!currentGroup?.is_host || !member) return;
-    try { applyGroup(await api.request(`/groups/${currentGroup.group_id}/members/${member.member_id}/leave-request`, { method: 'PATCH', body: { action } })); }
-    catch (error) { F2D.toast(error.message, 'error'); }
+  const GROUP_CONFIRMS = {
+    leave: ['Rời nhóm?', 'Bạn sẽ rời khỏi nhóm này, phiếu bình chọn của bạn cũng bị xóa.', 'Rời nhóm'],
+    deleteGroup: ['Xác nhận xóa nhóm', 'Bạn có chắc chắn muốn xóa nhóm này?', 'Chắc chắn'],
+    closeVoting: ['Đóng bình chọn?', 'Sau khi đóng, thành viên không thể đổi phiếu nữa và nhóm sẽ có kết quả bình chọn.', 'Đóng bình chọn'],
+    cancelVoting: ['Tắt bình chọn?', 'Toàn bộ phiếu đã bầu sẽ bị xóa, nhóm quay về chỉ xem danh sách gợi ý.', 'Tắt bình chọn'],
   };
 
   window.openGroupActionConfirm = function (action) {
-    if (action === 'rejectActivity' && (!currentGroup?.selected_activity || currentGroup.is_host || ownMember()?.confirmation_status !== 'pending')) return;
-    if (action === 'leave' && (!currentGroup || currentGroup.is_host)) return;
-    if (action === 'deleteActivity' && (!currentGroup?.is_host || !currentGroup.selected_activity)) return;
-    if (action === 'deleteGroup' && (!currentGroup?.is_host || currentGroup.status !== 'active')) return;
-    if (action === 'closeVoting' && (!currentGroup?.is_host || currentGroup.voting_closed)) return;
+    if (!currentGroup || !GROUP_CONFIRMS[action]) return;
+    if (action === 'leave' && currentGroup.is_host) return;
+    if (action === 'deleteGroup' && (!currentGroup.is_host || currentGroup.status !== 'active')) return;
+    if (action === 'closeVoting' && (!currentGroup.is_host || currentGroup.voting_closed)) return;
+    if (action === 'cancelVoting' && (!currentGroup.is_host || !currentGroup.voting_open)) return;
     pendingGroupAction = action;
-    document.getElementById('groupActionConfirmTitle').textContent = action === 'rejectActivity' ? 'Bạn chắc chắn KHÔNG tham gia hoạt động?' : action === 'deleteGroup' ? 'Xác nhận xóa nhóm' : action === 'closeVoting' ? 'Đóng bình chọn?' : 'Xác nhận';
-    document.getElementById('groupActionConfirmText').textContent = action === 'rejectActivity'
-      ? 'Nếu không tham gia, bạn sẽ tự động bị thoát khỏi nhóm.'
-      : action === 'deleteGroup'
-        ? 'Bạn có chắc chắn muốn xóa nhóm này?'
-      : action === 'closeVoting'
-        ? 'Sau khi đóng, thành viên không thể đổi phiếu nữa và nhóm sẽ chốt kết quả bình chọn.'
-      : `Bạn có chắc chắn muốn "${action === 'leave' ? 'Từ chối tham gia' : 'Xóa hoạt động'}"?`;
-    document.getElementById('confirmGroupActionButton').textContent = action === 'rejectActivity' ? 'Xác nhận' : action === 'closeVoting' ? 'Đóng bình chọn' : 'Chắc chắn';
+    const [title, text, ok] = GROUP_CONFIRMS[action];
+    document.getElementById('groupActionConfirmTitle').textContent = title;
+    document.getElementById('groupActionConfirmText').textContent = text;
+    document.getElementById('confirmGroupActionButton').textContent = ok;
     document.getElementById('groupActionConfirm').classList.add('open');
     document.body.style.overflow = 'hidden';
   };
@@ -382,60 +381,52 @@
   window.confirmGroupAction = async function () {
     const action = pendingGroupAction;
     closeGroupActionConfirm();
-    if (action === 'rejectActivity') {
-      await respondToActivity('reject');
-      return;
-    }
-    if (action === 'leave') {
-      const index = groupMembers.findIndex(member => member.user_id === currentUser?.user_id);
-      if (index >= 0) await requestGroupLeave(index);
-      return;
-    }
-    if (action === 'closeVoting') {
-      try {
-        applyGroup(await api.request(`/groups/${currentGroup.group_id}/voting/close`, { method: 'POST' }));
-      } catch (error) {
-        F2D.toast(error.message, 'error');
-      }
-      return;
-    }
-    if (action === 'deleteActivity') {
-      F2D.toast('Chưa thể xóa hoạt động đã chọn vì API hiện tại chưa hỗ trợ thao tác này. Chưa có thay đổi nào được lưu.', 'error');
-      return;
-    }
-    if (action === 'deleteGroup') {
-      try {
-        await api.request(`/groups/${currentGroup.group_id}`, { method: 'DELETE' });
-        if (socket) {
-          socket.onclose = null;
-          socket.close();
-          socket = null;
-        }
-        clearTimeout(reconnectTimer);
-        currentGroup = null;
-        returnToGroupList();
-      } catch (error) {
-        F2D.toast(error.message, 'error');
-      }
-    }
-  };
-
-  window.respondToActivity = async function (action) {
-    const member = ownMember();
-    if (!member || !currentGroup?.selected_activity) return;
+    if (action === 'closeVoting') return groupAction('/voting/close');
+    if (action === 'cancelVoting') return groupAction('/voting/cancel');
+    if (action !== 'leave' && action !== 'deleteGroup') return;
     try {
-      const group = await api.request(`/groups/${currentGroup.group_id}/members/${member.member_id}/confirmation`, {
-        method: 'PATCH', body: { action },
-      });
-      if (action === 'reject') {
+      if (action === 'leave') {
+        await api.request(`/groups/${currentGroup.group_id}/leave`, { method: 'POST', toast: false });
         F2D.toast('Bạn đã rời khỏi nhóm.');
-        returnToGroupList();
       } else {
-        applyGroup(group);
+        await api.request(`/groups/${currentGroup.group_id}`, { method: 'DELETE' });
       }
+      if (socket) {
+        socket.onclose = null;
+        socket.close();
+        socket = null;
+      }
+      clearTimeout(reconnectTimer);
+      currentGroup = null;
+      returnToGroupList();
     } catch (error) {
       F2D.toast(error.message, 'error');
     }
+  };
+
+  // Gọi một thao tác nhóm rồi cập nhật giao diện (cả nhóm nhận realtime qua WebSocket).
+  async function groupAction(path, body) {
+    if (!currentGroup) return;
+    try {
+      applyGroup(await api.request(`/groups/${currentGroup.group_id}${path}`, {
+        method: body ? 'PATCH' : 'POST', ...(body ? { body } : {}), toast: false,
+      }));
+    } catch (error) {
+      F2D.toast(error.message, 'error');
+    }
+  }
+
+  window.currentGroupIsHost = () => Boolean(currentGroup?.is_host);
+  window.openGroupVoting = () => groupAction('/voting/open');
+
+  // Thẻ "Vote lại" / "Random" khi hòa phiếu: host bấm là thực hiện luôn; thành viên bấm để gợi ý cho host
+  // (bấm lại thẻ đang chọn để bỏ chọn).
+  window.chooseDecision = function (key) {
+    if (!currentGroup) return;
+    if (currentGroup.is_host) return groupAction(key === 'random' ? '/randomize' : '/voting/reopen');
+    const member = ownMember();
+    if (!member) return;
+    return groupAction(`/members/${member.member_id}/decision`, { choice: member.decision_choice === key ? null : key });
   };
 
   async function renderGroupHistory() {
@@ -514,13 +505,14 @@
     const member = groupMembers[editingMemberIndex];
     const payload = {
       name: document.getElementById('edit-name').value.trim(),
-      free_hours: Number(document.getElementById('edit-hours').value),
+      free_hours: document.getElementById('edit-hours').value === '' ? NaN : Number(document.getElementById('edit-hours').value),
       address: document.getElementById('edit-address').value.trim(),
-      budget: Number(document.getElementById('edit-budget').value),
+      budget: document.getElementById('edit-budget').value === '' ? NaN : Number(document.getElementById('edit-budget').value),
       category_ids: [...document.querySelectorAll('[name="edit-interests"]:checked')].map(input => input.value),
     };
-    if (!validMember(payload)) {
-      F2D.toast('Vui lòng nhập đầy đủ thông tin thành viên.', 'error');
+    const problem = memberProblem(payload);
+    if (problem) {
+      F2D.toast(problem, 'error');
       return;
     }
     try {
@@ -534,10 +526,8 @@
   };
 
   window.selectTab = function (name) {
-    if (name === 'expense' && !currentGroup?.confirmation_complete) return;
     document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.toggle('active', pane.id === `pane-${name}`));
     document.querySelectorAll('.tab-btn').forEach(button => button.classList.toggle('active', button.dataset.tab === name));
-    if (name === 'expense') renderExpense();
   };
 
   function activityView(activity) {
@@ -579,43 +569,80 @@
     return left != null && right != null && String(left) === String(right);
   }
 
-  function updateExpenseButton() {
-    const button = document.getElementById('resultExpenseButton');
-    if (!button) return;
-    const canViewExpenses = Boolean(currentGroup?.confirmation_complete);
-    button.disabled = !canViewExpenses;
-    document.querySelector('.tab-btn[data-tab="expense"]').disabled = !canViewExpenses;
-    button.textContent = canViewExpenses
-      ? 'Tất cả các thành viên đã xác nhận tham gia. Chia chi phí'
-      : currentGroup?.selected_activity
-        ? 'Chờ tất cả thành viên đồng ý'
-        : 'Chia chi phí sau khi chốt hoạt động';
-  }
-
   function renderSelectedActivity(activity) {
     selectedActivity = activity;
     const view = activityView(activity);
-    const self = ownMember();
-    const ownDecision = !currentGroup.is_host && self?.confirmation_status === 'pending'
-      ? `<p class="section-sub" style="margin:12px 0 0">Bạn có xác nhận tham gia hoạt động này không?</p><div class="group-actions"><button class="btn btn-primary" type="button" onclick="respondToActivity('accept')">Xác nhận tham gia</button><button class="btn btn-secondary" type="button" onclick="openGroupActionConfirm('rejectActivity')">Không tham gia</button></div>`
-      : '';
-    const confirmations = groupMembers.map(member => `<div class="group-vote-row"><span>${escapeValue(member.name)}${member.is_host ? ' · Host' : ''}</span><span class="group-vote-choice">${member.confirmation_status === 'accepted' ? 'Đã đồng ý' : 'Đang chờ xác nhận'}</span></div>`).join('');
-    document.getElementById('groupVoteSummary').innerHTML = `<div class="group-vote-summary"><h3>Xác nhận hoạt động</h3>${confirmations}${ownDecision}</div>`;
-    document.getElementById('bestMatch').innerHTML = `<button class="suggestion-card g-row-card" type="button" onclick="openActivityPopup('${escapeValue(view.id)}')" style="width:100%;text-align:left;">${thumbHTML(view, 56)}<div style="min-width:0"><div class="g-chosen-label">Hoạt động nhóm đã chốt</div><div class="activity-title">${escapeValue(view.name)}</div><div class="activity-biz">${escapeValue(view.address)} · ${escapeValue(view.price)}</div><div class="member-crit">★ ${view.rating ?? 'Chưa có'} · ${escapeValue(view.hours)} · ${escapeValue(view.categories)}</div></div></button>`;
+    document.getElementById('votingBar').innerHTML = '';
+    document.getElementById('groupVoteSummary').innerHTML = '';
+    document.getElementById('bestMatch').innerHTML = `<button class="suggestion-card g-row-card" type="button" onclick="openActivityPopup('${escapeValue(view.id)}')" style="width:100%;text-align:left;">${thumbHTML(view, 56)}<div style="min-width:0"><div class="g-chosen-label">${currentGroup.final_method === 'random' ? 'Free2Do gợi ý cho nhóm' : 'Hoạt động được cả nhóm bình chọn nhiều nhất'}</div><div class="activity-title">${escapeValue(view.name)}</div><div class="activity-biz">${escapeValue(view.address)} · ${escapeValue(view.price)}</div><div class="member-crit">★ ${view.rating ?? 'Chưa có'} · ${escapeValue(view.hours)} · ${escapeValue(view.categories)}</div></div></button>`;
     document.getElementById('suggestionCards').innerHTML = '';
     document.getElementById('suggestions').style.display = 'none';
     document.getElementById('suggestionsToggle').style.display = 'none';
-    updateExpenseButton();
-    renderExpense();
   }
 
   function ownMember() {
     return groupMembers.find(member => member.user_id === currentUser?.user_id);
   }
 
+  // Bình chọn là tùy chọn: mặc định nhóm chỉ xem danh sách gợi ý, host bật thì mới vote.
+  function renderVotingBar() {
+    const bar = document.getElementById('votingBar');
+    const group = currentGroup;
+    if (!group?.search_started || group.selected_activity || group.voting_closed || !recommendations.length) {
+      bar.innerHTML = '';
+      return;
+    }
+    bar.innerHTML = group.voting_open
+      ? `<div class="g-voting-bar g-fade"><span class="g-voting-live">Cả nhóm đang bình chọn</span>${group.is_host ? '<button class="btn btn-secondary" type="button" onclick="openGroupActionConfirm(\'cancelVoting\')">Tắt bình chọn</button>' : ''}</div>`
+      : `<div class="g-voting-bar g-fade"><p><b>Đây là các hoạt động Free2Do gợi ý cho cả nhóm.</b><br>${group.is_host ? 'Muốn cả nhóm cùng chọn? Mở bình chọn để mọi người vote.' : 'Host có thể mở bình chọn để cả nhóm cùng chọn.'}</p>${group.is_host ? '<button class="btn btn-primary" type="button" onclick="openGroupVoting()">🗳 Mở bình chọn</button>' : ''}</div>`;
+  }
+
+  // Lựa chọn thẻ của thành viên: nhớ lần hiển thị trước để chỉ "pop" avatar/thẻ vừa được chọn thêm.
+  const DECISION_KEYS = ['revote', 'random'];
+  let decisionPicks = null;
+  let freshPicks = new Set();
+  let poppedCards = new Set();
+  function trackDecisionPicks(group) {
+    const next = new Map(DECISION_KEYS.map(key => [key, new Set(group.members.filter(m => m.decision_choice === key).map(m => m.member_id))]));
+    freshPicks = new Set();
+    poppedCards = new Set();
+    if (decisionPicks) {
+      next.forEach((ids, key) => ids.forEach(id => {
+        if (!decisionPicks.get(key)?.has(id)) { freshPicks.add(`${key}:${id}`); poppedCards.add(key); }
+      }));
+    }
+    decisionPicks = next;
+  }
+
+  function decisionCardsHTML() {
+    const hasPick = Boolean(currentGroup.random_pick);
+    const info = {
+      revote: ['🗳', hasPick ? 'Vote lại' : 'Vote tiếp', 'Mở lại bình chọn cả danh sách, giữ phiếu cũ và được đổi phiếu'],
+      random: ['🎲', hasPick ? 'Random tiếp' : 'Random', 'Free2Do chọn ngẫu nhiên 1 trong các hoạt động đang hòa phiếu'],
+    };
+    const mine = ownMember()?.decision_choice;
+    const cards = DECISION_KEYS.map(key => {
+      const [icon, title, text] = info[key];
+      const pickers = groupMembers.filter(member => member.decision_choice === key);
+      const avatars = pickers.map(member => `<span class="g-pick-avatar ${freshPicks.has(`${key}:${member.member_id}`) ? 'g-pop' : ''}" title="${escapeValue(member.name)}">${escapeValue(member.name.charAt(0).toUpperCase())}</span>`).join('');
+      const classes = ['g-option', pickers.length ? 'is-picked' : '', mine === key ? 'is-mine' : '', poppedCards.has(key) ? 'g-pop' : ''].filter(Boolean).join(' ');
+      return `<button type="button" class="${classes}" onclick="chooseDecision('${key}')" aria-pressed="${mine === key}"><span class="g-option-icon" aria-hidden="true">${icon}</span><span class="g-option-title">${title}</span><span class="g-option-text">${text}</span><span class="g-option-pickers">${avatars || '<span class="g-option-empty">Chưa ai chọn</span>'}</span>${currentGroup.is_host ? '<span class="g-option-cta">Bấm để thực hiện</span>' : ''}</button>`;
+    }).join('');
+    const hint = currentGroup.is_host
+      ? 'Thành viên chọn thẻ để gợi ý cho bạn. Bấm vào thẻ để thực hiện ngay.'
+      : 'Chọn thẻ để gợi ý cho host. Host bấm thẻ nào thì nhóm làm theo thẻ đó.';
+    return `<div class="g-decision-cards">${cards}</div><p class="g-decision-hint">${hint}</p>`;
+  }
+
+  // Cập nhật thẻ đang hiển thị (trong trang và trong popup) mà không vẽ lại cả khu vực.
+  function refreshDecisionSlots() {
+    document.querySelectorAll('[data-decision-slot]').forEach(slot => { slot.innerHTML = decisionCardsHTML(); });
+  }
+
   function renderVoteSummary() {
+    renderVotingBar();
     const container = document.getElementById('groupVoteSummary');
-    if (!currentGroup?.search_started || currentGroup.selected_activity || !recommendations.length) {
+    if (!currentGroup?.search_started || currentGroup.selected_activity || !currentGroup.voting_open || !recommendations.length) {
       container.innerHTML = '';
       return;
     }
@@ -636,19 +663,17 @@
     let action = '';
     if (!currentGroup.voting_closed) {
       status = `${voters.size}/${groupMembers.length} thành viên đã bình chọn. Mỗi người chọn được nhiều hoạt động.`;
-      if (currentGroup.is_host) action = `<button class="btn btn-primary g-pulse" type="button" onclick="closeGroupVoting()" ${tally.length ? '' : 'disabled'}>Đóng bình chọn & chốt kết quả</button>`;
+      if (currentGroup.is_host) action = `<div class="group-actions"><button class="btn btn-primary g-pulse" type="button" onclick="closeGroupVoting()" ${tally.length ? '' : 'disabled'}>Đóng bình chọn & xem kết quả</button></div>`;
       else status += ' Host sẽ đóng bình chọn khi mọi người sẵn sàng.';
     } else if (tied.size > 1) {
-      status = `Có ${tied.size} hoạt động cùng ${maxVotes} phiếu cao nhất.`;
-      action = currentGroup.is_host
-        ? (currentGroup.random_pick
-          ? '<button class="btn btn-secondary" type="button" onclick="openDecisionWidget()">Xem kết quả random</button>'
-          : '<button class="btn btn-primary g-pulse" type="button" onclick="randomizeGroupActivity()">🎲 Random hoạt động nhiều vote nhất</button>')
-        : '<span class="g-wait">Đang chờ host random hoạt động…</span>';
+      status = currentGroup.random_pick
+        ? `Free2Do đã gợi ý 1 trong ${tied.size} hoạt động hòa phiếu. Random tiếp hay vote lại?`
+        : `Có ${tied.size} hoạt động cùng ${maxVotes} phiếu cao nhất. Vote tiếp hay để Free2Do random?`;
+      action = `<div data-decision-slot>${decisionCardsHTML()}</div>`;
     } else {
       status = 'Đã đóng bình chọn.';
     }
-    container.innerHTML = `<div class="group-vote-summary g-fade"><h3>${currentGroup.voting_closed ? 'Kết quả bình chọn' : 'Bình chọn hoạt động'}</h3>${rows}<p class="section-sub" style="margin:10px 0 0">${status}</p>${action ? `<div class="group-actions">${action}</div>` : ''}</div>`;
+    container.innerHTML = `<div class="group-vote-summary g-fade"><h3>${currentGroup.voting_closed ? 'Kết quả bình chọn' : 'Bình chọn hoạt động'}</h3>${rows}<p class="section-sub" style="margin:10px 0 0">${status}</p>${action}</div>`;
   }
 
   window.closeGroupVoting = function () {
@@ -704,11 +729,16 @@
     }
   };
 
-  function renderBestMatch(activity, persist) {
+  function renderBestMatch(activity) {
     selectedActivity = activity;
     document.getElementById('bestMatch').innerHTML = recommendationCard(activity, true);
-    updateExpenseButton();
-    if (!persist) renderExpense();
+  }
+
+  // Hoạt động Free2Do random khi hòa phiếu: luôn đứng đầu, gắn nhãn "Free2Do gợi ý".
+  function renderRandomPick(pick) {
+    const view = activityView(pick);
+    selectedActivity = pick;
+    document.getElementById('bestMatch').innerHTML = `<div class="suggestion-card g-fade"><button class="suggestion-details g-row-card" type="button" onclick="openActivityPopup('${escapeValue(view.id)}')">${thumbHTML(view, 56)}<div style="min-width:0"><span class="g-pick-label">✨ Free2Do gợi ý</span><div class="activity-title">${escapeValue(view.name)}</div><div class="activity-biz">${escapeValue(view.address)} · ${escapeValue(view.price)}</div><div class="member-crit">★ ${view.rating ?? 'Chưa có'} · ${escapeValue(view.hours)} · ${escapeValue(view.categories)}</div></div></button></div>`;
   }
 
   function renderRecommendations() {
@@ -722,8 +752,10 @@
       document.getElementById('suggestionsToggle').style.display = 'none';
       return;
     }
-    renderBestMatch(best, false);
-    document.getElementById('suggestionCards').innerHTML = orderedRecommendations.slice(1).map(suggestionCard).join('');
+    const pick = currentGroup?.random_pick;
+    if (pick) renderRandomPick(pick); else renderBestMatch(best);
+    const others = pick ? orderedRecommendations.filter(item => !sameActivityId(item.activity_id, pick.activity_id)) : orderedRecommendations.slice(1);
+    document.getElementById('suggestionCards').innerHTML = others.map(suggestionCard).join('');
     // Danh sách gợi ý giữ nguyên trạng thái mở/ẩn qua các lần bình chọn và tải lại trang,
     // chỉ đóng khi người dùng bấm "Ẩn gợi ý" hoặc host đã đóng bình chọn.
     const canShow = orderedRecommendations.length > 1 && !currentGroup?.voting_closed;
@@ -746,7 +778,7 @@
     const voted = myVotes().has(view.id);
     const votes = tallyFor(view.id)?.votes || 0;
     const closed = Boolean(currentGroup?.voting_closed);
-    const action = ownMember() && !closed
+    const action = ownMember() && currentGroup?.voting_open && !closed
       ? `<button class="btn ${voted ? 'btn-secondary g-voted' : 'btn-primary'} suggestion-card-action" type="button" onclick="voteActivity('${escapeValue(view.id)}')">${voted ? '✓ Đã bình chọn · Bỏ chọn' : 'Bình chọn'}</button>`
       : '';
     const badge = votes ? `<span class="g-vote-badge">${votes} phiếu</span>` : '';
@@ -759,7 +791,7 @@
 
   window.voteActivity = async function (activityId) {
     const member = ownMember();
-    if (!member || currentGroup.selected_activity || currentGroup.voting_closed) return;
+    if (!member || !currentGroup.voting_open || currentGroup.selected_activity || currentGroup.voting_closed) return;
     const activity = findActivity(activityId);
     if (!activity) {
       F2D.toast('Không tìm thấy hoạt động. Hãy tải lại gợi ý và thử lại.', 'error');
@@ -770,15 +802,6 @@
         method: 'POST', body: { activity_id: activity.activity_id },
       }));
       if (document.getElementById('activityOverlay').classList.contains('open')) openActivityPopup(activityId);
-    } catch (error) {
-      F2D.toast(error.message, 'error');
-    }
-  };
-
-  window.randomizeGroupActivity = async function () {
-    if (!currentGroup?.is_host) return;
-    try {
-      applyGroup(await api.request(`/groups/${currentGroup.group_id}/randomize`, { method: 'POST' }));
     } catch (error) {
       F2D.toast(error.message, 'error');
     }
@@ -801,16 +824,6 @@
     return [...recommendations.filter(item => votes.has(item.activity_id)), ...recommendations.filter(item => !votes.has(item.activity_id))];
   }
 
-  window.confirmRandomPick = async function () {
-    const pick = currentGroup?.random_pick;
-    if (!currentGroup?.is_host || !pick) return;
-    try {
-      applyGroup(await api.request(`/groups/${currentGroup.group_id}/activity`, { method: 'PUT', body: { activity_id: pick.activity_id } }));
-    } catch (error) {
-      F2D.toast(error.message, 'error');
-    }
-  };
-
   function findActivity(id) {
     if (sameActivityId(selectedActivity?.activity_id, id)) return selectedActivity;
     return recommendations.find(item => sameActivityId(item.activity_id, id));
@@ -825,7 +838,7 @@
       : '<div style="font-size:42px;text-align:center;background:#F3D9A6;border-radius:12px;padding:20px;">✨</div>';
     const member = ownMember();
     const selectedVote = myVotes().has(id);
-    const selectButton = member && !currentGroup.selected_activity && !currentGroup.voting_closed
+    const selectButton = member && currentGroup.voting_open && !currentGroup.selected_activity && !currentGroup.voting_closed
       ? `<button type="button" class="btn ${selectedVote ? 'btn-secondary' : 'btn-primary'}" onclick="voteActivity('${escapeValue(id)}')">${selectedVote ? '✓ Đã bình chọn · Bỏ chọn' : 'Bình chọn'}</button>`
       : '';
     document.getElementById('activityPopupTitle').textContent = view.name;
@@ -838,77 +851,6 @@
     document.getElementById('activityOverlay').classList.remove('open');
     document.body.style.overflow = '';
   };
-
-  window.renderExpense = function () {
-    if (!currentGroup || !selectedActivity || !groupMembers.length) return;
-    const view = activityView(selectedActivity);
-    document.getElementById('expenseActivity').innerHTML = `<div style="background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:20px;display:flex;align-items:center;gap:12px;">${thumbHTML(view, 52)}<div style="min-width:0"><div class="g-chosen-label">${escapeValue(displayGroupName(currentGroup))}</div><div class="member-name">${escapeValue(view.name)}</div><div class="member-crit">${escapeValue(view.hours)} · ${groupMembers.length} người tham gia</div></div></div>`;
-    document.getElementById('expenseTotal').textContent = money(currentGroup.total_amount);
-    const expenseEntry = document.getElementById('expenseTotalEntry');
-    expenseEntry.hidden = !currentGroup.is_host;
-    const expenseTotalInput = document.getElementById('expenseTotalInput');
-    expenseTotalInput.value = String(Math.round(currentGroup.total_amount || 0));
-    document.getElementById('expensePerPerson').textContent = money(currentGroup.total_amount / groupMembers.length);
-    document.getElementById('expensePaid').textContent = money(currentGroup.paid_amount);
-    document.getElementById('expenseMissing').textContent = money(currentGroup.missing_amount);
-    document.getElementById('paymentRows').innerHTML = groupMembers.map((member, index) => {
-      const payment = member.payment;
-      const remindLabel = remindButtonLabel(member);
-      const status = payment.status === 'paid' ? '<span class="pay-badge paid">Đã trả</span>' : '<span class="pay-badge unpaid">Chưa trả</span>';
-      const actions = currentGroup.is_host && payment.status !== 'paid'
-        ? `<div class="payment-actions"><button class="btn btn-secondary" type="button" onclick="markMemberPaid(${index})">Đã trả</button><button class="btn btn-secondary ${remindLabel === 'Đã nhắc' ? 'g-reminded' : ''}" type="button" onclick="remindMember(${index})" ${remindLabel === 'Đã nhắc' ? 'disabled' : ''}>${remindLabel}</button></div>`
-        : '';
-      return `<div class="split-row"><div class="member-avatar">${escapeValue(member.name.charAt(0).toUpperCase())}</div><div><div class="member-name">${escapeValue(member.name)} ${status}</div><div class="member-crit">${money(payment.amount)}</div></div><div class="split-amount">${money(payment.amount)}</div>${actions}</div>`;
-    }).join('');
-    if (currentGroup.is_host) {
-      document.getElementById('saveExpenseTotal').onclick = updateGroupExpense;
-    }
-  };
-
-  async function updateGroupExpense() {
-    const input = document.getElementById('expenseTotalInput');
-    const total = Number(input?.value);
-    if (!Number.isSafeInteger(total) || total < 0) {
-      F2D.toast('Vui lòng nhập tổng chi phí là số nguyên không âm.', 'error');
-      return;
-    }
-    try {
-      applyGroup(await api.request(`/groups/${currentGroup.group_id}/expense`, {
-        method: 'PUT',
-        body: { total_amount: total },
-      }));
-    } catch (error) {
-      F2D.toast(error.message, 'error');
-    }
-  }
-
-  // "Đã nhắc" chỉ giữ trong trang hiện tại 30 phút; reload hoặc hết 30 phút thì thành "Nhắc lại".
-  // Máy chủ vẫn chặn gửi email nhắc lần 2 trong 30 phút.
-  const REMIND_COOLDOWN_MS = 30 * 60 * 1000;
-  const remindedHere = new Map();
-  function remindButtonLabel(member) {
-    const at = remindedHere.get(member.member_id);
-    if (at && Date.now() - at < REMIND_COOLDOWN_MS) return 'Đã nhắc';
-    return member.payment.reminded_at ? 'Nhắc lại' : 'Nhắc thanh toán';
-  }
-
-  async function paymentAction(index, action) {
-    if (!currentGroup.is_host) return F2D.toast('Chỉ host được cập nhật thanh toán.', 'error');
-    try {
-      const member = groupMembers[index];
-      const group = await api.request(`/groups/${currentGroup.group_id}/payments/${member.member_id}`, { method: 'PATCH', body: { action } });
-      if (action === 'remind') {
-        remindedHere.set(member.member_id, Date.now());
-        setTimeout(() => { remindedHere.delete(member.member_id); renderExpense(); }, REMIND_COOLDOWN_MS);
-      }
-      applyGroup(group);
-    } catch (error) {
-      F2D.toast(error.message, 'error');
-    }
-  }
-
-  window.markMemberPaid = index => paymentAction(index, 'paid');
-  window.remindMember = index => paymentAction(index, 'remind');
 
   async function refreshGroup() {
     if (!currentGroup) return;
@@ -1054,14 +996,22 @@
 
 
   // ---------------------------------------------------------------------------
-  // Widget kết quả bình chọn: random (có hoạt ảnh + Skip) -> chốt -> chúc mừng.
-  // Hiện cho cả host và thành viên; chỉ host bấm được nút. Đồng bộ realtime qua applyGroup.
+  // Widget kết quả bình chọn: thắng phiếu -> chúc mừng; hòa -> random (có hoạt ảnh + Skip) -> Free2Do gợi ý,
+  // kèm thẻ Random tiếp / Vote lại. Hiện cho cả host và thành viên. Đồng bộ realtime qua applyGroup.
   // ---------------------------------------------------------------------------
   const CHEERS = [
     '🎉 Chốt kèo thành công! Cả nhóm sẽ cùng đi <b>{name}</b>. Chúc mọi người một buổi thật vui, nhớ chụp thật nhiều ảnh nha!',
     '🥳 Quyết định đã có! <b>{name}</b> đang chờ cả nhóm. Ai đến muộn thì bao trà sữa cả hội nhé 😄',
     '✨ Tuyệt vời! Nhóm mình đã chọn <b>{name}</b>. Chúc cả nhóm có một khoảng thời gian rảnh thật đáng nhớ!',
     '🎊 Xong! <b>{name}</b> chính thức lên lịch. Sạc đầy pin điện thoại, mang theo năng lượng tích cực và quẩy thôi!',
+  ];
+  // Câu hỏi vui khi Free2Do random (cùng random_seq thì cả nhóm thấy cùng một câu).
+  const PICK_LINES = [
+    'Free2Do thấy nhóm có vẻ hợp với <b>{name}</b> nè. Có muốn thử không?',
+    'Hay là thử <b>{name}</b> xem sao? Free2Do linh cảm cả nhóm sẽ thích lắm đó 😉',
+    'Bốc thăm ra <b>{name}</b> rồi nè! Cả nhóm có muốn đi thử một chuyến không?',
+    'Vũ trụ đã gọi tên <b>{name}</b> 🎲 Nhóm mình thấy sao, thử luôn không?',
+    'Free2Do đề cử <b>{name}</b> cho buổi đi chơi này. Ai đồng ý giơ tay nào 🙋',
   ];
   let widgetSeq = null;      // random_seq đã thấy trên trang này
   let widgetState = null;    // 'rolling' | 'pick' | 'celebrate' | null
@@ -1116,14 +1066,14 @@
     const pick = currentGroup.random_pick;
     const row = { business_logo_url: pick.business_logo_url, media_url: pick.media_url, name: pick.name };
     const view = activityView(pick);
-    const actions = currentGroup.is_host
-      ? `<div class="g-decision-actions"><button class="btn btn-secondary" type="button" onclick="randomizeGroupActivity()">🎲 Random Again</button><button class="btn btn-primary" type="button" onclick="confirmRandomPick()">Chốt hoạt động</button></div>`
-      : '<p class="g-wait" style="text-align:center;margin-top:16px">Host đang cân nhắc: chốt luôn hay random lại…</p>';
-    return `<div class="g-decision-kicker">Kết quả random · lần ${currentGroup.random_seq}</div>
-      <h2 class="g-decision-title">Hoạt động được chọn</h2>
+    const line = PICK_LINES[(currentGroup.random_seq || 0) % PICK_LINES.length].replace('{name}', escapeValue(view.name));
+    return `<div class="g-decision-kicker">Free2Do gợi ý · lần random ${currentGroup.random_seq}</div>
+      <h2 class="g-decision-title">Thử cái này không? 🎲</h2>
       ${slotHTML(row, 'g-slot-win')}
       <div class="g-decision-meta">${escapeValue(view.address)} · ${escapeValue(view.price)} · ${escapeValue(view.hours)}</div>
-      ${actions}`;
+      <p class="g-cheer">${line}</p>
+      <div data-decision-slot>${decisionCardsHTML()}</div>
+      <div class="g-decision-actions"><button class="btn btn-secondary" type="button" onclick="closeDecisionWidget()">Thoát</button></div>`;
   }
 
   function playRoll() {
@@ -1165,11 +1115,10 @@
     let hash = 0;
     for (const char of String(activity.activity_id)) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
     const text = CHEERS[hash % CHEERS.length].replace('{name}', escapeValue(view.name));
-    showWidget(`<div class="g-decision-kicker">${currentGroup.final_method === 'random' ? 'Đã chốt từ kết quả random' : 'Hoạt động nhiều phiếu nhất'}</div>
+    showWidget(`<div class="g-decision-kicker">${currentGroup.final_method === 'random' ? 'Free2Do gợi ý cho nhóm' : 'Hoạt động nhiều phiếu nhất'}</div>
       <h2 class="g-decision-title">Chúc mừng cả nhóm! 🎉</h2>
       ${slotHTML({ business_logo_url: activity.business_logo_url, media_url: activity.media_url, name: activity.name }, 'g-slot-win')}
       <p class="g-cheer">${text}</p>
-      <p class="g-decision-meta">Bước tiếp theo: các thành viên xác nhận tham gia, sau đó mở phần chia chi phí.</p>
       <div class="g-decision-actions"><button class="btn btn-primary" type="button" onclick="closeDecisionWidget()">Tiếp tục</button></div>`, 'celebrate');
     // Pháo giấy tưng bừng: một loạt bắn ngay, loạt thứ hai sau 1,1 giây.
     const card = document.querySelector('.g-decision-card');
@@ -1195,16 +1144,14 @@
       // Chỉ mở lại khi có lần random mới; người dùng đã đóng widget thì không tự bật lại.
       if (group.random_seq !== widgetSeq) {
         if (firstSync) showWidget(pickHTML(), 'pick'); else playRoll();
+      } else if (widgetState === 'pick') {
+        refreshDecisionSlots(); // thành viên đổi thẻ: cập nhật ngay trong popup đang mở
       }
     } else if (widgetState === 'pick' || widgetState === 'rolling') {
       closeDecisionWidget();
     }
     widgetSeq = group.random_seq || 0;
   }
-
-  window.openDecisionWidget = function () {
-    if (currentGroup?.random_pick) showWidget(pickHTML(), 'pick');
-  };
 
   selectTab('matching');
   initialize();

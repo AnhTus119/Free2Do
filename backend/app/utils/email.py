@@ -188,12 +188,13 @@ def send_business_request_approved_email(to_email: str, business_name: str) -> N
     )
 
 
-def send_business_request_rejected_email(to_email: str, business_name: str) -> None:
+def send_business_request_rejected_email(to_email: str, business_name: str, reason: str) -> None:
     send_notification_email(
         to_email,
         "Yêu cầu trở thành Doanh nghiệp bị từ chối",
-        f'Yêu cầu đăng ký doanh nghiệp "{business_name}" của bạn trên Free2Do chưa được duyệt. '
-        f"Vui lòng liên hệ Free2Do để biết thêm chi tiết hoặc gửi lại yêu cầu.",
+        f'Yêu cầu đăng ký doanh nghiệp "{business_name}" của bạn trên Free2Do chưa được duyệt.\n'
+        f"Lý do: {reason}\n"
+        f"Bạn có thể bổ sung thông tin và gửi lại yêu cầu.",
     )
 
 

@@ -6,7 +6,7 @@ from sqlalchemy import func, or_
 from app.database import get_db
 from app import models, schemas
 from app.auth import get_current_operator
-from app.utils.identity import normalize_person_name
+from app.utils.identity import canonical_phone, clean_phone, normalize_person_name
 from app.routers.action_logs import log_action, log_user_action, status_change
 
 router = APIRouter(prefix="/operator", tags=["operator-users"])
@@ -148,8 +148,13 @@ def update_user(
             user.name = normalize_person_name(payload.name)
         except ValueError as exc:
             raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from exc
-    if payload.phone is not None:
-        user.phone = payload.phone
+    if payload.phone is not None and canonical_phone(payload.phone) != (user.account.phone or user.phone or ""):
+        if user.account.auth_provider == "phone":
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "Tài khoản đăng nhập bằng số điện thoại không thể đổi số điện thoại")
+        try:
+            user.phone = clean_phone(db, payload.phone, user_id=user.user_id, account_id=user.account_id)
+        except ValueError as exc:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc)) from exc
     changed = [label for label, value in (("tên", payload.name), ("số điện thoại", payload.phone)) if value is not None]
     log_user_action(db, operator, user, "Sửa thông tin tài khoản", ("Thay đổi: " + ", ".join(changed)) if changed else None)
     db.commit()
@@ -220,6 +225,13 @@ def update_business_profile(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Không tìm thấy hồ sơ Doanh nghiệp")
 
     data = payload.model_dump(exclude_unset=True)
+    if "phone" in data and canonical_phone(data["phone"] or "") != (profile.phone or ""):
+        try:
+            data["phone"] = clean_phone(db, data["phone"], user_id=profile.user_id, account_id=profile.user.account_id)
+        except ValueError as exc:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc)) from exc
+    else:
+        data.pop("phone", None)
     labels = {"business_name": "tên", "phone": "số điện thoại", "description": "mô tả", "business_address": "địa chỉ"}
     changed = [labels.get(field, field) for field, value in data.items() if getattr(profile, field) != value]
     for field, value in data.items():

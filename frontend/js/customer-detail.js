@@ -77,10 +77,27 @@
     const uploadInput = form.querySelector('.new-review-media');
     const preview = form.querySelector('.review-media-preview');
     let previewUrls = [];
+    // Cùng giới hạn với backend (supabase_storage.py): ảnh JPG/PNG/WEBP/GIF ≤ 5MB, video MP4/WEBM/MOV ≤ 25MB.
+    const mediaProblem = file => {
+      const isVideo = ['video/mp4', 'video/webm', 'video/quicktime'].includes(file.type);
+      if (!isVideo && !['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.type)) {
+        return `"${file.name}" không đúng định dạng. Chỉ nhận ảnh JPG, PNG, WEBP, GIF hoặc video MP4, WEBM, MOV.`;
+      }
+      const limit = isVideo ? 25 : 5;
+      return file.size > limit * 1024 * 1024 ? `"${file.name}" lớn hơn ${limit}MB.` : '';
+    };
+    const filesProblem = () => [...uploadInput.files].map(mediaProblem).find(Boolean) || '';
     uploadInput.addEventListener('change', () => {
       previewUrls.forEach(url => URL.revokeObjectURL(url));
       previewUrls = [];
       preview.replaceChildren();
+      const problem = filesProblem();
+      form.querySelector('.review-status').textContent = problem;
+      if (problem) {
+        uploadInput.value = '';
+        F2D.toast(problem, 'error');
+        return;
+      }
       for (const file of uploadInput.files) {
         const url = URL.createObjectURL(file);
         previewUrls.push(url);
@@ -128,18 +145,28 @@
         return;
       }
       const button = form.querySelector('button[type=submit]'); const status = form.querySelector('.review-status');
+      // File sai định dạng/quá dung lượng: báo ngay, không lưu đánh giá.
+      const problem = filesProblem();
+      if (problem) { status.textContent = problem; return; }
       button.disabled = true; status.textContent = 'Đang gửi đánh giá…';
+      let created = null;
       try {
         const payload = { rating, content: form.querySelector('.new-review').value.trim() || null };
         const review = existingReview
           ? await api.request(`/reviews/${encodeURIComponent(existingReview.review_id)}`, { method: 'PATCH', body: payload })
           : await api.request('/reviews', { method: 'POST', body: { activity_id: id, ...payload } });
+        if (!existingReview) created = review;
         for (const file of [...uploadInput.files]) {
           const body = new FormData(); body.append('file', file);
           await api.request(`/reviews/${encodeURIComponent(review.review_id)}/media/upload`, { method: 'POST', body });
         }
         location.reload();
-      } catch (error) { status.textContent = error.message; button.disabled = false; }
+      } catch (error) {
+        // Đánh giá mới mà tải ảnh/video lỗi: xóa đánh giá vừa tạo để không lưu đánh giá thiếu media.
+        if (created) await api.request(`/reviews/${encodeURIComponent(created.review_id)}`, { method: 'DELETE', toast: false }).catch(() => {});
+        status.textContent = created ? `Chưa lưu đánh giá vì tải ảnh/video lỗi: ${error.message}` : error.message;
+        button.disabled = false;
+      }
     });
   }
   async function run() {

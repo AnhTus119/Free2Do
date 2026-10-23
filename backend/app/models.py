@@ -1,3 +1,4 @@
+import json
 import uuid
 from datetime import timedelta
 from sqlalchemy import Column, String, Float, Integer, Text, DateTime, Boolean, ForeignKey, UniqueConstraint, text
@@ -68,12 +69,26 @@ class Account(Base):
     email_verified = Column(Boolean, nullable=False, default=False)
     # True: phải đổi mật khẩu trước khi dùng API khác (tài khoản tạo bằng bootstrap_admin.py).
     must_change_password = Column(Boolean, nullable=False, default=False, server_default=text("false"))
+    # Chống dò mật khẩu: sai liên tiếp LOGIN_MAX_FAILED lần thì khóa đăng nhập tới login_locked_until.
+    failed_login_count = Column(Integer, nullable=False, default=0, server_default=text("0"))
+    login_locked_until = Column(DateTime, nullable=True)
     account_type = Column(String, nullable=False)
     status = Column(String, nullable=False)
     created_at = Column(DateTime, nullable=False)
     updated_at = Column(DateTime)
     user = relationship("User", back_populates="account", uselist=False)
     operator = relationship("Operator", back_populates="account", uselist=False)
+
+class RefreshToken(Base):
+    """Một phiên đăng nhập. Access token mang token_id này (claim "sid"); đăng xuất = revoked_at
+    -> cả refresh token lẫn access token của phiên bị từ chối ngay."""
+    __tablename__ = "refresh_tokens"
+
+    token_id = Column(String, primary_key=True, default=gen_id)
+    account_id = Column(String, ForeignKey("accounts.account_id", ondelete="CASCADE"), nullable=False, index=True)
+    expires_at = Column(DateTime, nullable=False)
+    revoked_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, nullable=False)
 
 class Role(Base):
     __tablename__ = "roles"
@@ -380,7 +395,15 @@ class SearchHistory(Base):
     budget = Column(Float)
     free_time = Column(Integer)
     location_label = Column(String)  # tên vị trí lúc tìm, vd "Cầu Giấy"
+    category_ids_json = Column(Text)  # tags lúc tìm (JSON), để "Tìm lại" đủ tiêu chí
     created_at = Column(DateTime, nullable=False)
+
+    @property
+    def category_ids(self) -> list[str]:
+        try:
+            return [str(value) for value in json.loads(self.category_ids_json or "[]")]
+        except (TypeError, ValueError):
+            return []
     user = relationship("User", back_populates="search_history")
 
 
@@ -393,16 +416,16 @@ class Group(Base):
     selected_activity_id = Column(String, ForeignKey("activities.activity_id", ondelete="SET NULL"))
     status = Column(String, nullable=False, default="active")
     search_started = Column(Boolean, nullable=False, default=False)
+    voting_open = Column(Boolean, nullable=False, default=False, server_default=text("false"))  # host bật bình chọn
     voting_closed_at = Column(DateTime)            # host đóng bình chọn
-    random_pick_activity_id = Column(String)       # kết quả random đang chờ host chốt (khi hòa phiếu)
+    random_pick_activity_id = Column(String)       # hoạt động "Free2Do gợi ý" khi hòa phiếu (random lại được)
     random_seq = Column(Integer, nullable=False, default=0, server_default=text("0"))  # tăng mỗi lần random để client chạy animation
     final_method = Column(String)                  # "top_vote" | "random"
     created_at = Column(DateTime, nullable=False)
     updated_at = Column(DateTime, nullable=False)
     host = relationship("User", foreign_keys=[host_user_id])
-    selected_activity = relationship("Activity", foreign_keys=[selected_activity_id])
+    selected_activity = relationship("Activity", foreign_keys=[selected_activity_id])  # hoạt động thắng bình chọn
     members = relationship("GroupMember", back_populates="group", cascade="all, delete-orphan")
-    payments = relationship("GroupPayment", back_populates="group", cascade="all, delete-orphan")
 
 
 class GroupMember(Base):
@@ -420,40 +443,12 @@ class GroupMember(Base):
     category_ids_json = Column(Text, nullable=False, default="[]")
     is_host = Column(Boolean, nullable=False, default=False)
     is_ready = Column(Boolean, nullable=False, default=False)
-    leave_requested_at = Column(DateTime)
-    leave_status = Column(String, nullable=False, default="none")
+    # Khi hòa phiếu: thẻ thành viên đang chọn ("revote" | "random") để gợi ý cho host; xóa khi sang bước mới.
+    decision_choice = Column(String)
     joined_at = Column(DateTime, nullable=False)
     updated_at = Column(DateTime, nullable=False)
     group = relationship("Group", back_populates="members")
     user = relationship("User", foreign_keys=[user_id])
-    payment = relationship("GroupPayment", back_populates="member", uselist=False, cascade="all, delete-orphan")
-
-
-class GroupPayment(Base):
-    __tablename__ = "group_payments"
-    payment_id = Column(String, primary_key=True, default=gen_id)
-    group_id = Column(String, ForeignKey("groups.group_id", ondelete="CASCADE"), nullable=False, index=True)
-    member_id = Column(String, ForeignKey("group_members.member_id", ondelete="CASCADE"), nullable=False, unique=True)
-    amount = Column(Float, nullable=False, default=0)
-    status = Column(String, nullable=False, default="unpaid")
-    reminded_at = Column(DateTime)
-    overdue_since = Column(DateTime)
-    paid_at = Column(DateTime)
-    updated_at = Column(DateTime, nullable=False)
-    group = relationship("Group", back_populates="payments")
-    member = relationship("GroupMember", back_populates="payment")
-
-
-class GroupActivityVote(Base):
-    __tablename__ = "group_activity_votes"
-    __table_args__ = (
-        UniqueConstraint("group_id", "member_id", name="uq_group_activity_vote_member"),
-    )
-    vote_id = Column(String, primary_key=True, default=gen_id)
-    group_id = Column(String, ForeignKey("groups.group_id", ondelete="CASCADE"), nullable=False, index=True)
-    member_id = Column(String, ForeignKey("group_members.member_id", ondelete="CASCADE"), nullable=False, index=True)
-    activity_id = Column(String, ForeignKey("activities.activity_id", ondelete="CASCADE"), nullable=False)
-    confirmation_status = Column(String, nullable=False, default="pending")
 
 class OtpCode(Base):
     __tablename__ = "otp_codes"

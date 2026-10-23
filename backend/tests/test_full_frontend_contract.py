@@ -40,9 +40,12 @@ class FullFrontendContractTests(unittest.TestCase):
             "/groups/{group_id}/recommendations": "get",
             "/groups/{group_id}/members/{member_id}/vote": "post",
             "/groups/{group_id}/randomize": "post",
-            "/groups/{group_id}/activity": "put",
-            "/groups/{group_id}/members/{member_id}/confirmation": "patch",
-            "/groups/{group_id}/payments/{member_id}": "patch",
+            "/groups/{group_id}/voting/open": "post",
+            "/groups/{group_id}/voting/reopen": "post",
+            "/groups/{group_id}/members/{member_id}/decision": "patch",
+            "/groups/{group_id}/leave": "post",
+            "/auth/refresh-token": "post",
+            "/auth/signout": "post",
         }
         for path, method in expected.items():
             self.assertIn(path, paths)

@@ -41,7 +41,7 @@
     }
     const payload = await response.json().catch(() => null);
     if (!response.ok) {
-      if (response.status === 401 && token) { localStorage.removeItem('token'); cache.clear(); }
+      if (response.status === 401 && token) window.FREE2DO_SESSION.clear();
       const detail = payload?.detail;
       const message = Array.isArray(detail)
         ? detail.map(item => item.msg).filter(Boolean).join(', ')
@@ -91,7 +91,8 @@
     } catch (error) { return null; } // chế độ riêng tư/chặn storage: chạy như chưa lưu gì
     return value;
   }
-  function logout() {
+  async function logout() {
+    await window.FREE2DO_SESSION.logout();
     ['token', 'access_token', 'user_token', 'operator_token', ...SESSION_KEYS].forEach(key => {
       localStorage.removeItem(key);
       sessionStorage.removeItem(key);

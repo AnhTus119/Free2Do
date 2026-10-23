@@ -8,9 +8,10 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app import models, schemas
 from app.auth import get_current_user, get_current_operator
-from app.services.supabase_storage import InvalidMedia, StorageNotConfigured, sniff_image_type, upload_asset
+from app.services.supabase_storage import InvalidMedia, StorageNotConfigured, delete_asset, sniff_image_type, upload_asset
 from app.utils.email import send_business_request_approved_email, send_business_request_rejected_email
 from app.routers.action_logs import log_action
+from app.utils.identity import clean_phone
 
 router = APIRouter(tags=["business-requests"])
 
@@ -36,10 +37,15 @@ def create_business_request(
     if pending:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Bạn đã có một yêu cầu đang chờ duyệt")
 
+    try:
+        phone = clean_phone(db, payload.phone, user_id=user.user_id, account_id=user.account_id)
+    except ValueError as exc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc)) from exc
+
     request = models.BusinessRequest(
         user_id=user.user_id,
         business_name=payload.business_name,
-        phone=payload.phone,
+        phone=phone,
         business_address=payload.business_address.strip() if payload.business_address else None,
         description=payload.description,
         status="pending",
@@ -113,6 +119,33 @@ async def _append_business_request_proofs(
         db.commit()  # giữ lại các ảnh đã tải thành công trước khi lỗi
     db.refresh(request)
     return request
+
+
+@router.delete("/business-requests/{request_id}", response_model=schemas.MessageResponse)
+def cancel_business_request(
+    request_id: str,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    """Customer hủy đơn đang chờ duyệt (form gọi khi tải ảnh minh chứng lỗi để không để lại đơn thiếu ảnh)."""
+    request = (
+        db.query(models.BusinessRequest)
+        .filter(models.BusinessRequest.request_id == request_id, models.BusinessRequest.user_id == user.user_id)
+        .first()
+    )
+    if not request:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Không tìm thấy yêu cầu")
+    if request.status != "pending":
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Chỉ hủy được yêu cầu đang chờ duyệt")
+    public_ids = [proof.public_id for proof in request.proofs if proof.public_id]
+    db.delete(request)
+    db.commit()
+    for public_id in public_ids:
+        try:
+            delete_asset(public_id)
+        except Exception:
+            pass  # ảnh mồ côi trên Storage không ảnh hưởng dữ liệu
+    return {"message": "Đã hủy yêu cầu"}
 
 
 @router.get("/business-requests/me", response_model=list[schemas.BusinessRequest])
@@ -247,6 +280,7 @@ def approve_business_request(
 @operator_router.patch("/{request_id}/reject", response_model=schemas.BusinessRequest)
 def reject_business_request(
     request_id: str,
+    payload: schemas.BusinessRequestRejectRequest,
     db: Session = Depends(get_db),
     operator: models.Operator = Depends(get_current_operator),
 ):
@@ -257,6 +291,7 @@ def reject_business_request(
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Yêu cầu đã được xử lý")
 
     request.status = "rejected"
+    request.rejection_reason = payload.reason.strip()
     request.reviewed_by = operator.operator_id
     request.reviewed_at = datetime.utcnow()
     # User vẫn là khách hàng sau khi bị từ chối nên log nằm ở hồ sơ khách hàng.
@@ -267,7 +302,7 @@ def reject_business_request(
     try:
         recipient = request.user.account.email or request.user.account.recovery_email
         if recipient:
-            send_business_request_rejected_email(recipient, request.business_name)
+            send_business_request_rejected_email(recipient, request.business_name, request.rejection_reason)
     except Exception:
         pass
     return request

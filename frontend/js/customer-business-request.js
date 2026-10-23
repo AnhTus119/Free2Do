@@ -59,13 +59,25 @@
   form.addEventListener('submit', event => {
     event.preventDefault();
     const button = form.querySelector('button[type=submit]');
+    const payload = {
+      business_name: document.getElementById('businessName').value.trim(),
+      phone: document.getElementById('businessPhone').value.trim(),
+      business_address: document.getElementById('businessAddress').value.trim() || null,
+      description: document.getElementById('businessDescription').value.trim(),
+    };
+    const files = proofs.files();
+    // Bắt buộc đủ thông tin (trừ địa chỉ trụ sở) và ít nhất 1 ảnh minh chứng trước khi gửi.
+    const problem = !payload.business_name ? 'Vui lòng nhập tên doanh nghiệp.'
+      : !payload.phone ? 'Vui lòng nhập số điện thoại.'
+      : F2D.phoneProblem(payload.phone)
+      || (payload.description.length < 20 ? 'Mô tả doanh nghiệp cần ít nhất 20 ký tự.' : '')
+      || (!files.length ? 'Vui lòng chọn ít nhất 1 ảnh minh chứng.' : '');
+    if (problem) {
+      status.textContent = problem;
+      F2D.toast(problem, 'error');
+      return;
+    }
     F2D.busy(button, async () => {
-      const payload = {
-        business_name: document.getElementById('businessName').value.trim(),
-        phone: document.getElementById('businessPhone').value.trim() || null,
-        business_address: document.getElementById('businessAddress').value.trim() || null,
-        description: document.getElementById('businessDescription').value.trim() || null,
-      };
       status.textContent = 'Đang gửi yêu cầu...';
       let created;
       try {
@@ -75,17 +87,19 @@
         F2D.toast(error.message, 'error');
         return;
       }
-      const files = proofs.files();
-      if (files.length) {
-        const body = new FormData();
-        files.forEach(file => body.append('files', file));
-        try {
-          created = await api.request(`/business-requests/${encodeURIComponent(created.request_id)}/proofs`, { method: 'POST', body, toast: false });
-        } catch (error) {
-          F2D.toast(`Đã gửi yêu cầu nhưng chưa tải được ảnh minh chứng: ${error.message}`, 'error');
-        }
+      const body = new FormData();
+      files.forEach(file => body.append('files', file));
+      try {
+        created = await api.request(`/business-requests/${encodeURIComponent(created.request_id)}/proofs`, { method: 'POST', body, toast: false });
+      } catch (error) {
+        // Không để lại đơn thiếu minh chứng: hủy đơn vừa tạo để người dùng gửi lại.
+        await api.request(`/business-requests/${encodeURIComponent(created.request_id)}`, { method: 'DELETE', toast: false }).catch(() => {});
+        const message = `Chưa gửi được yêu cầu vì tải ảnh minh chứng lỗi: ${error.message}`;
+        status.textContent = message;
+        F2D.toast(message, 'error');
+        return;
       }
-      if (!files.length || created.proofs?.length) F2D.toast('Đã gửi yêu cầu trở thành doanh nghiệp.');
+      F2D.toast('Đã gửi yêu cầu trở thành doanh nghiệp.');
       proofs.clear();
       form.style.display = 'none';
       document.getElementById('success-view').style.display = 'block';

@@ -104,6 +104,8 @@
     event.preventDefault();
     const name = document.getElementById('ebName').value.trim();
     if (!name) return F2D.toast('Tên doanh nghiệp không được để trống.', 'error');
+    const phoneError = F2D.phoneProblem(document.getElementById('ebPhone').value);
+    if (phoneError) return F2D.toast(phoneError, 'error');
     const saved = await F2D.ask({
       title: 'Lưu hồ sơ doanh nghiệp?', text: `Thông tin mới của "${name}" sẽ hiển thị ngay với khách hàng.`, ok: 'Lưu thay đổi',
       done: 'Đã chỉnh sửa thành công.',

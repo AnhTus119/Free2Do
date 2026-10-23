@@ -3,7 +3,6 @@
 from pathlib import Path
 
 from app.database import engine
-from app import models
 
 
 def main():
@@ -17,7 +16,6 @@ def main():
             cursor.execute(sql)
         finally:
             cursor.close()
-    models.GroupActivityVote.__table__.create(bind=engine, checkfirst=True)
     print("Database migration completed.")
 
 

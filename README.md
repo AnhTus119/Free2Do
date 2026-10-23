@@ -9,7 +9,7 @@ xếp hạng các hoạt động phù hợp quanh họ, thay vì bắt người 
 
 - **Khách hàng**: tìm hoạt động theo thời gian rảnh, vị trí, ngân sách, tags và bán kính, xem trên
   bản đồ; trang chi tiết hoạt động/doanh nghiệp; lưu (bookmark), đánh giá kèm ảnh, báo cáo;
-  lập nhóm đi chơi (mời bằng link, bình chọn hoạt động, chia tiền); trợ lý AI gợi ý bằng tiếng Việt;
+  lập nhóm đi chơi (mời bằng link, bình chọn hoạt động); trợ lý AI gợi ý bằng tiếng Việt;
   thông báo; đăng ký trở thành doanh nghiệp.
 - **Doanh nghiệp**: dashboard và biểu đồ, hồ sơ (logo, gallery, menu), tạo/sửa hoạt động kèm
   ảnh/video, trả lời đánh giá, gửi khiếu nại. Hoạt động mới/sửa đổi chờ Operator duyệt.

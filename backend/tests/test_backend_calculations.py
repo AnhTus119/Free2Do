@@ -204,7 +204,7 @@ class BackendCalculationTests(unittest.TestCase):
                 db=self.db,
                 user=self.customer,
             )
-        self.assertEqual(context.exception.status_code, 422)
+        self.assertEqual(context.exception.status_code, 400)
 
 if __name__ == "__main__":
     unittest.main()

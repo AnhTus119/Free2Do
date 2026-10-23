@@ -18,6 +18,7 @@
  *    Thêm run: async (giá trị) => ... để popup tự thực hiện thao tác sau khi bấm đồng ý: giữ popup mở,
  *    khóa nút + vòng xoay, thành công thì hiện dấu ✓ xanh kèm `done` (chuỗi hoặc hàm(kết quả)) rồi tự đóng
  *    và trả về kết quả của run; lỗi thì hiện lỗi ngay trong popup, giữ nguyên nội dung để thử lại hoặc hủy.
+ *  - F2D.phoneProblem(value)        : kiểm tra SĐT di động Việt Nam, trả về câu lỗi hoặc ''.
  *  - Lăn chuột trên ô số đang focus không đổi giá trị (trình duyệt tự tăng/giảm theo step: 100000 -> 99984).
  */
 (function () {
@@ -379,6 +380,15 @@
     if (file.size > maxMB * 1024 * 1024) return `"${file.name}" lớn hơn ${maxMB}MB.`;
     return '';
   }
+  // SĐT di động Việt Nam (cùng quy tắc với backend): 10 số, đầu 03/05/07/08/09; cho phép +84, dấu cách, chấm, gạch nối.
+  // Trả về câu lỗi hoặc ''. Ô trống hợp lệ (trang nào bắt buộc thì tự kiểm tra rỗng).
+  function phoneProblem(value) {
+    let phone = String(value || '').trim().replace(/[\s.\-()]/g, '');
+    if (!phone) return '';
+    if (phone.startsWith('+84')) phone = `0${phone.slice(3)}`;
+    else if (phone.startsWith('84') && phone.length >= 11) phone = `0${phone.slice(2)}`;
+    return /^0[35789]\d{8}$/.test(phone) ? '' : 'Số điện thoại không hợp lệ (cần 10 số, bắt đầu bằng 03, 05, 07, 08 hoặc 09).';
+  }
   function imagePicker(container, options = {}) {
     const max = options.max || 5;
     const maxMB = options.maxMB || 5;
@@ -572,5 +582,5 @@
   const fillYear = () => document.querySelectorAll('[data-current-year]').forEach(el => { el.textContent = new Date().getFullYear(); });
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fillYear); else fillYear();
 
-  window.F2D = Object.freeze({ toast, busy, mutate, ask, lightbox, closeLightbox, date, dateTime, toDate, escapeHTML, interestsEditor, imagePicker, imageProblem, accountId, confetti });
+  window.F2D = Object.freeze({ toast, busy, mutate, ask, lightbox, closeLightbox, date, dateTime, toDate, escapeHTML, interestsEditor, imagePicker, imageProblem, phoneProblem, accountId, confetti });
 })();

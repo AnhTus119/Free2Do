@@ -14,7 +14,7 @@
       headers: { Authorization: `Bearer ${token}`, ...(options.body ? { 'Content-Type': 'application/json' } : {}) },
     });
     const data = await response.json().catch(() => ({}));
-    if (response.status === 401) { localStorage.removeItem('token'); location.replace('log-in.html'); }
+    if (response.status === 401) { window.FREE2DO_SESSION.clear(); location.replace('log-in.html'); }
     if (!response.ok) throw new Error(typeof data.detail === 'string' ? data.detail : 'Không đổi được mật khẩu. Vui lòng thử lại.');
     return data;
   }
@@ -39,7 +39,11 @@
     });
   });
 
-  document.getElementById('change-password-logout').addEventListener('click', () => localStorage.removeItem('token'));
+  document.getElementById('change-password-logout').addEventListener('click', async event => {
+    event.preventDefault();
+    await window.FREE2DO_SESSION.logout();
+    location.href = 'log-in.html';
+  });
 
   // Mở nhầm trang khi không còn bị buộc đổi mật khẩu: về thẳng trang chính.
   window.FREE2DO_BACKEND_READY.then(() => request('/auth/me')).then(me => {

@@ -33,8 +33,6 @@ CREATE TABLE IF NOT EXISTS group_members (
   category_ids_json TEXT NOT NULL, 
   is_host BOOLEAN NOT NULL, 
   is_ready BOOLEAN NOT NULL, 
-  leave_requested_at TIMESTAMP WITHOUT TIME ZONE, 
-  leave_status VARCHAR NOT NULL, 
   joined_at TIMESTAMP WITHOUT TIME ZONE NOT NULL, 
   updated_at TIMESTAMP WITHOUT TIME ZONE NOT NULL, 
   PRIMARY KEY (member_id), 
@@ -46,41 +44,6 @@ CREATE TABLE IF NOT EXISTS group_members (
 CREATE INDEX IF NOT EXISTS ix_group_members_group_id ON group_members (group_id);
 
 CREATE INDEX IF NOT EXISTS ix_group_members_user_id ON group_members (user_id);
-
-CREATE TABLE IF NOT EXISTS group_activity_votes (
-  vote_id VARCHAR NOT NULL, 
-  group_id VARCHAR NOT NULL, 
-  member_id VARCHAR NOT NULL, 
-  activity_id VARCHAR NOT NULL, 
-  confirmation_status VARCHAR NOT NULL, 
-  PRIMARY KEY (vote_id), 
-  CONSTRAINT uq_group_activity_vote_member UNIQUE (group_id, member_id), 
-  FOREIGN KEY(group_id) REFERENCES groups (group_id) ON DELETE CASCADE, 
-  FOREIGN KEY(member_id) REFERENCES group_members (member_id) ON DELETE CASCADE, 
-  FOREIGN KEY(activity_id) REFERENCES activities (activity_id) ON DELETE CASCADE
-);
-
-CREATE INDEX IF NOT EXISTS ix_group_activity_votes_group_id ON group_activity_votes (group_id);
-
-CREATE INDEX IF NOT EXISTS ix_group_activity_votes_member_id ON group_activity_votes (member_id);
-
-CREATE TABLE IF NOT EXISTS group_payments (
-  payment_id VARCHAR NOT NULL, 
-  group_id VARCHAR NOT NULL, 
-  member_id VARCHAR NOT NULL, 
-  amount FLOAT NOT NULL, 
-  status VARCHAR NOT NULL, 
-  reminded_at TIMESTAMP WITHOUT TIME ZONE, 
-  overdue_since TIMESTAMP WITHOUT TIME ZONE, 
-  paid_at TIMESTAMP WITHOUT TIME ZONE, 
-  updated_at TIMESTAMP WITHOUT TIME ZONE NOT NULL, 
-  PRIMARY KEY (payment_id), 
-  FOREIGN KEY(group_id) REFERENCES groups (group_id) ON DELETE CASCADE, 
-  UNIQUE (member_id), 
-  FOREIGN KEY(member_id) REFERENCES group_members (member_id) ON DELETE CASCADE
-);
-
-CREATE INDEX IF NOT EXISTS ix_group_payments_group_id ON group_payments (group_id);
 
 -- Nếu bảng groups đã tồn tại từ trước (bản cũ) thì bổ sung cột tên nhóm:
 ALTER TABLE groups
@@ -271,13 +234,37 @@ CREATE TABLE IF NOT EXISTS group_activity_ballots (
 CREATE INDEX IF NOT EXISTS ix_group_activity_ballots_group_id ON group_activity_ballots (group_id);
 CREATE INDEX IF NOT EXISTS ix_group_activity_ballots_member_id ON group_activity_ballots (member_id);
 
--- Chuyển phiếu của các nhóm đang bình chọn dở (bản cũ: 1 phiếu/người) sang bảng phiếu mới.
-INSERT INTO group_activity_ballots (ballot_id, group_id, member_id, activity_id, created_at)
-SELECT gen_random_uuid()::text, v.group_id, v.member_id, v.activity_id, NOW()
-FROM group_activity_votes v JOIN groups g ON g.group_id = v.group_id
-WHERE g.selected_activity_id IS NULL
-ON CONFLICT DO NOTHING;
-
 -- ===== Cập nhật 2026-10-18 (backend cũng tự bổ sung khi khởi động; chạy lại nhiều lần vẫn an toàn) =====
 -- Tài khoản tạo bằng backend/bootstrap_admin.py phải đổi mật khẩu ở lần đăng nhập đầu tiên.
 ALTER TABLE accounts ADD COLUMN IF NOT EXISTS must_change_password BOOLEAN NOT NULL DEFAULT false;
+
+-- ===== Cập nhật 2026-10-23 (chạy TRƯỚC khi deploy code mới; chạy lại nhiều lần vẫn an toàn) =====
+-- Phiên đăng nhập (refresh token), khóa đăng nhập tạm khi sai mật khẩu nhiều lần.
+CREATE TABLE IF NOT EXISTS refresh_tokens (
+  token_id VARCHAR NOT NULL,
+  account_id VARCHAR NOT NULL,
+  expires_at TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+  revoked_at TIMESTAMP WITHOUT TIME ZONE,
+  created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+  PRIMARY KEY (token_id),
+  FOREIGN KEY(account_id) REFERENCES accounts (account_id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS ix_refresh_tokens_account_id ON refresh_tokens (account_id);
+ALTER TABLE accounts ADD COLUMN IF NOT EXISTS failed_login_count INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE accounts ADD COLUMN IF NOT EXISTS login_locked_until TIMESTAMP;
+
+-- Lịch sử tìm kiếm lưu thêm tags để "Tìm lại" đủ tiêu chí.
+ALTER TABLE search_history ADD COLUMN IF NOT EXISTS category_ids_json TEXT;
+
+-- Nhóm: bình chọn là tùy chọn host bật; khi hòa phiếu thành viên chọn thẻ Vote lại/Random.
+ALTER TABLE groups ADD COLUMN IF NOT EXISTS voting_open BOOLEAN NOT NULL DEFAULT false;
+UPDATE groups SET voting_open = true
+WHERE voting_closed_at IS NOT NULL
+   OR group_id IN (SELECT group_id FROM group_activity_ballots);
+ALTER TABLE group_members ADD COLUMN IF NOT EXISTS decision_choice VARCHAR;
+
+-- Bỏ tính năng chia tiền, xác nhận tham gia và host duyệt rời nhóm (XÓA DỮ LIỆU, không hoàn tác được).
+DROP TABLE IF EXISTS group_payments;
+DROP TABLE IF EXISTS group_activity_votes;
+ALTER TABLE group_members DROP COLUMN IF EXISTS leave_requested_at;
+ALTER TABLE group_members DROP COLUMN IF EXISTS leave_status;

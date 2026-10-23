@@ -1,3 +1,4 @@
+import json
 import time
 from datetime import UTC, datetime
 from typing import Optional
@@ -231,6 +232,7 @@ def search_activities(
             budget=payload.budget,
             free_time=payload.free_time,
             location_label=(payload.location_label or "").strip() or None,
+            category_ids_json=json.dumps(payload.category_ids) if payload.category_ids else None,
             created_at=datetime.now(UTC).replace(tzinfo=None),
         )
         if background_tasks is not None:

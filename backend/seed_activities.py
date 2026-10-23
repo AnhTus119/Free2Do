@@ -14,7 +14,7 @@ from datetime import UTC, datetime, time
 
 from app import models
 from app.database import SessionLocal
-from app.utils.identity import normalize_phone
+from app.utils.identity import canonical_phone
 
 
 ACTIVITIES = [
@@ -198,7 +198,7 @@ def main():
         for business_id, (name, phone, address) in businesses.items():
             user = db.query(models.User).filter(models.User.user_id == business_id).first()
             if user is None:
-                login_phone = normalize_phone(phone) if phone else None
+                login_phone = canonical_phone(phone) if phone else None
                 account = models.Account(
                     account_id=f"ACC-{business_id}",
                     email=f"{business_id.lower()}@seed.free2do.local",

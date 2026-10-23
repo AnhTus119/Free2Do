@@ -15,7 +15,8 @@
   const statusTabs = document.querySelectorAll('.status-tab');
   const pageSize = 10;
   let currentPage = 1;
-  let selectedStatus = 'all';
+  // Link từ cảnh báo ở Tổng quan: activities.html?status=pending mở sẵn tab tương ứng.
+  let selectedStatus = new URLSearchParams(location.search).get('status') || 'all';
 
   function startingPrice(activity) {
     return Number(activity.price.split('–')[0].replace(/\D/g, '')) || 0;
@@ -136,6 +137,8 @@
   [searchInput, typeFilter, priceFilter].forEach(control => control.addEventListener(control.tagName === 'INPUT' ? 'input' : 'change', () => { currentPage = 1; render(); }));
   businessFilter.addEventListener('change', () => setBusiness(businessFilter.value));
   activeFilters.addEventListener('click', event => { if (event.target.closest('[data-clear-business]')) setBusiness('all'); });
+  if (![...statusTabs].some(tab => tab.dataset.status === selectedStatus)) selectedStatus = 'all';
+  statusTabs.forEach(tab => tab.classList.toggle('active', tab.dataset.status === selectedStatus));
   statusTabs.forEach(tab => tab.addEventListener('click', () => {
     selectedStatus = tab.dataset.status; currentPage = 1;
     statusTabs.forEach(item => item.classList.toggle('active', item === tab)); render();

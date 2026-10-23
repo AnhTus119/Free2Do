@@ -285,12 +285,21 @@ main{animation:f2dPageIn .28s ease-out both;}
 
 /* ===== Lịch sử tìm kiếm (account.html#lichsu) ===== */
 .search-history-list{display:grid;gap:14px;max-width:760px;}
-.search-history-card{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;align-items:center;gap:18px;min-height:132px;padding:18px 22px;border-radius:16px;
-  background:color-mix(in srgb,var(--paper) 72%,var(--cream));border:1px solid var(--line);transition:border-color .2s ease,box-shadow .2s ease;}
-.search-history-card:hover{border-color:color-mix(in srgb,var(--line) 60%,var(--rose));box-shadow:0 8px 22px rgba(110,82,72,.08);}
-.search-history-info{display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:0;text-align:left;}
-.search-history-place{margin:0 0 4px;font-size:19px;font-weight:800;line-height:1.3;color:var(--ink);overflow-wrap:anywhere;}
-.search-history-info p{margin:0;font-size:15px;line-height:1.5;color:var(--brown);}
+.search-history-card{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:start;gap:16px;padding:18px 20px;border-radius:18px;
+  background:#fff;border:1px solid var(--line);box-shadow:0 1px 2px rgba(110,82,72,.04);transition:border-color .2s ease,box-shadow .2s ease,transform .2s ease;}
+.search-history-card:has(.search-history-select:checked){border-color:var(--rose);background:color-mix(in srgb,#fff 88%,var(--cream));}
+.search-history-card:hover{border-color:color-mix(in srgb,var(--line) 60%,var(--rose));box-shadow:0 10px 26px rgba(110,82,72,.09);transform:translateY(-1px);}
+.search-history-select{margin-top:4px;}
+.search-history-info{display:flex;flex-direction:column;gap:10px;min-width:0;text-align:left;}
+.search-history-head{display:flex;flex-direction:column;gap:2px;min-width:0;}
+.search-history-place{margin:0;font-size:17px;font-weight:800;line-height:1.3;color:var(--ink);overflow-wrap:anywhere;}
+.search-history-time{font-size:12.5px;color:var(--muted);}
+.search-history-chips,.search-history-tags{display:flex;flex-wrap:wrap;gap:6px;}
+.search-history-chip{display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border-radius:999px;background:var(--paper);border:1px solid var(--line);font-size:13px;font-weight:600;color:var(--brown);}
+.search-history-tag{padding:4px 10px;border-radius:999px;background:color-mix(in srgb,var(--rose) 12%,#fff);color:var(--rose-dark);font-size:12px;font-weight:700;}
+.search-history-chip.is-muted,.search-history-tag.is-muted{background:transparent;color:var(--muted);font-weight:600;}
+.search-history-tag.is-muted{border:1px dashed var(--line);}
+.search-history-actions{display:flex;align-items:center;gap:8px;}
 .search-history-again{display:inline-flex;align-items:center;justify-content:center;padding:11px 22px;border-radius:999px;background:var(--rose);color:#fff;
   font-weight:700;font-size:14px;text-decoration:none;white-space:nowrap;transition:background .2s ease,transform .15s ease;}
 .search-history-again:hover{background:var(--rose-dark);color:#fff;text-decoration:none;}
@@ -309,7 +318,8 @@ main{animation:f2dPageIn .28s ease-out both;}
 .search-history-remove.is-busy::before{margin:0;}
 .search-history-remove.is-busy{font-size:0;}
 .search-history-empty{padding:28px;border:1px dashed var(--line);border-radius:16px;color:var(--muted);text-align:center;max-width:760px;}
-@media (max-width:520px){.search-history-card{grid-template-columns:auto minmax(0,1fr) auto;padding:16px;gap:12px;}.search-history-again{grid-column:2;justify-self:start;}.search-history-remove{grid-column:3;grid-row:1;}.search-history-place{font-size:17px;}.search-history-again{padding:10px 16px;}}
+@media (max-width:620px){.search-history-card{grid-template-columns:auto minmax(0,1fr);padding:16px;gap:12px;}.search-history-actions{grid-column:2;justify-content:space-between;}.search-history-place{font-size:16px;}.search-history-again{padding:10px 18px;}}
+@media (prefers-reduced-motion:reduce){.search-history-card{transition:none;}.search-history-card:hover{transform:none;}}
 
 /* ===== Chiều sâu & chuyển động (đồng bộ với trang giới thiệu index.html) ===== */
 :root{--font-display:'Be Vietnam Pro','Inter',sans-serif;--ease-out:cubic-bezier(.2,.8,.2,1);}

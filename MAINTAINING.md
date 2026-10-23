@@ -43,6 +43,9 @@ không có bước build. URL backend production nằm trong [`frontend/js/confi
 - **Cột `accounts.must_change_password`** (buộc đổi mật khẩu lần đầu cho tài khoản tạo bằng
   `bootstrap_admin.py`): backend tự thêm khi khởi động với giá trị mặc định `false`, nên không tài
   khoản hiện có nào bị ảnh hưởng. Câu lệnh tương ứng nằm cuối `migration.sql`.
+- **Phần "Cập nhật 2026-10-23" cuối `migration.sql`** phải chạy **trước** khi deploy code mới: nó xóa
+  bảng `group_payments`, `group_activity_votes` và cột `group_members.leave_status` (NOT NULL, code mới
+  không còn ghi) của tính năng chia tiền/xác nhận tham gia đã bỏ. Xóa dữ liệu, không hoàn tác được.
 
 ## Việc tự động định kỳ (không cần cron)
 

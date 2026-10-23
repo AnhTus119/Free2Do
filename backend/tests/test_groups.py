@@ -10,19 +10,20 @@ from sqlalchemy.pool import StaticPool
 from app import models, schemas
 from app.routers.groups import (
     GroupConnectionManager,
+    cancel_group_voting,
+    choose_group_decision,
     create_group,
     delete_group,
     get_group,
     group_recommendations,
     join_group,
+    leave_group,
     list_my_groups,
+    open_group_voting,
     randomize_group_activity,
-    respond_to_group_activity,
+    reopen_group_voting,
     set_member_ready,
     start_group_search,
-    select_group_activity,
-    update_group_expense,
-    update_payment,
     vote_group_activity,
     close_group_voting,
 )
@@ -131,7 +132,7 @@ class GroupFeatureTests(unittest.TestCase):
             category_ids=[self.category.category_id],
         )
 
-    def test_create_join_recommend_select_and_pay(self):
+    def test_create_join_recommend_vote_is_optional_and_top_wins(self):
         group = asyncio.run(create_group(
             schemas.GroupCreateRequest(
                 members=[self._member_input("Host")],
@@ -171,30 +172,32 @@ class GroupFeatureTests(unittest.TestCase):
             user=self.member,
         ))
         started = asyncio.run(start_group_search(group.group_id, db=self.db, user=self.host))
+        self.assertFalse(started.voting_open)
         recommendations = asyncio.run(group_recommendations(
             group.group_id, db=self.db, user=self.host,
         ))
         self.assertEqual(recommendations[0].activity_id, self.activity.activity_id)
         self.assertGreater(recommendations[0].match_score, 0)
 
-        selected_by_host = asyncio.run(vote_group_activity(
-            group.group_id,
-            started.members[0].member_id,
-            schemas.GroupActivitySelect(activity_id=self.activity.activity_id),
-            db=self.db,
-            user=self.host,
+        vote = lambda user, member_id: asyncio.run(vote_group_activity(
+            group.group_id, member_id, schemas.GroupActivitySelect(activity_id=self.activity.activity_id),
+            db=self.db, user=user,
         ))
-        selected_by_member = asyncio.run(vote_group_activity(
-            group.group_id,
-            member_row.member_id,
-            schemas.GroupActivitySelect(activity_id=self.activity.activity_id),
-            db=self.db,
-            user=self.member,
-        ))
+        # Bình chọn là tùy chọn: chưa mở thì chưa vote được, chỉ host được mở.
+        with self.assertRaises(HTTPException) as not_open:
+            vote(self.host, started.members[0].member_id)
+        self.assertEqual(not_open.exception.status_code, 409)
+        with self.assertRaises(HTTPException) as only_host_opens:
+            asyncio.run(open_group_voting(group.group_id, db=self.db, user=self.member))
+        self.assertEqual(only_host_opens.exception.status_code, 403)
+        self.assertTrue(asyncio.run(open_group_voting(group.group_id, db=self.db, user=self.host)).voting_open)
+
+        selected_by_host = vote(self.host, started.members[0].member_id)
+        selected_by_member = vote(self.member, member_row.member_id)
         with self.assertRaises(HTTPException) as only_host:
             asyncio.run(close_group_voting(group.group_id, db=self.db, user=self.member))
         self.assertEqual(only_host.exception.status_code, 403)
-        # Một hoạt động có nhiều phiếu nhất -> đóng bình chọn là chốt luôn.
+        # Một hoạt động có nhiều phiếu nhất -> đóng bình chọn là có kết quả (chúc mừng), không còn chốt/chia tiền.
         selected = asyncio.run(close_group_voting(group.group_id, db=self.db, user=self.host))
         self.assertEqual(selected_by_host.members[0].vote_activity_ids, [self.activity.activity_id])
         self.assertEqual(selected_by_member.members[1].vote_activity_ids, [self.activity.activity_id])
@@ -203,74 +206,22 @@ class GroupFeatureTests(unittest.TestCase):
         self.assertEqual(selected.selected_activity.activity_id, self.activity.activity_id)
         self.assertEqual(selected.vote_tally[0].votes, 2)
         with self.assertRaises(HTTPException) as closed:
-            asyncio.run(vote_group_activity(
-                group.group_id, member_row.member_id,
-                schemas.GroupActivitySelect(activity_id=self.activity.activity_id), db=self.db, user=self.member,
-            ))
+            vote(self.member, member_row.member_id)
         self.assertEqual(closed.exception.status_code, 409)
-        self.assertEqual(selected.total_amount, 240000)
-        self.assertTrue(all(item.payment.amount == 120000 for item in selected.members))
+        with self.assertRaises(HTTPException) as no_cancel_after_result:
+            asyncio.run(cancel_group_voting(group.group_id, db=self.db, user=self.host))
+        self.assertEqual(no_cancel_after_result.exception.status_code, 409)
 
-        with self.assertRaises(HTTPException) as confirmation_required:
-            asyncio.run(update_payment(
-                group.group_id,
-                member_row.member_id,
-                schemas.GroupPaymentAction(action="paid"),
-                db=self.db,
-                user=self.host,
-            ))
-        self.assertEqual(confirmation_required.exception.status_code, 409)
+        # Thành viên tự rời nhóm, không cần host duyệt; host không rời được (chỉ xóa nhóm).
+        with self.assertRaises(HTTPException) as host_cannot_leave:
+            asyncio.run(leave_group(group.group_id, db=self.db, user=self.host))
+        self.assertEqual(host_cannot_leave.exception.status_code, 409)
+        self.assertEqual(asyncio.run(leave_group(group.group_id, db=self.db, user=self.member)).message, "Bạn đã rời nhóm")
+        after = asyncio.run(get_group(group.group_id, db=self.db, user=self.host))
+        self.assertEqual([item.user_id for item in after.members], [self.host.user_id])
+        self.assertEqual(after.vote_tally[0].votes, 1)  # phiếu của người rời nhóm bị xóa
 
-        selected = asyncio.run(respond_to_group_activity(
-            group.group_id,
-            member_row.member_id,
-            schemas.GroupActivityConfirmation(action="accept"),
-            db=self.db,
-            user=self.member,
-        ))
-        self.assertTrue(selected.confirmation_complete)
-        selected = asyncio.run(update_group_expense(
-            group.group_id,
-            schemas.GroupExpenseUpdate(total_amount=300001),
-            db=self.db,
-            user=self.host,
-        ))
-        self.assertEqual(selected.total_amount, 300001)
-        self.assertEqual([item.payment.amount for item in selected.members], [150001, 150000])
-        paid = asyncio.run(update_payment(
-            group.group_id,
-            selected.members[1].member_id,
-            schemas.GroupPaymentAction(action="paid"),
-            db=self.db,
-            user=self.host,
-        ))
-        self.assertEqual(paid.paid_amount, 150000)
-        # Nhắc thanh toán: lần 2 trong vòng 30 phút bị chặn ở server.
-        from unittest.mock import patch
-        from app.routers import groups as groups_router
-        with patch.object(groups_router, "send_notification_email") as sent:
-            asyncio.run(update_payment(
-                group.group_id, selected.members[0].member_id, schemas.GroupPaymentAction(action="remind"),
-                db=self.db, user=self.host,
-            ))
-            with self.assertRaises(HTTPException) as too_soon:
-                asyncio.run(update_payment(
-                    group.group_id, selected.members[0].member_id, schemas.GroupPaymentAction(action="remind"),
-                    db=self.db, user=self.host,
-                ))
-        self.assertEqual(sent.call_count, 1)
-        self.assertEqual(too_soon.exception.status_code, 429)
-        with self.assertRaises(HTTPException) as denied:
-            asyncio.run(update_payment(
-                group.group_id,
-                selected.members[0].member_id,
-                schemas.GroupPaymentAction(action="paid"),
-                db=self.db,
-                user=self.member,
-            ))
-        self.assertEqual(denied.exception.status_code, 403)
-
-    def test_host_randomizes_only_member_selected_activities(self):
+    def test_tie_decision_cards_revote_keeps_ballots_and_random_repeats(self):
         now = datetime.now(UTC).replace(tzinfo=None)
         business = self.db.query(models.BusinessProfile).first()
         other_activity = models.Activity(
@@ -310,6 +261,7 @@ class GroupFeatureTests(unittest.TestCase):
                 user=user,
             ))
         started = asyncio.run(start_group_search(group.group_id, db=self.db, user=self.host))
+        asyncio.run(open_group_voting(group.group_id, db=self.db, user=self.host))
         recommendations = asyncio.run(group_recommendations(group.group_id, db=self.db, user=self.host))
         self.assertGreaterEqual(len(recommendations), 2)
         selected_ids = {recommendations[0].activity_id, recommendations[1].activity_id}
@@ -330,34 +282,53 @@ class GroupFeatureTests(unittest.TestCase):
         closed = asyncio.run(close_group_voting(group.group_id, db=self.db, user=self.host))
         self.assertIsNone(closed.selected_activity)
         self.assertEqual(set(closed.tied_activity_ids), selected_ids)
+
+        # Thẻ "Vote tiếp"/"Random": thành viên chọn để gợi ý (đổi/bỏ được), host bấm thẻ là thực hiện.
+        decide = lambda choice: asyncio.run(choose_group_decision(
+            group.group_id, started.members[1].member_id, schemas.GroupDecisionRequest(choice=choice),
+            db=self.db, user=self.member,
+        ))
+        self.assertEqual(decide("random").members[1].decision_choice, "random")
+        self.assertEqual(decide("revote").members[1].decision_choice, "revote")
+        with self.assertRaises(HTTPException) as host_executes:
+            asyncio.run(choose_group_decision(
+                group.group_id, started.members[0].member_id, schemas.GroupDecisionRequest(choice="random"),
+                db=self.db, user=self.host,
+            ))
+        self.assertEqual(host_executes.exception.status_code, 409)
+
+        # Vote lại: mở lại cả danh sách, giữ phiếu cũ, xóa lựa chọn thẻ.
+        with self.assertRaises(HTTPException) as only_host_reopens:
+            asyncio.run(reopen_group_voting(group.group_id, db=self.db, user=self.member))
+        self.assertEqual(only_host_reopens.exception.status_code, 403)
+        reopened = asyncio.run(reopen_group_voting(group.group_id, db=self.db, user=self.host))
+        self.assertFalse(reopened.voting_closed)
+        self.assertEqual(reopened.members[1].vote_activity_ids, [recommendations[1].activity_id])
+        self.assertIsNone(reopened.members[1].decision_choice)
+        self.assertEqual(reopened.tied_activity_ids, [])
+
+        closed = asyncio.run(close_group_voting(group.group_id, db=self.db, user=self.host))
+        self.assertEqual(set(closed.tied_activity_ids), selected_ids)
         with self.assertRaises(HTTPException) as only_host:
             asyncio.run(randomize_group_activity(group.group_id, db=self.db, user=self.member))
         self.assertEqual(only_host.exception.status_code, 403)
 
+        decide("random")
         first = asyncio.run(randomize_group_activity(group.group_id, db=self.db, user=self.host))
+        self.assertIsNone(first.members[1].decision_choice)  # sang bước mới thì lựa chọn thẻ được xóa
         again = asyncio.run(randomize_group_activity(group.group_id, db=self.db, user=self.host))
         self.assertIn(again.random_pick.activity_id, selected_ids)
         self.assertEqual(again.random_seq, first.random_seq + 1)
-        other = (selected_ids - {again.random_pick.activity_id}).pop()
-        with self.assertRaises(HTTPException):  # chỉ chốt được đúng hoạt động vừa random
-            asyncio.run(select_group_activity(group.group_id, schemas.GroupActivitySelect(activity_id=other), db=self.db, user=self.host))
-        randomized = asyncio.run(select_group_activity(
-            group.group_id, schemas.GroupActivitySelect(activity_id=again.random_pick.activity_id), db=self.db, user=self.host,
-        ))
-        self.assertIn(randomized.selected_activity.activity_id, selected_ids)
-        self.assertEqual(randomized.final_method, "random")
-        self.assertIsNone(randomized.random_pick)
-        self.assertEqual(randomized.members[0].confirmation_status, "accepted")
-        self.assertEqual(randomized.members[1].confirmation_status, "pending")
-        left = asyncio.run(respond_to_group_activity(
-            group.group_id,
-            joined.members[1].member_id,
-            schemas.GroupActivityConfirmation(action="reject"),
-            db=self.db,
-            user=self.member,
-        ))
-        self.assertEqual(len(left.members), 1)
-        self.assertTrue(left.confirmation_complete)
+        self.assertIsNone(again.selected_activity)  # random chỉ là gợi ý, không chốt
+        self.assertEqual(decide("revote").members[1].decision_choice, "revote")  # sau random vẫn chọn thẻ được
+
+        reopened = asyncio.run(reopen_group_voting(group.group_id, db=self.db, user=self.host))
+        self.assertIsNone(reopened.random_pick)
+        # Tắt bình chọn: xóa hết phiếu, quay về chỉ xem gợi ý.
+        cancelled = asyncio.run(cancel_group_voting(group.group_id, db=self.db, user=self.host))
+        self.assertFalse(cancelled.voting_open)
+        self.assertEqual(cancelled.vote_tally, [])
+        self.assertTrue(all(not item.vote_activity_ids for item in cancelled.members))
 
     def test_multi_vote_toggle_and_unique_top_wins(self):
         now = datetime.now(UTC).replace(tzinfo=None)
@@ -374,6 +345,7 @@ class GroupFeatureTests(unittest.TestCase):
         for user, member in ((self.host, joined.members[0]), (self.member, joined.members[1])):
             asyncio.run(set_member_ready(group.group_id, member.member_id, schemas.GroupReadyRequest(is_ready=True), db=self.db, user=user))
         started = asyncio.run(start_group_search(group.group_id, db=self.db, user=self.host))
+        asyncio.run(open_group_voting(group.group_id, db=self.db, user=self.host))
         vote = lambda user, member, activity_id: asyncio.run(vote_group_activity(
             group.group_id, member.member_id, schemas.GroupActivitySelect(activity_id=activity_id), db=self.db, user=user))
         vote(self.host, started.members[0], self.activity.activity_id)

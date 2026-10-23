@@ -18,6 +18,8 @@
     const name = document.getElementById('profileName').value.trim().replace(/\s+/g, ' ');
     const phone = document.getElementById('profilePhone').value.trim();
     if (!name) return F2D.toast('Họ và tên không được để trống.', 'error');
+    const phoneError = F2D.phoneProblem(phone);
+    if (phoneError) return F2D.toast(phoneError, 'error');
     if (name.length < 2 || name.length > 50 || !/^\p{L}+(?: \p{L}+)*$/u.test(name)) {
       return F2D.toast('Họ và tên chỉ gồm chữ cái tiếng Việt hoặc tiếng Anh và khoảng trắng (2-50 ký tự), không chứa số hay ký tự đặc biệt.', 'error');
     }
@@ -45,9 +47,12 @@
   }
   document.getElementById('favoriteActivities').onclick = async e => {
     const button = e.target.closest('[data-remove-id]'); if (!button) return;
-    button.disabled = true;
-    try { await api.request(`/bookmarks/${encodeURIComponent(button.dataset.removeId)}`, { method: 'DELETE' }); await renderBookmarks(); }
-    catch (error) { F2D.toast(error.message, 'error'); button.disabled = false; }
+    const removed = await F2D.ask({
+      title: 'Xóa khỏi yêu thích?', text: 'Hoạt động này sẽ bị xóa khỏi danh sách yêu thích của bạn.', ok: 'Xóa', danger: true,
+      done: 'Đã xóa khỏi yêu thích.',
+      run: () => api.request(`/bookmarks/${encodeURIComponent(button.dataset.removeId)}`, { method: 'DELETE', toast: false }),
+    });
+    if (removed) await renderBookmarks().catch(error => F2D.toast(error.message, 'error'));
   };
   function setAvatar(url, name) {
     document.querySelectorAll('.nav-avatar').forEach(element => {
@@ -83,16 +88,23 @@
     setAvatar(me.avatar_url, me.name);
     document.getElementById('profileName').value = me.name;
     document.getElementById('profileEmail').value = me.email || '';
-    document.getElementById('profilePhone').value = me.phone || '';
+    const phoneInput = document.getElementById('profilePhone');
+    phoneInput.value = me.phone || '';
+    // Tài khoản đăng nhập bằng SĐT: SĐT là tên đăng nhập nên không cho sửa ở hồ sơ.
+    phoneInput.disabled = Boolean(me.phone_locked);
+    if (me.phone_locked) phoneInput.title = 'Số điện thoại dùng để đăng nhập nên không thể thay đổi.';
     const [, presets] = await Promise.all([interests.load(), api.request('/media/avatar-presets')]);
     document.getElementById('avatarPresets').innerHTML = presets.map(item => `<button type="button" class="chip" data-preset-id="${api.escapeHTML(item.preset_id)}"><img src="${api.escapeHTML(item.media_url)}" alt="${api.escapeHTML(item.name)}" style="width:36px;height:36px;border-radius:50%;object-fit:cover"> ${api.escapeHTML(item.name)}</button>`).join('') || '<span>Chưa có ảnh mẫu.</span>';
     renderCategories(); await renderBookmarks();
     renderMyReviews().catch(error => { reviewBox.innerHTML = `<p class="f2d-empty">${api.escapeHTML(error.message)}</p>`; });
-    historyItems = await api.request('/users/me/search-history');
+    const [history, categories] = await Promise.all([api.request('/users/me/search-history'), api.request('/categories')]);
+    categories.forEach(item => categoryNames.set(item.category_id, item.name));
+    historyItems = history;
     renderHistory();
   }).catch(error => { document.getElementById('favoriteActivities').textContent = error.message; });
   // ---------- Lịch sử tìm kiếm: xóa 1 mục (nút ×), xóa các mục đã chọn, xóa tất cả ----------
   let historyItems = [];
+  const categoryNames = new Map();
   const selectedHistory = new Set();
   const historyPane = document.querySelector('#pane-lichsu');
   function renderHistory() {
@@ -161,24 +173,50 @@
     if (result) forgetHistory(ids);
   });
   // Mỗi lần tìm là 1 box: tên vị trí (đậm), ngày tìm, bán kính; "Tìm lại" chạy lại đúng vị trí + bán kính.
+  // Mỗi lần tìm là 1 thẻ: vị trí + thời điểm, các tiêu chí dạng chip (thời gian rảnh, ngân sách, bán kính,
+  // từ khóa, tags). "Tìm lại" mở trang tìm kiếm với đúng các tiêu chí đó.
+  const freeTimeLabel = minutes => {
+    const hours = Math.floor(minutes / 60);
+    const rest = minutes % 60;
+    return [hours ? `${hours} giờ` : '', rest ? `${rest} phút` : ''].filter(Boolean).join(' ') || '0 phút';
+  };
   function renderHistoryItem(item) {
+    const esc = api.escapeHTML;
     const label = item.location_label || 'Vị trí đã chọn';
     const radius = Number(item.radius);
-    const query = new URLSearchParams({ latitude: item.latitude, longitude: item.longitude, location_label: label, radius: String(radius) });
+    const categoryIds = item.category_ids || [];
+    const query = new URLSearchParams({ latitude: item.latitude, longitude: item.longitude, location_label: label, radius: String(radius), time_mode: 'today' });
     if (item.keyword) query.set('q', item.keyword);
     if (item.budget != null) query.set('budget', String(item.budget));
     if (item.free_time != null) { query.set('hours', String(Math.floor(item.free_time / 60))); query.set('minutes', String(item.free_time % 60)); }
-    const id = api.escapeHTML(item.search_id);
+    if (categoryIds.length) query.set('categories', categoryIds.join('|'));
+    const chip = (icon, text, muted = false) => `<span class="search-history-chip${muted ? ' is-muted' : ''}"><span aria-hidden="true">${icon}</span>${esc(text)}</span>`;
+    const criteria = [
+      item.free_time ? chip('🕒', `Rảnh ${freeTimeLabel(item.free_time)}`) : chip('🕒', 'Chưa nhập thời gian rảnh', true),
+      item.budget == null ? chip('💰', 'Mọi mức giá', true)
+        : chip('💰', Number(item.budget) === 0 ? 'Miễn phí' : `Tối đa ${Number(item.budget).toLocaleString('vi-VN')} ₫`),
+      chip('📍', `Bán kính ${Number.isInteger(radius) ? radius : radius.toFixed(1)} km`),
+      item.keyword ? chip('🔎', `“${item.keyword}”`) : '',
+    ].join('');
+    const tagNames = categoryIds.map(id => categoryNames.get(id)).filter(Boolean);
+    const tags = tagNames.length
+      ? tagNames.map(name => `<span class="search-history-tag">${esc(name)}</span>`).join('')
+      : '<span class="search-history-tag is-muted">Tất cả sở thích</span>';
+    const id = esc(item.search_id);
     return `<article class="search-history-card">
-      <input type="checkbox" class="search-history-select" data-history-id="${id}" ${selectedHistory.has(item.search_id) ? 'checked' : ''} aria-label="Chọn lịch sử tìm kiếm ${api.escapeHTML(label)}">
+      <input type="checkbox" class="search-history-select" data-history-id="${id}" ${selectedHistory.has(item.search_id) ? 'checked' : ''} aria-label="Chọn lịch sử tìm kiếm ${esc(label)}">
       <div class="search-history-info">
-        <h3 class="search-history-place">${api.escapeHTML(label)}</h3>
-        <p>Ngày tìm kiếm: ${api.escapeHTML(F2D.dateTime(item.created_at))}</p>
-        <p>Bán kính: ${api.escapeHTML(Number.isInteger(radius) ? radius : radius.toFixed(1))}km</p>
-        ${item.keyword ? `<p>Từ khóa: ${api.escapeHTML(item.keyword)}</p>` : ''}
+        <div class="search-history-head">
+          <h3 class="search-history-place">${esc(label)}</h3>
+          <time class="search-history-time" datetime="${esc(item.created_at)}">${esc(F2D.dateTime(item.created_at))}</time>
+        </div>
+        <div class="search-history-chips">${criteria}</div>
+        <div class="search-history-tags" aria-label="Sở thích đã chọn">${tags}</div>
       </div>
-      <a class="search-history-again" href="search.html?${query}">Tìm lại</a>
-      <button type="button" class="search-history-remove" data-history-remove="${id}" aria-label="Xóa mục lịch sử tìm kiếm này" title="Xóa">×</button>
+      <div class="search-history-actions">
+        <a class="search-history-again" href="search.html?${query}">Tìm lại</a>
+        <button type="button" class="search-history-remove" data-history-remove="${id}" aria-label="Xóa mục lịch sử tìm kiếm này" title="Xóa">×</button>
+      </div>
     </article>`;
   }
   // Lịch sử đánh giá cá nhân: xem, sửa (sao + nội dung) và xóa ngay tại tab.

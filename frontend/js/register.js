@@ -46,9 +46,8 @@ if (registerForm) {
     }
 
     const isEmail = /^[A-Za-z0-9._%+-]+@(?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,}$/.test(identifier);
-    const phoneDigits = identifier.replace(/[^0-9+]/g, "");
-    if (!isEmail && !/^(?:\+84|84|0)\d{8,10}$/.test(phoneDigits)) {
-      showRegisterError("Vui lòng nhập email hoặc số điện thoại hợp lệ.");
+    if (!isEmail && (identifier.includes("@") || F2D.phoneProblem(identifier))) {
+      showRegisterError(identifier.includes("@") ? "Vui lòng nhập email hợp lệ." : F2D.phoneProblem(identifier));
       return;
     }
 
@@ -84,7 +83,7 @@ if (registerForm) {
 
       // Phiên mới: tick "Sử dụng vị trí hiện tại" về mặc định, xóa vị trí/chat AI của phiên trước.
       ["f2d:use-gps", "f2d:home-location", "f2d:ai-chat"].forEach(key => localStorage.removeItem(key));
-      localStorage.setItem("token", data.access_token);
+      window.FREE2DO_SESSION.save(data);
       // Tài khoản mới: lần đầu vào home sẽ hiện popup chọn sở thích (customer-home.js).
       localStorage.setItem("f2d:onboard-interests", window.F2D.accountId() || "");
       const meResponse = await fetch(`${API_BASE_URL}/auth/me`, {

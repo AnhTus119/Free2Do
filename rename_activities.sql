@@ -45,7 +45,6 @@ DELETE FROM reports WHERE activity_id IN (SELECT activity_id FROM _del_act);
 DELETE FROM bookmarks WHERE activity_id IN (SELECT activity_id FROM _del_act);
 DELETE FROM activities_media WHERE activity_id IN (SELECT activity_id FROM _del_act);
 DELETE FROM activities_categories WHERE activity_id IN (SELECT activity_id FROM _del_act);
-DELETE FROM group_activity_votes WHERE activity_id IN (SELECT activity_id FROM _del_act);
 UPDATE groups SET selected_activity_id = NULL WHERE selected_activity_id IN (SELECT activity_id FROM _del_act);
 DELETE FROM activities WHERE activity_id IN (SELECT activity_id FROM _del_act);
 DROP TABLE _del_act;

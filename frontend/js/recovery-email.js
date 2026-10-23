@@ -57,7 +57,7 @@ async function request(path, options = {}) {
   const data = await response.json().catch(() => null);
 
   if (response.status === 401) {
-    localStorage.removeItem("token");
+    window.FREE2DO_SESSION.clear();
     window.location.replace("log-in.html");
     throw new Error("Phiên đăng nhập đã hết hạn.");
   }

@@ -3,6 +3,8 @@ import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Request, status
+from fastapi.exception_handlers import request_validation_exception_handler
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
@@ -83,6 +85,21 @@ async def keep_cors_on_server_errors(request: Request, call_next):
         logger.exception("Unhandled error on %s %s", request.method, request.url.path)
         return JSONResponse(status_code=500, content={"detail": "Máy chủ gặp lỗi. Vui lòng thử lại sau."})
 
+# Riêng 2 API này trả 400 (không phải 422) khi thiếu/sai kiểu dữ liệu, theo test case OTP_06 và INTEREST_05.
+# Các API khác giữ nguyên 422 mặc định của FastAPI.
+_BAD_REQUEST_ON_VALIDATION = {
+    "/auth/verify-reset-otp": "Vui lòng nhập đầy đủ email/số điện thoại và mã OTP",
+    "/users/me/categories": "Danh sách sở thích không hợp lệ (category_ids phải là mảng mã danh mục)",
+}
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_error_handler(request: Request, exc: RequestValidationError):
+    message = _BAD_REQUEST_ON_VALIDATION.get(request.url.path)
+    if message:
+        return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"detail": message})
+    return await request_validation_exception_handler(request, exc)
+
 cors_origins = [origin.strip() for origin in settings.CORS_ORIGINS.split(",") if origin.strip()]
 app.add_middleware(
     CORSMiddleware,
@@ -91,6 +108,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["Retry-After"],  # trang quên mật khẩu đọc để đếm ngược nút gửi lại OTP
 )
 
 app.include_router(search.router)

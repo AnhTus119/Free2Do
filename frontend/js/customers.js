@@ -11,6 +11,9 @@
   const statFilters = document.querySelectorAll('.stat-filter');
   const pageSize = 10;
   let currentPage = 1;
+  // Link từ cảnh báo ở Tổng quan: customers.html?status=locked lọc sẵn.
+  const statusParam = new URLSearchParams(location.search).get('status');
+  if ([...statusFilter.options].some(option => option.value === statusParam)) statusFilter.value = statusParam;
 
   function getCustomers() {
     return window.AdminData.customers;

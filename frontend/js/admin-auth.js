@@ -21,7 +21,7 @@
   }
 
   function clearToken() {
-    localStorage.removeItem(TOKEN_KEY);
+    window.FREE2DO_SESSION.clear();
   }
 
   function goToLogin() {
@@ -118,7 +118,11 @@
 
   function bindLogoutLinks() {
     document.querySelectorAll('a[data-logout]').forEach((link) => {
-      link.addEventListener('click', () => { clearToken(); window.FREE2DO_CACHE.clear(); });
+      link.addEventListener('click', async event => {
+        event.preventDefault();
+        await window.FREE2DO_SESSION.logout();
+        window.location.href = link.href;
+      });
     });
   }
 

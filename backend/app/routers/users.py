@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app import models, schemas
 from app.auth import get_current_user
-from app.utils.identity import normalize_person_name
+from app.utils.identity import canonical_phone, clean_phone, normalize_person_name
 
 router = APIRouter(prefix="/users/me", tags=["users"])
 
@@ -23,15 +23,23 @@ def update_my_profile(
             user.name = normalize_person_name(data["name"])
         except ValueError as exc:
             raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from exc
+    account = user.account
     if "phone" in data:
-        raw_phone = data["phone"]
-        user.phone = raw_phone.strip() or None if raw_phone is not None else None
+        raw_phone = (data["phone"] or "").strip()
+        current_phone = account.phone or user.phone
+        # Chỉ kiểm tra khi SĐT thật sự đổi: dữ liệu cũ (có thể trùng/sai định dạng) không chặn việc lưu tên.
+        if canonical_phone(raw_phone) != (current_phone or ""):
+            if account.auth_provider == "phone":
+                raise HTTPException(status.HTTP_400_BAD_REQUEST, "Tài khoản đăng nhập bằng số điện thoại không thể đổi số điện thoại")
+            try:
+                user.phone = clean_phone(db, raw_phone, user_id=user.user_id, account_id=account.account_id)
+            except ValueError as exc:
+                raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc)) from exc
 
     db.commit()
     db.refresh(user)
     profile = user.business_profile or user.customer_profile
     role_name = user.role.role_name if user.role else None
-    account = user.account
     return schemas.MeResponse(
         account_id=account.account_id,
         email=account.email,
@@ -41,6 +49,7 @@ def update_my_profile(
         username=user.name,
         user_id=user.user_id,
         phone=account.phone or user.phone,
+        phone_locked=account.auth_provider == "phone",
         recovery_email=account.recovery_email,
         requires_recovery_email=account.auth_provider == "phone" and not account.recovery_email,
         avatar_url=profile.avatar_url if profile else None,
@@ -166,7 +175,7 @@ def update_my_categories(
     missing = [category_id for category_id in category_ids if category_id not in existing_ids]
     if missing:
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status.HTTP_400_BAD_REQUEST,
             f"Danh mục không tồn tại: {', '.join(missing)}",
         )
     db.query(models.UserCategory).filter(models.UserCategory.user_id == user.user_id).delete()

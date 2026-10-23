@@ -172,7 +172,8 @@
     updateTodayLabel();
     const budget = parseMoney(params.get('budget'));
     if (budget != null) {
-      const option = budget === 0 ? 'free' : budget <= 200000 ? '200000' : budget <= 500000 ? '500000' : 'custom';
+      // Khớp đúng mức đã chọn; số khác (tự nhập) giữ nguyên trong ô "Khác" để tìm lại đúng ngân sách cũ.
+      const option = budget === 0 ? 'free' : budget === 200000 ? '200000' : budget === 500000 ? '500000' : 'custom';
       const radio = document.querySelector(`input[name="budget"][value="${option}"]`);
       if (radio) radio.checked = true;
       if (option === 'custom') {

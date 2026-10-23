@@ -85,6 +85,8 @@ async function saveProfile(event) {
   const address = document.getElementById('edit-address').value.trim();
   if (!name) return BusinessAPI.notify('Tên doanh nghiệp không được để trống.', 'error');
   if (!address) return BusinessAPI.notify('Địa chỉ không được để trống.', 'error');
+  const phoneError = F2D.phoneProblem(document.getElementById('edit-phone').value);
+  if (phoneError) return BusinessAPI.notify(phoneError, 'error');
   const body = {
     business_name: name,
     phone: document.getElementById('edit-phone').value.trim() || null,

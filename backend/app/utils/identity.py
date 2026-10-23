@@ -40,14 +40,52 @@ def normalize_person_name(value: str | None) -> str:
     return name
 
 
-def normalize_phone(value: str) -> str:
-    phone = re.sub(r"[^0-9+]", "", value.strip())
+# Di động Việt Nam: 10 số, đầu 03/05/07/08/09 (nhập kèm +84/84, dấu cách, chấm, gạch nối vẫn được).
+PHONE_PATTERN = re.compile(r"^0[35789]\d{8}$")
+PHONE_INVALID_MESSAGE = "Số điện thoại không hợp lệ (cần 10 số, bắt đầu bằng 03, 05, 07, 08 hoặc 09)"
+PHONE_TAKEN_MESSAGE = "Số điện thoại đã được sử dụng bởi tài khoản khác"
+
+
+def canonical_phone(value: str) -> str:
+    """Bỏ dấu cách/chấm/gạch nối và đổi +84/84 thành 0, KHÔNG kiểm tra định dạng (dùng để tra cứu dữ liệu cũ)."""
+    phone = re.sub(r"[\s.\-()]", "", value.strip())
     if phone.startswith("+84"):
         phone = "0" + phone[3:]
     elif phone.startswith("84") and len(phone) >= 11:
         phone = "0" + phone[2:]
-    if not phone.isdigit() or not phone.startswith("0") or not 9 <= len(phone) <= 11:
-        raise ValueError("Số điện thoại không hợp lệ")
+    return phone
+
+
+def normalize_phone(value: str) -> str:
+    phone = canonical_phone(value)
+    if not PHONE_PATTERN.fullmatch(phone):
+        raise ValueError(PHONE_INVALID_MESSAGE)
+    return phone
+
+
+def phone_taken(db: Session, phone: str, user_id: str | None = None, account_id: str | None = None) -> bool:
+    """1 SĐT chỉ thuộc 1 tài khoản: SĐT đăng nhập, SĐT hồ sơ cá nhân, SĐT doanh nghiệp và đơn đăng ký
+    doanh nghiệp đang chờ duyệt của tài khoản KHÁC đều tính là đã dùng."""
+    checks = (
+        db.query(models.Account.account_id).filter(models.Account.phone == phone, models.Account.account_id != account_id),
+        db.query(models.User.user_id).filter(models.User.phone == phone, models.User.user_id != user_id),
+        db.query(models.BusinessProfile.user_id).filter(models.BusinessProfile.phone == phone, models.BusinessProfile.user_id != user_id),
+        db.query(models.BusinessRequest.request_id).filter(
+            models.BusinessRequest.phone == phone,
+            models.BusinessRequest.status == "pending",
+            models.BusinessRequest.user_id != user_id,
+        ),
+    )
+    return any(query.first() for query in checks)
+
+
+def clean_phone(db: Session, value: str | None, user_id: str | None = None, account_id: str | None = None) -> str | None:
+    """SĐT người dùng sửa: rỗng -> None; sai định dạng hoặc trùng tài khoản khác -> ValueError."""
+    if value is None or not value.strip():
+        return None
+    phone = normalize_phone(value)
+    if phone_taken(db, phone, user_id=user_id, account_id=account_id):
+        raise ValueError(PHONE_TAKEN_MESSAGE)
     return phone
 
 
@@ -59,7 +97,12 @@ def split_identifier(value: str) -> tuple[str | None, str | None]:
 
 
 def find_account(db: Session, identifier: str) -> models.Account | None:
-    email, phone = split_identifier(identifier)
-    if email:
+    identifier = identifier.strip()
+    if "@" in identifier:
+        email = normalize_email(identifier)
         return db.query(models.Account).filter(models.Account.email == email).first()
+    # ponytail: tra cứu không ép định dạng mới để tài khoản cũ có SĐT bàn/11 số vẫn đăng nhập được.
+    phone = canonical_phone(identifier)
+    if not phone:
+        return None
     return db.query(models.Account).filter(models.Account.phone == phone).first()

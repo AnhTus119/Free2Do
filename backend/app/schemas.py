@@ -146,10 +146,14 @@ class BusinessProfile(BaseModel):
 
 # BusinessRequest
 class BusinessRequestCreate(BaseModel):
-    business_name: str
-    phone: Optional[str] = None
+    # Bắt buộc đủ thông tin, trừ địa chỉ trụ sở (ảnh minh chứng >= 1 kiểm tra ở form trước khi gửi).
+    business_name: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=255)]
+    phone: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=30)]
     business_address: Optional[str] = None
-    description: Optional[str] = None
+    description: Annotated[str, StringConstraints(strip_whitespace=True, min_length=20, max_length=5000)]
+
+class BusinessRequestRejectRequest(BaseModel):
+    reason: str = Field(..., min_length=3, max_length=1000)
 
 class BusinessRequestProofOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -399,12 +403,17 @@ class SearchHistory(BaseModel):
     budget: Optional[float] = None
     free_time: Optional[int] = None
     location_label: Optional[str] = None
+    category_ids: list[str] = Field(default_factory=list)
     created_at: datetime
 
 # Auth
 class Token(BaseModel):
     access_token: str
+    refresh_token: Optional[str] = None
     token_type: str = "bearer"
+
+class RefreshTokenRequest(BaseModel):
+    refresh_token: Optional[str] = None  # thiếu -> 400 (kiểm tra trong endpoint), sai/hết hạn -> 401
 
 class LoginRequest(BaseModel):
     identifier: str
@@ -464,6 +473,7 @@ class MeResponse(BaseModel):
     user_id: Optional[str] = None
     operator_id: Optional[str] = None
     phone: Optional[str] = None
+    phone_locked: bool = False   # tài khoản đăng nhập bằng SĐT: không cho sửa SĐT ở hồ sơ
     recovery_email: Optional[str] = None
     requires_recovery_email: bool = False
     requires_password_change: bool = False  # tài khoản tạo bằng bootstrap_admin.py, chưa đổi mật khẩu
@@ -524,33 +534,13 @@ class GroupReadyRequest(BaseModel):
     is_ready: bool
 
 
-class GroupLeaveRequest(BaseModel):
-    action: Literal["approve", "reject"]
-
-
-class GroupActivityConfirmation(BaseModel):
-    action: Literal["accept", "reject"]
-
-
-class GroupPaymentAction(BaseModel):
-    action: Literal["paid", "unpaid", "remind"]
-
-
-class GroupExpenseUpdate(BaseModel):
-    total_amount: int = Field(ge=0)
-
-
 class GroupActivitySelect(BaseModel):
     activity_id: str
 
 
-class GroupPaymentOut(BaseModel):
-    payment_id: str
-    member_id: str
-    amount: float
-    status: str
-    reminded_at: Optional[datetime] = None
-    paid_at: Optional[datetime] = None
+class GroupDecisionRequest(BaseModel):
+    """Thẻ thành viên chọn khi hòa phiếu (None = bỏ chọn). Chỉ host bấm thẻ mới thực hiện."""
+    choice: Optional[Literal["revote", "random"]] = None
 
 
 class GroupMemberOut(BaseModel):
@@ -566,13 +556,9 @@ class GroupMemberOut(BaseModel):
     category_names: list[str]
     is_host: bool
     is_ready: bool = False
-    activity_vote_id: Optional[str] = None
     vote_activity_ids: list[str] = Field(default_factory=list)
-    confirmation_status: Optional[str] = None
-    leave_requested_at: Optional[datetime] = None
-    leave_status: str = "none"
+    decision_choice: Optional[str] = None
     is_online: bool = False
-    payment: GroupPaymentOut
 
 
 class GroupSelectedActivityOut(BaseModel):
@@ -609,8 +595,8 @@ class GroupOut(BaseModel):
     status: str
     search_started: bool = False
     all_ready: bool = False
-    confirmation_complete: bool = False
-    selected_activity: Optional[GroupSelectedActivityOut] = None
+    selected_activity: Optional[GroupSelectedActivityOut] = None  # hoạt động thắng bình chọn (không hòa)
+    voting_open: bool = False
     voting_closed: bool = False
     vote_tally: list[GroupVoteTallyOut] = Field(default_factory=list)
     tied_activity_ids: list[str] = Field(default_factory=list)
@@ -618,9 +604,6 @@ class GroupOut(BaseModel):
     random_seq: int = 0
     final_method: Optional[str] = None
     members: list[GroupMemberOut]
-    total_amount: float
-    paid_amount: float
-    missing_amount: float
     created_at: datetime
     updated_at: datetime
 

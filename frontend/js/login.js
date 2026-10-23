@@ -64,7 +64,7 @@ if (loginForm) {
 
       // Phiên mới: tick "Sử dụng vị trí hiện tại" về mặc định, xóa vị trí/chat AI của phiên trước.
       ["f2d:use-gps", "f2d:home-location", "f2d:ai-chat"].forEach(key => localStorage.removeItem(key));
-      localStorage.setItem("token", data.access_token);
+      window.FREE2DO_SESSION.save(data);
 
       const meResponse = await fetch(`${API_BASE_URL}/auth/me`, {
         headers: { Authorization: `Bearer ${data.access_token}` },
@@ -72,7 +72,7 @@ if (loginForm) {
       const me = await meResponse.json();
 
       if (!meResponse.ok) {
-        localStorage.removeItem("token");
+        window.FREE2DO_SESSION.clear();
         submitButton.disabled = false;
         submitButton.textContent = originalLabel;
         showLoginError(me.detail || "Không lấy được thông tin tài khoản.");

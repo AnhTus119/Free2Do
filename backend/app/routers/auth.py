@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session, joinedload
@@ -11,17 +11,29 @@ from app.auth import (
     verify_password,
     create_access_token,
     create_reset_token,
+    decode_payload,
     decode_token,
+    issue_tokens,
     verify_google_token,
     get_authenticated_account,
+    oauth2_scheme,
     requires_recovery_email,
     ensure_recovery_email,
 )
-from app.utils.otp import generate_and_save_otp, verify_otp
+from app.utils.otp import OtpRateLimited, generate_and_save_otp, verify_otp
 from app.utils.email import EmailDeliveryError, send_otp_email
-from app.utils.identity import find_account, normalize_email, normalize_person_name, normalize_phone, split_identifier
+from app.utils.identity import find_account, normalize_email, normalize_person_name, normalize_phone, phone_taken, split_identifier
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+
+def _otp_or_429(db: Session, email: str, purpose: str) -> str:
+    try:
+        return generate_and_save_otp(db, email, purpose=purpose)
+    except OtpRateLimited as exc:
+        raise HTTPException(
+            status.HTTP_429_TOO_MANY_REQUESTS, str(exc), headers={"Retry-After": str(exc.wait_seconds)},
+        ) from exc
 
 
 def _send_otp_or_502(email: str, code: str, purpose: str) -> None:
@@ -49,7 +61,7 @@ def register(payload: schemas.RegisterRequest, db: Session = Depends(get_db)):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc)) from exc
     if email and db.query(models.Account).filter(models.Account.email == email).first():
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Email đã được sử dụng")
-    if phone and db.query(models.Account).filter(models.Account.phone == phone).first():
+    if phone and phone_taken(db, phone):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Số điện thoại đã được sử dụng")
 
     # Form đăng ký hiện tại dành cho người dùng thông thường. Nếu frontend không
@@ -96,7 +108,7 @@ def register(payload: schemas.RegisterRequest, db: Session = Depends(get_db)):
     db.commit()
 
     # Trả token luôn để frontend có thể đăng nhập tự động sau khi đăng ký.
-    return {"access_token": create_access_token(account.account_id)}
+    return issue_tokens(db, account)
 
 # Cách 2: Sign in with Google
 @router.post("/google", response_model=schemas.Token)
@@ -143,7 +155,7 @@ def google_login(payload: schemas.GoogleLoginRequest, db: Session = Depends(get_
 
         db.commit()
 
-    return {"access_token": create_access_token(account.account_id)}
+    return issue_tokens(db, account)
 
 # Đăng nhập bằng email hoặc số điện thoại + mật khẩu.
 @router.post("/login", response_model=schemas.Token)
@@ -153,13 +165,37 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     except ValueError:
         account = None
 
-    if (
-        not account
-        or account.auth_provider == "google"
-        or not account.password_hash
-        or not verify_password(form_data.password, account.password_hash)
-    ):
+    if not account or account.auth_provider == "google" or not account.password_hash:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Sai email/số điện thoại hoặc mật khẩu")
+
+    # Chống dò mật khẩu: sai LOGIN_MAX_FAILED lần liên tiếp -> khóa đăng nhập LOGIN_LOCK_MINUTES phút.
+    now = datetime.utcnow()
+    if account.login_locked_until and account.login_locked_until > now:
+        minutes = int((account.login_locked_until - now).total_seconds() // 60) + 1
+        raise HTTPException(
+            status.HTTP_429_TOO_MANY_REQUESTS,
+            f"Bạn đã nhập sai mật khẩu quá {settings.LOGIN_MAX_FAILED} lần. Vui lòng thử lại sau {minutes} phút",
+        )
+    if not verify_password(form_data.password, account.password_hash):
+        account.failed_login_count = (account.failed_login_count or 0) + 1
+        if account.failed_login_count >= settings.LOGIN_MAX_FAILED:
+            account.failed_login_count = 0
+            account.login_locked_until = now + timedelta(minutes=settings.LOGIN_LOCK_MINUTES)
+            db.commit()
+            raise HTTPException(
+                status.HTTP_429_TOO_MANY_REQUESTS,
+                f"Bạn đã nhập sai mật khẩu quá {settings.LOGIN_MAX_FAILED} lần. "
+                f"Tài khoản tạm khóa đăng nhập {settings.LOGIN_LOCK_MINUTES} phút",
+            )
+        db.commit()
+        remaining = settings.LOGIN_MAX_FAILED - account.failed_login_count
+        raise HTTPException(
+            status.HTTP_401_UNAUTHORIZED,
+            f"Sai email/số điện thoại hoặc mật khẩu. Còn {remaining} lần thử trước khi bị khóa {settings.LOGIN_LOCK_MINUTES} phút",
+        )
+    if account.failed_login_count or account.login_locked_until:
+        account.failed_login_count = 0
+        account.login_locked_until = None
 
     if account.status != "active":
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Tài khoản chưa được kích hoạt hoặc đã bị khóa")
@@ -168,12 +204,47 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
         operator = db.query(models.Operator).filter(models.Operator.account_id == account.account_id).first()
         if not operator or operator.status != "active":
             raise HTTPException(status.HTTP_403_FORBIDDEN, "Tài khoản Operator đã bị khóa")
-        # Phiên đăng nhập của Operator/admin giới hạn 3 tiếng, ngắn hơn user thường
-        token = create_access_token(account.account_id, expire_minutes=settings.OPERATOR_TOKEN_EXPIRE_MINUTES)
-    else:
-        token = create_access_token(account.account_id)
+    # Phiên Operator/admin (8 tiếng) ngắn hơn user thường (7 ngày), xem issue_tokens.
+    return issue_tokens(db, account)
 
-    return {"access_token": token}
+
+@router.post("/refresh-token", response_model=schemas.Token)
+def refresh_access_token(payload: schemas.RefreshTokenRequest, db: Session = Depends(get_db)):
+    """Đổi refresh token còn hạn lấy access token mới (cùng phiên, refresh token giữ nguyên)."""
+    if not payload.refresh_token or not payload.refresh_token.strip():
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Thiếu refresh token")
+    claims = decode_payload(payload.refresh_token.strip(), expected_type="refresh")
+    session = db.get(models.RefreshToken, claims.get("jti")) if claims and claims.get("jti") else None
+    if (
+        not session
+        or session.account_id != claims.get("sub")
+        or session.revoked_at is not None
+        or session.expires_at <= datetime.utcnow()
+    ):
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Refresh token không hợp lệ hoặc đã hết hạn")
+    account = db.get(models.Account, session.account_id)
+    if not account or account.status != "active":
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Tài khoản chưa được kích hoạt hoặc đã bị khóa")
+    # ponytail: không xoay vòng refresh token -- nhiều tab cùng làm mới một lúc không đá nhau ra ngoài.
+    return {
+        "access_token": create_access_token(account.account_id, session_id=session.token_id),
+        "refresh_token": payload.refresh_token.strip(),
+    }
+
+
+@router.post("/signout", response_model=schemas.MessageResponse)
+def signout(
+    token: str = Depends(oauth2_scheme),
+    account: models.Account = Depends(get_authenticated_account),
+    db: Session = Depends(get_db),
+):
+    """Đăng xuất phiên hiện tại: refresh token và mọi access token của phiên này hết hiệu lực ngay."""
+    session_id = (decode_payload(token, expected_type="access") or {}).get("sid")
+    session = db.get(models.RefreshToken, session_id) if session_id else None
+    if session and session.account_id == account.account_id and session.revoked_at is None:
+        session.revoked_at = datetime.utcnow()
+        db.commit()
+    return {"message": "Đã đăng xuất"}
 
 
 # Lấy thông tin tài khoản đang đăng nhập + gợi ý trang điều hướng (dùng ngay sau khi login/register)
@@ -222,6 +293,7 @@ def read_me(account: models.Account = Depends(get_authenticated_account), db: Se
         username=user.name if user else "",
         user_id=user.user_id if user else None,
         phone=(account.phone or user.phone) if user else account.phone,
+        phone_locked=account.auth_provider == "phone",
         recovery_email=account.recovery_email,
         requires_recovery_email=requires_recovery_email(account),
         requires_password_change=bool(account.must_change_password),
@@ -268,7 +340,7 @@ def forgot_password(payload: schemas.ForgotPasswordRequest, db: Session = Depend
             account.email if account.auth_provider != "phone" else None
         )
     if account and account.password_hash and destination:
-        code = generate_and_save_otp(db, destination, purpose="reset_password")
+        code = _otp_or_429(db, destination, purpose="reset_password")
         _send_otp_or_502(destination, code, purpose="reset_password")
 
     return {"message": "Nếu tài khoản tồn tại, mã OTP đã được gửi tới email khôi phục"}
@@ -310,11 +382,7 @@ def request_recovery_email(
             "Tài khoản email/Google dùng chính email đăng nhập để khôi phục mật khẩu",
         )
     email = _validate_recovery_email(payload.recovery_email)
-    code = generate_and_save_otp(
-        db,
-        email,
-        purpose="verify_recovery_email",
-    )
+    code = _otp_or_429(db, email, purpose="verify_recovery_email")
 
     _send_otp_or_502(email, code, purpose="verify_recovery_email")
 

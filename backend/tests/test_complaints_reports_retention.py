@@ -154,8 +154,9 @@ class BusinessRejectTests(Base):
                          for rid, name in (("BR1", "Shop Một"), ("BR2", "Shop Hai"))])
         self.db.commit()
 
-    def act(self, request_id, action, who="operator"):
-        return self.client.patch(f"/operator/business-requests/{request_id}/{action}", headers=self.as_[who])
+    def act(self, request_id, action, who="operator", reason="Thiếu giấy phép kinh doanh"):
+        body = {"reason": reason} if action == "reject" else None
+        return self.client.patch(f"/operator/business-requests/{request_id}/{action}", headers=self.as_[who], json=body)
 
     def test_only_operator_can_reject_pending_request(self):
         self.assertEqual(self.act("BR1", "reject", "customer").status_code, 403)
@@ -163,10 +164,17 @@ class BusinessRejectTests(Base):
         rejected = self.act("BR1", "reject")
         self.assertEqual(rejected.status_code, 200, rejected.text)
         self.assertEqual(rejected.json()["status"], "rejected")
+        self.assertEqual(rejected.json()["rejection_reason"], "Thiếu giấy phép kinh doanh")
         self.db.expire_all()
         request = self.db.get(models.BusinessRequest, "BR1")
         self.assertEqual((request.reviewed_by, request.user.role.role_name), ("OP", "customer"))  # vẫn là khách hàng
         self.assertIsNone(self.db.query(models.BusinessProfile).filter_by(user_id="C1").first())
+
+    def test_reject_requires_reason(self):
+        self.assertEqual(self.act("BR1", "reject", reason="").status_code, 422)
+        self.assertEqual(self.act("BR1", "reject", reason=None).status_code, 422)
+        self.db.expire_all()
+        self.assertEqual(self.db.get(models.BusinessRequest, "BR1").status, "pending")
 
     def test_reject_only_from_pending(self):
         self.assertEqual(self.act("BR1", "reject").status_code, 200)

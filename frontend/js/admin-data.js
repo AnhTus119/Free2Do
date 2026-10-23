@@ -103,7 +103,7 @@
       return {
         id: user.user_id, code: profile?.business_code || 'Chưa có mã', name: profile?.business_name || user.name,
         address: profile?.business_address || 'Chưa có dữ liệu', type: 'Xem danh sách hoạt động',
-        phone: profile?.phone || user.phone || '', hours: 'Xem từng hoạt động', priceRange: 'Xem từng hoạt động',
+        phone: profile?.phone || user.phone || '', profilePhone: profile?.phone || '', hours: 'Xem từng hoạt động', priceRange: 'Xem từng hoạt động',
         status: mapStatus(user.status), verifiedBy: profile?.verified_by || '',
         verifiedAt: profile?.verified_at || null, description: profile?.description || 'Chưa có mô tả.',
         activityCount: user.activity_count, activeActivityCount: user.active_activity_count,
@@ -170,7 +170,7 @@
   }
 
   // quiet: không hiện toast (popup xác nhận F2D.ask tự hiện kết quả).
-  async function setStatus(kind, id, status, { quiet = false } = {}) {
+  async function setStatus(kind, id, status, { quiet = false, reason = '' } = {}) {
     if (kind === 'activity') {
       const next = status === 'rejected' ? 'hidden' : status;
       await auth.authFetch(`/operator/activities/${encodeURIComponent(id)}/status`, {
@@ -188,7 +188,7 @@
     if (kind === 'business' && item.requestId) {
       const action = status === 'active' ? 'approve' : 'reject';
       await auth.authFetch(`/operator/business-requests/${encodeURIComponent(item.requestId)}/${action}`, {
-        method: 'PATCH', toast: quiet ? false : action === 'approve' ? 'Đã duyệt yêu cầu doanh nghiệp.' : 'Đã từ chối yêu cầu doanh nghiệp.',
+        method: 'PATCH', ...(action === 'reject' ? { body: JSON.stringify({ reason }) } : {}), toast: quiet ? false : action === 'approve' ? 'Đã duyệt yêu cầu doanh nghiệp.' : 'Đã từ chối yêu cầu doanh nghiệp.',
       });
       state.businesses = state.businesses.filter(entry => entry.id !== id);
       await refreshSummaries();
@@ -214,7 +214,11 @@
       : (status === 'active'
         ? ['Mở khóa tài khoản?', `"${name}" sẽ đăng nhập và sử dụng FREE2DO trở lại.`, 'Mở khóa', 'Đã mở khóa tài khoản.', false]
         : ['Khóa tài khoản?', `"${name}" sẽ không đăng nhập được cho tới khi được mở khóa.`, 'Khóa tài khoản', 'Đã khóa tài khoản.', true]);
-    return F2D.ask({ title, text, ok, done, danger, run: () => setStatus(kind, id, status, { quiet: true }) });
+    // Từ chối đơn doanh nghiệp bắt buộc nhập lý do (lưu vào đơn và gửi kèm email cho người đăng ký).
+    const input = isRequest && status !== 'active'
+      ? { label: 'Lý do từ chối', placeholder: 'Ví dụ: Thiếu giấy phép kinh doanh, ảnh minh chứng không rõ...', multiline: true, minLength: 3, requiredMessage: 'Hãy nhập lý do từ chối (ít nhất 3 ký tự).' }
+      : null;
+    return F2D.ask({ title, text, ok, done, danger, input, run: reason => setStatus(kind, id, status, { quiet: true, reason }) });
   }
 
   // Nhật ký thao tác operator cho trang hồ sơ đang xem (customer | business | activity).

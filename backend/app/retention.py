@@ -68,7 +68,6 @@ def purge_stale_records(db: Session, now: datetime | None = None) -> tuple[int, 
             (models.Bookmark, models.Bookmark.activity_id.in_(ids)),
             (models.ActivityCategory, models.ActivityCategory.activity_id.in_(ids)),
             (models.ActivityMedia, models.ActivityMedia.activity_id.in_(ids)),
-            (models.GroupActivityVote, models.GroupActivityVote.activity_id.in_(ids)),
             (models.GroupActivityBallot, models.GroupActivityBallot.activity_id.in_(ids)),
         ):
             db.query(model).filter(condition).delete(synchronize_session=False)

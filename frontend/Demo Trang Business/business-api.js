@@ -31,8 +31,7 @@
     const payload = await response.json().catch(() => null);
     if (!response.ok) {
       if (response.status === 401) {
-        localStorage.removeItem('token');
-        cache.clear();
+        window.FREE2DO_SESSION.clear();
         location.href = '../log-in.html';
       }
       const detail = payload?.detail;
@@ -79,8 +78,8 @@
     });
   }
 
-  function logout() {
-    localStorage.removeItem('token');
+  async function logout() {
+    await window.FREE2DO_SESSION.logout();
     location.href = '../log-in.html';
   }
 

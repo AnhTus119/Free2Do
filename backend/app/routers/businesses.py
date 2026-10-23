@@ -9,6 +9,7 @@ from app.auth import get_current_business_user
 from app.database import get_db
 from app.routers.activities import DETAIL_LOAD_OPTIONS, _is_approved, _to_details, expire_overdue_activities
 from app.services.supabase_storage import delete_asset
+from app.utils.identity import canonical_phone, clean_phone
 
 
 router = APIRouter(prefix="/business", tags=["business"])
@@ -83,7 +84,15 @@ def update_business_profile(
     db: Session = Depends(get_db),
     business: models.BusinessProfile = Depends(get_current_business_user),
 ):
-    for field, value in payload.model_dump(exclude_unset=True).items():
+    data = payload.model_dump(exclude_unset=True)
+    if "phone" in data and canonical_phone(data["phone"] or "") != (business.phone or ""):
+        try:
+            data["phone"] = clean_phone(db, data["phone"], user_id=business.user_id, account_id=business.user.account_id)
+        except ValueError as exc:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc)) from exc
+    else:
+        data.pop("phone", None)
+    for field, value in data.items():
         setattr(business, field, value)
     db.commit()
     db.refresh(business)

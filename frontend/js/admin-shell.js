@@ -44,10 +44,9 @@
     });
   }
 
-  function logout(event) {
+  async function logout(event) {
     event?.preventDefault();
-    localStorage.removeItem('token');
-    window.FREE2DO_CACHE?.clear();
+    await window.FREE2DO_SESSION.logout();
     window.location.href = 'log-in.html';
   }
 

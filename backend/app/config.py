@@ -8,8 +8,11 @@ class Settings(BaseSettings):
     DATABASE_URL: str = Field(min_length=1)
     JWT_SECRET_KEY: str = Field(min_length=1)
     JWT_ALGORITHM: str = "HS256"
-    JWT_EXPIRE_MINUTES: int = 60 * 24        # 1 ngày -- token của user (khách hàng/doanh nghiệp)
-    OPERATOR_TOKEN_EXPIRE_MINUTES: int = 180  # 3 tiếng -- token của Operator/admin, ngắn hơn vì là tài khoản quản trị
+    JWT_EXPIRE_MINUTES: int = 30                        # access token (mọi loại tài khoản), hết hạn thì dùng refresh token
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 7                  # phiên đăng nhập của user (khách hàng/doanh nghiệp)
+    OPERATOR_REFRESH_TOKEN_EXPIRE_MINUTES: int = 8 * 60  # phiên của Operator/admin, ngắn hơn vì là tài khoản quản trị
+    LOGIN_MAX_FAILED: int = 5          # sai mật khẩu liên tiếp bao nhiêu lần thì khóa tạm
+    LOGIN_LOCK_MINUTES: int = 10
 
     # Gửi email OTP
     SMTP_HOST: str = "smtp.gmail.com"
@@ -28,6 +31,8 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: str = ""
     OPENAI_MODEL: str = "gpt-6-luna"
     OTP_EXPIRE_MINUTES: int = 10
+    OTP_RESEND_SECONDS: int = 60       # mỗi email phải chờ giữa 2 lần gửi OTP
+    OTP_MAX_PER_HOUR: int = 5          # tối đa số OTP gửi tới 1 email trong 1 giờ
     RESET_TOKEN_EXPIRE_MINUTES: int = 10
     # Supabase Storage dùng cùng Project URL và server-side secret/service key.
     SUPABASE_URL: str = ""
